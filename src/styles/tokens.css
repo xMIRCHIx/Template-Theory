@@ -1,0 +1,65 @@
+:root {
+  /* Brand Color Palette */
+  --cream: #F7F0E5;
+  --cream-light: #FBF7F0;
+  --cream-dark: #EDE3D4;
+  --clay: #D8B892;
+  --clay-light: #E9D5B8;
+  --clay-dark: #B9956C;
+  --terracotta: #C98267;
+  --terracotta-dark: #A9634D;
+  --terracotta-light: #F4DFD7;
+  --olive: #7F876A;
+  --olive-dark: #656D54;
+  --olive-light: #E2E6D8;
+  --brown: #60442E;
+  --brown-dark: #493322;
+  --brown-light: #8E6C4E;
+  --text: #4F3A29;
+  --muted: #806E5D;
+  --border: #E5D5C1;
+  --border-light: #F0E6D8;
+  --white: #FFFDF8;
+  --black: #211913;
+
+  /* Accent highlights */
+  --gold: #D4A359;
+  --success: #6A8E6F;
+  --success-bg: #EDF5EE;
+
+  /* Typography */
+  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'DM Sans', system-ui, sans-serif;
+
+  /* Shadows - Claymorphic & Soft Depth */
+  --shadow-sm: 0 4px 12px rgba(91, 64, 42, 0.05);
+  --shadow-md: 0 10px 25px rgba(91, 64, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-lg: 0 18px 38px rgba(91, 64, 42, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-clay: 0 12px 30px rgba(91, 64, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --shadow-clay-hover: 0 16px 36px rgba(91, 64, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-floating: 0 25px 50px -12px rgba(91, 64, 42, 0.18);
+  --shadow-inset: inset 0 2px 4px rgba(91, 64, 42, 0.06);
+
+  /* Radiuses */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --max-width: 1520px;
+  --header-height: 84px;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(251, 247, 240, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-shadow: 0 16px 38px rgba(91, 64, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glass-blur: blur(24px) saturate(160%);
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.2s var(--ease-spring);
+  --transition-normal: 0.35s var(--ease-spring);
+  --transition-slow: 0.6s var(--ease-spring);
+}
