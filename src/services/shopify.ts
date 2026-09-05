@@ -147,6 +147,52 @@ function inferCategory(node: any): ProductCategory {
   return 'assets';
 }
 
+// Automatically parse Before & After pairs from Shopify media Alt tags
+function extractBeforeAfterFromShopify(node: any): {
+  beforeAfterImage?: { before: string; after: string };
+  beforeAfterList?: Array<{ id: string; title: string; before: string; after: string }>;
+} {
+  const imageNodes = (node.images?.edges || []).map((e: any) => ({
+    url: e.node.url,
+    alt: (e.node.altText || '').trim(),
+  }));
+
+  const beforeItems: Array<{ url: string; label: string }> = [];
+  const afterItems: Array<{ url: string; label: string }> = [];
+
+  imageNodes.forEach((img: any) => {
+    const altLower = img.alt.toLowerCase();
+    if (altLower.startsWith('before') || altLower.includes('[before]')) {
+      const label = img.alt.replace(/^(before|\[before\])\s*:?\s*/i, '').trim() || `Look ${beforeItems.length + 1}`;
+      beforeItems.push({ url: img.url, label });
+    } else if (altLower.startsWith('after') || altLower.includes('[after]')) {
+      const label = img.alt.replace(/^(after|\[after\])\s*:?\s*/i, '').trim() || `Look ${afterItems.length + 1}`;
+      afterItems.push({ url: img.url, label });
+    }
+  });
+
+  // If before/after Alt tags were specified in Shopify
+  if (beforeItems.length > 0 && afterItems.length > 0) {
+    const pairs: Array<{ id: string; title: string; before: string; after: string }> = [];
+    const count = Math.min(beforeItems.length, afterItems.length);
+    for (let i = 0; i < count; i++) {
+      pairs.push({
+        id: `ba-shopify-${i + 1}`,
+        title: afterItems[i].label || beforeItems[i].label || `Look ${i + 1}`,
+        before: beforeItems[i].url,
+        after: afterItems[i].url,
+      });
+    }
+
+    return {
+      beforeAfterImage: { before: pairs[0].before, after: pairs[0].after },
+      beforeAfterList: pairs.length > 1 ? pairs : undefined,
+    };
+  }
+
+  return {};
+}
+
 // Convert Shopify GraphQL Product Node to our app's Product type
 export function mapShopifyProductToAppProduct(node: any): Product {
   const images = (node.images?.edges || []).map((e: any) => e.node.url);
@@ -159,8 +205,14 @@ export function mapShopifyProductToAppProduct(node: any): Product {
 
   const category = inferCategory(node);
 
-  // Check if matching fallback product exists to borrow rich before/after visuals
+  // Check if Shopify has custom Before/After uploaded via Alt tags
+  const shopifyBA = extractBeforeAfterFromShopify(node);
+
+  // Check if matching fallback product exists to borrow rich before/after visuals if none uploaded
   const matchingFallback = FALLBACK_PRODUCTS.find((p) => p.slug === node.handle || p.category === category);
+
+  const beforeAfterImage = shopifyBA.beforeAfterImage || matchingFallback?.beforeAfterImage;
+  const beforeAfterList = shopifyBA.beforeAfterList || matchingFallback?.beforeAfterList;
 
   const tags = (node.tags || []).map((t: string) => t.toLowerCase());
 
@@ -194,8 +246,8 @@ export function mapShopifyProductToAppProduct(node: any): Product {
     bestseller: price >= 400,
     new: true,
     itemCount: category === 'presets' ? '30 Presets' : category === 'fonts' ? '25+ Fonts' : category === 'luts' ? '50 LUTs' : 'Complete Pack',
-    beforeAfterImage: matchingFallback?.beforeAfterImage,
-    beforeAfterList: matchingFallback?.beforeAfterList,
+    beforeAfterImage,
+    beforeAfterList,
     fontPreviewText: matchingFallback?.fontPreviewText || 'Template Theory Crafted for Creators',
     shopifyVariantId: firstVariant?.id,
     currencyCode,
