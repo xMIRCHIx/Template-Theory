@@ -22,6 +22,14 @@ import {
   Save,
   RotateCcw,
   ExternalLink,
+  Database,
+  Cloud,
+  CloudOff,
+  Copy,
+  Check,
+  Code2,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
@@ -34,6 +42,15 @@ import {
   saveAdminCustomizations,
   CustomBeforeAfterLook,
 } from '../services/adminStore';
+import {
+  getSupabaseCredentials,
+  saveSupabaseCredentials,
+  testSupabaseConnection,
+  fetchCustomizationsFromCloud,
+  saveCustomizationsToCloud,
+  uploadImageToSupabaseStorage,
+  SUPABASE_SQL_SETUP,
+} from '../services/db';
 
 type AdminTab = 'beforeAfter' | 'productOrder' | 'collections' | 'settings';
 
@@ -55,21 +72,39 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   placeholder = 'Or paste Image URL'
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (JPG, PNG, WebP).');
       return;
     }
+
+    setIsUploading(true);
+    try {
+      // 1. Try uploading to Supabase Storage if configured
+      const { url: storageUrl } = await uploadImageToSupabaseStorage(file);
+      if (storageUrl) {
+        onChange(storageUrl);
+        setIsUploading(false);
+        return;
+      }
+    } catch (e) {
+      // Supabase storage bucket not configured yet or connection error
+    }
+
+    // 2. Fallback to high-fidelity Base64 Data URL (saved straight into Supabase JSON DB)
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
         onChange(e.target.result as string);
       }
+      setIsUploading(false);
     };
+    reader.onerror = () => setIsUploading(false);
     reader.readAsDataURL(file);
   };
 
@@ -124,7 +159,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: 'pointer',
+          cursor: isUploading ? 'wait' : 'pointer',
           transition: 'all 0.2s ease',
         }}
       >
@@ -136,7 +171,12 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
           onChange={(e) => handleFiles(e.target.files)}
         />
 
-        {value ? (
+        {isUploading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--terracotta)' }}>
+            <Loader2 size={24} className="spin-animation" />
+            <span style={{ fontSize: '0.74rem', fontWeight: 700 }}>Processing Image...</span>
+          </div>
+        ) : value ? (
           <div style={{ width: '100%', height: '100%', position: 'relative' }}>
             <img
               src={value}
@@ -210,6 +250,8 @@ export const AdminPage: React.FC = () => {
     updateProductOrder,
     updateCollectionMapping,
     resetAllCustomizations,
+    isCloudSyncActive,
+    syncWithCloud,
   } = useShopify();
 
   // PIN Authentication State
@@ -236,10 +278,19 @@ export const AdminPage: React.FC = () => {
   const [collectionProductIds, setCollectionProductIds] = useState<string[]>([]);
   const [collectionFilterMode, setCollectionFilterMode] = useState<'all' | 'inCollection'>('all');
 
-  // --- TAB 4: Settings State ---
+  // --- TAB 4: Settings & Cloud DB State ---
   const [currentPin, setCurrentPin] = useState<string>('');
   const [newPin, setNewPin] = useState<string>('');
   const [pinSuccess, setPinSuccess] = useState<string | null>(null);
+
+  const [supabaseUrl, setSupabaseUrl] = useState<string>(() => getSupabaseCredentials().url);
+  const [supabaseKey, setSupabaseKey] = useState<string>(() => getSupabaseCredentials().anonKey);
+  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
+  const [connectionResult, setConnectionResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
+  const [isPullingCloud, setIsPullingCloud] = useState<boolean>(false);
+  const [showSqlDrawer, setShowSqlDrawer] = useState<boolean>(false);
+  const [copiedSql, setCopiedSql] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -469,6 +520,61 @@ export const AdminPage: React.FC = () => {
     }
   };
 
+  // --- Supabase Cloud Database Handlers ---
+  const handleSaveSupabaseCreds = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    saveSupabaseCredentials({ url: supabaseUrl.trim(), anonKey: supabaseKey.trim() });
+    showToast('✓ Supabase credentials saved!');
+    syncWithCloud();
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionResult(null);
+    saveSupabaseCredentials({ url: supabaseUrl.trim(), anonKey: supabaseKey.trim() });
+    const res = await testSupabaseConnection();
+    setConnectionResult(res);
+    setIsTestingConnection(false);
+    if (res.success) {
+      showToast('✓ Connected to Supabase Cloud Database!');
+      await syncWithCloud();
+    }
+  };
+
+  const handlePushToCloud = async () => {
+    setIsSyncingCloud(true);
+    saveSupabaseCredentials({ url: supabaseUrl.trim(), anonKey: supabaseKey.trim() });
+    const current = getAdminCustomizations();
+    const res = await saveCustomizationsToCloud(current);
+    setIsSyncingCloud(false);
+    if (res.success) {
+      showToast('✓ Customizations uploaded to Supabase Cloud Database!');
+    } else {
+      alert(`Cloud push failed: ${res.error || 'Check Supabase table and keys.'}`);
+    }
+  };
+
+  const handlePullFromCloud = async () => {
+    setIsPullingCloud(true);
+    saveSupabaseCredentials({ url: supabaseUrl.trim(), anonKey: supabaseKey.trim() });
+    const cloudData = await fetchCustomizationsFromCloud();
+    setIsPullingCloud(false);
+    if (cloudData) {
+      saveAdminCustomizations(cloudData);
+      await refreshProducts();
+      showToast('✓ Downloaded latest customizations from Supabase Cloud Database!');
+    } else {
+      alert('Could not retrieve customizations from Cloud DB. Please ensure the "store_customizations" table exists and credentials are correct.');
+    }
+  };
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SETUP);
+    setCopiedSql(true);
+    showToast('✓ 1-Click SQL Setup script copied to clipboard!');
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
+
   const selectedProduct = useMemo(() => {
     return products.find((p) => p.slug === selectedProductSlug);
   }, [products, selectedProductSlug]);
@@ -628,7 +734,7 @@ export const AdminPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span
                 style={{
                   backgroundColor: 'var(--terracotta)',
@@ -642,6 +748,41 @@ export const AdminPage: React.FC = () => {
               >
                 ADMIN SUITE
               </span>
+              {isCloudSyncActive ? (
+                <span
+                  style={{
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    border: '1px solid #bbf7d0',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Cloud size={12} /> SUPABASE CLOUD ACTIVE
+                </span>
+              ) : (
+                <span
+                  style={{
+                    backgroundColor: '#fef3c7',
+                    color: '#b45309',
+                    border: '1px solid #fde68a',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <CloudOff size={12} /> LOCAL CACHE (CONFIGURE DB IN TAB 4)
+                </span>
+              )}
               <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
                 Store Customizer & Studio
               </h1>
@@ -1463,190 +1604,507 @@ export const AdminPage: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: SETTINGS, PIN & BACKUP                                             */}
+        {/* TAB 4: CLOUD DATABASE (SUPABASE), PIN & BACKUP                            */}
         {/* ========================================================================= */}
         {activeTab === 'settings' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }} className="admin-grid-2col">
-            {/* PIN Security Manager */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* 1. PRIMARY CARD: SUPABASE CENTRAL CLOUD DATABASE */}
             <div
               style={{
                 backgroundColor: '#ffffff',
                 border: '1.5px solid var(--border)',
                 borderRadius: 'var(--radius-lg)',
-                padding: '24px',
+                padding: '28px',
                 boxShadow: 'var(--shadow-clay)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <Key size={20} color="var(--terracotta)" />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                  Change Admin PIN
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: '18px' }}>
-                Change your 4-digit security PIN used to unlock this Admin Studio.
-              </p>
-
-              <form onSubmit={handleChangePin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
-                    Current PIN:
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={8}
-                    value={currentPin}
-                    onChange={(e) => setCurrentPin(e.target.value)}
-                    placeholder="Enter current PIN"
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
                     style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(201, 130, 103, 0.12)',
                       border: '1.5px solid var(--border)',
-                      fontSize: '0.9rem',
-                      outline: 'none',
-                      boxSizing: 'border-box',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--terracotta)',
                     }}
-                  />
+                  >
+                    <Database size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Central Online Database (Supabase Cloud)
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--muted)', margin: '2px 0 0 0' }}>
+                      Persists all uploaded Before/After photos, look variations, and product ordering centrally so everyone sees them.
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
-                    New Security PIN:
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={8}
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="Enter new 4-digit PIN"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1.5px solid var(--border)',
-                      fontSize: '0.9rem',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                {pinSuccess && (
-                  <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 700 }}>{pinSuccess}</span>
-                )}
-
-                <button
-                  type="submit"
-                  className="btn-primary"
+                <span
                   style={{
-                    padding: '12px',
+                    backgroundColor: isCloudSyncActive ? '#dcfce7' : '#fef3c7',
+                    color: isCloudSyncActive ? '#15803d' : '#b45309',
+                    border: `1px solid ${isCloudSyncActive ? '#bbf7d0' : '#fde68a'}`,
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
                     gap: '6px',
-                    fontSize: '0.88rem',
-                    fontWeight: 800,
-                    marginTop: '6px',
                   }}
                 >
-                  <ShieldCheck size={16} /> Update Security PIN
-                </button>
-              </form>
-            </div>
-
-            {/* Backup & System Reset */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                border: '1.5px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '24px',
-                boxShadow: 'var(--shadow-clay)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                  <Layers size={20} color="var(--terracotta)" />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                    Backup & Data Sync
-                  </h3>
-                </div>
-                <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: '18px' }}>
-                  Export your Before/After looks and product sorting configuration as a JSON file, or import to another device.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <button
-                    onClick={handleExportBackup}
-                    style={{
-                      padding: '12px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--cream-light)',
-                      border: '1.5px solid var(--border)',
-                      color: 'var(--brown)',
-                      fontSize: '0.86rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    ⬇️ Export Customizations JSON Backup
-                  </button>
-
-                  <label
-                    style={{
-                      padding: '12px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--cream-light)',
-                      border: '1.5px solid var(--border)',
-                      color: 'var(--brown)',
-                      fontSize: '0.86rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      textAlign: 'center',
-                    }}
-                  >
-                    ⬆️ Import Customizations JSON File
-                    <input type="file" accept=".json" onChange={handleImportBackup} style={{ display: 'none' }} />
-                  </label>
-                </div>
+                  {isCloudSyncActive ? (
+                    <>
+                      <Cloud size={14} /> 🟢 LIVE CLOUD SYNC ACTIVE
+                    </>
+                  ) : (
+                    <>
+                      <CloudOff size={14} /> 🟡 LOCAL CACHE ONLY (OFFLINE)
+                    </>
+                  )}
+                </span>
               </div>
 
-              {/* Reset to Default */}
-              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+              {/* Supabase Credential Inputs */}
+              <form onSubmit={handleSaveSupabaseCreds} style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="admin-grid-2col">
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '6px' }}>
+                      SUPABASE PROJECT URL:
+                    </label>
+                    <input
+                      type="text"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://your-project-id.supabase.co"
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--border)',
+                        backgroundColor: 'var(--cream-light)',
+                        fontSize: '0.88rem',
+                        fontWeight: 600,
+                        color: 'var(--brown)',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '6px' }}>
+                      SUPABASE ANON / PUBLIC API KEY:
+                    </label>
+                    <input
+                      type="password"
+                      value={supabaseKey}
+                      onChange={(e) => setSupabaseKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--border)',
+                        backgroundColor: 'var(--cream-light)',
+                        fontSize: '0.88rem',
+                        fontWeight: 600,
+                        color: 'var(--brown)',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Connection Status Banner if tested */}
+                {connectionResult && (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: connectionResult.success ? '#f0fdf4' : '#fef2f2',
+                      border: `1.5px solid ${connectionResult.success ? '#bbf7d0' : '#fecaca'}`,
+                      color: connectionResult.success ? '#15803d' : '#b91c1c',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {connectionResult.success ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                    <span>{connectionResult.message}</span>
+                  </div>
+                )}
+
+                {/* Action Buttons Toolbar */}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    <Save size={15} /> Save Cloud Credentials
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestConnection}
+                    disabled={isTestingConnection}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--cream-light)',
+                      border: '1.5px solid var(--border)',
+                      color: 'var(--brown)',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: isTestingConnection ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {isTestingConnection ? (
+                      <>
+                        <Loader2 size={15} className="spin-animation" /> Testing Connection...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={15} /> Test Database Connection
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePushToCloud}
+                    disabled={isSyncingCloud}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--cream-light)',
+                      border: '1.5px solid var(--border)',
+                      color: 'var(--brown)',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: isSyncingCloud ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {isSyncingCloud ? (
+                      <>
+                        <Loader2 size={15} className="spin-animation" /> Pushing to Cloud...
+                      </>
+                    ) : (
+                      <>
+                        <Cloud size={15} color="var(--terracotta)" /> Push Local Data to Cloud DB
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePullFromCloud}
+                    disabled={isPullingCloud}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--cream-light)',
+                      border: '1.5px solid var(--border)',
+                      color: 'var(--brown)',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: isPullingCloud ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {isPullingCloud ? (
+                      <>
+                        <Loader2 size={15} className="spin-animation" /> Pulling Data...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw size={15} /> Pull from Cloud DB
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopySql}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: copiedSql ? '#dcfce7' : 'var(--cream-light)',
+                      border: `1.5px solid ${copiedSql ? '#bbf7d0' : 'var(--border)'}`,
+                      color: copiedSql ? '#15803d' : 'var(--brown)',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginLeft: 'auto',
+                    }}
+                  >
+                    {copiedSql ? <Check size={15} /> : <Copy size={15} />}
+                    {copiedSql ? 'SQL Script Copied!' : 'Copy 1-Click SQL Setup'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Collapsible SQL Script Guide */}
+              <div style={{ marginTop: '16px', borderTop: '1px dashed var(--border)', paddingTop: '12px' }}>
                 <button
-                  onClick={handleResetAll}
+                  type="button"
+                  onClick={() => setShowSqlDrawer((prev) => !prev)}
                   style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    border: '1.5px solid rgba(239, 68, 68, 0.3)',
-                    color: '#dc2626',
-                    fontSize: '0.82rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--terracotta)',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
+                    gap: '5px',
+                    padding: 0,
                   }}
                 >
-                  <RotateCcw size={15} /> Reset All to Shopify Defaults
+                  <Code2 size={15} />
+                  {showSqlDrawer ? 'Hide SQL Table Creation Script' : 'Need help creating the table? Click to view Supabase SQL script'}
                 </button>
+
+                {showSqlDrawer && (
+                  <div style={{ marginTop: '10px' }}>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '0 0 8px 0' }}>
+                      In your Supabase project dashboard, open the <strong>SQL Editor</strong>, paste this script, and click <strong>Run</strong>:
+                    </p>
+                    <pre
+                      style={{
+                        backgroundColor: '#1e1b18',
+                        color: '#f3e8dc',
+                        padding: '14px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.76rem',
+                        lineHeight: 1.5,
+                        overflowX: 'auto',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      {SUPABASE_SQL_SETUP}
+                    </pre>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* 2. SECOND ROW: SECURITY PIN & BACKUP / RESET */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }} className="admin-grid-2col">
+              {/* PIN Security Manager */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '24px',
+                  boxShadow: 'var(--shadow-clay)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <Key size={20} color="var(--terracotta)" />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                    Change Admin PIN
+                  </h3>
+                </div>
+                <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: '18px' }}>
+                  Change your 4-digit security PIN used to unlock this Admin Studio.
+                </p>
+
+                <form onSubmit={handleChangePin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                      Current PIN:
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={8}
+                      value={currentPin}
+                      onChange={(e) => setCurrentPin(e.target.value)}
+                      placeholder="Enter current PIN"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--border)',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                      New Security PIN:
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={8}
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value)}
+                      placeholder="Enter new 4-digit PIN"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--border)',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  {pinSuccess && (
+                    <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 700 }}>{pinSuccess}</span>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{
+                      padding: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      marginTop: '6px',
+                    }}
+                  >
+                    <ShieldCheck size={16} /> Update Security PIN
+                  </button>
+                </form>
+              </div>
+
+              {/* Backup & System Reset */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '24px',
+                  boxShadow: 'var(--shadow-clay)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <Layers size={20} color="var(--terracotta)" />
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      JSON Backup & Reset
+                    </h3>
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: '18px' }}>
+                    Download an offline JSON snapshot of your Before/After looks and sorting, or import from an existing file.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={handleExportBackup}
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--cream-light)',
+                        border: '1.5px solid var(--border)',
+                        color: 'var(--brown)',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      ⬇️ Export Customizations JSON Backup
+                    </button>
+
+                    <label
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--cream-light)',
+                        border: '1.5px solid var(--border)',
+                        color: 'var(--brown)',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      ⬆️ Import Customizations JSON File
+                      <input type="file" accept=".json" onChange={handleImportBackup} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Reset to Default */}
+                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={handleResetAll}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      border: '1.5px solid rgba(239, 68, 68, 0.3)',
+                      color: '#dc2626',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <RotateCcw size={15} /> Reset All to Shopify Defaults
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 

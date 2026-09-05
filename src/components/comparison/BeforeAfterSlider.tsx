@@ -8,6 +8,7 @@ interface BeforeAfterSliderProps {
   afterLabel?: string;
   aspectRatio?: string;
   fallbackImage?: string;
+  fitMode?: 'cover' | 'contain';
 }
 
 const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop';
@@ -17,8 +18,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   afterImage,
   beforeLabel = 'BEFORE',
   afterLabel = 'AFTER',
-  aspectRatio = '1 / 1',
+  aspectRatio = '16 / 9',
   fallbackImage = DEFAULT_FALLBACK,
+  fitMode = 'cover',
 }) => {
   const [sliderPos, setSliderPos] = useState(50); // percentage 0 to 100
   const [isDragging, setIsDragging] = useState(false);
@@ -71,7 +73,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         position: 'relative',
         width: '100%',
         aspectRatio,
-        maxHeight: 'min(75vh, 580px)',
+        maxHeight: 'min(75vh, 600px)',
         borderRadius: 'var(--radius-xl)',
         overflow: 'hidden',
         userSelect: 'none',
@@ -82,7 +84,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       }}
     >
       {/* ========================================================================= */}
-      {/* 1. BACKGROUND: AFTER IMAGE (Ambient Glow Backdrop + Crisp Contained Image) */}
+      {/* 1. BACKGROUND: AFTER IMAGE                                                */}
       {/* ========================================================================= */}
       <div
         style={{
@@ -93,54 +95,25 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           height: '100%',
           overflow: 'hidden',
           backgroundColor: '#181310',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
         }}
       >
-        {/* Soft Ambient Blurred Underlay (Fills letterbox/pillarbox space seamlessly) */}
-        <img
-          src={activeAfter}
-          alt=""
-          aria-hidden="true"
-          onError={() => setAfterError(true)}
-          style={{
-            position: 'absolute',
-            top: '-12%',
-            left: '-12%',
-            width: '124%',
-            height: '124%',
-            objectFit: 'cover',
-            filter: 'blur(32px) brightness(0.38) saturate(1.2)',
-            opacity: 0.85,
-            pointerEvents: 'none',
-            transform: 'scale(1.1)',
-          }}
-        />
-
-        {/* Crisp Sharp Contained Image (100% full view, never cut off or going out of screen) */}
         <img
           src={activeAfter}
           alt={afterLabel}
           onError={() => setAfterError(true)}
           style={{
-            position: 'relative',
             width: '100%',
             height: '100%',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
+            objectFit: fitMode,
             objectPosition: 'center',
             display: 'block',
             pointerEvents: 'none',
-            filter: 'drop-shadow(0 6px 20px rgba(0, 0, 0, 0.45))',
-            zIndex: 1,
           }}
         />
       </div>
 
       {/* ========================================================================== */}
-      {/* 2. FOREGROUND: BEFORE IMAGE (Matching Ambient Backdrop + Contained Image)   */}
+      {/* 2. FOREGROUND: BEFORE IMAGE (Clipped Layer)                                 */}
       {/* ========================================================================== */}
       <div
         style={{
@@ -157,43 +130,17 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           zIndex: 2,
         }}
       >
-        {/* Soft Ambient Blurred Underlay for Before */}
-        <img
-          src={activeBefore}
-          alt=""
-          aria-hidden="true"
-          onError={() => setBeforeError(true)}
-          style={{
-            position: 'absolute',
-            top: '-12%',
-            left: '-12%',
-            width: '124%',
-            height: '124%',
-            objectFit: 'cover',
-            filter: 'blur(32px) brightness(0.38) saturate(1.2)',
-            opacity: 0.85,
-            pointerEvents: 'none',
-            transform: 'scale(1.1)',
-          }}
-        />
-
-        {/* Crisp Sharp Contained Image for Before */}
         <img
           src={activeBefore}
           alt={beforeLabel}
           onError={() => setBeforeError(true)}
           style={{
-            position: 'relative',
             width: '100%',
             height: '100%',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
+            objectFit: fitMode,
             objectPosition: 'center',
             display: 'block',
             pointerEvents: 'none',
-            filter: 'drop-shadow(0 6px 20px rgba(0, 0, 0, 0.45))',
-            zIndex: 1,
           }}
         />
       </div>

@@ -210,8 +210,8 @@ export function mapShopifyProductToAppProduct(node: any): Product {
   // Check if matching fallback product exists with exact same slug
   const matchingFallback = FALLBACK_PRODUCTS.find((p) => p.slug === node.handle);
 
-  const beforeAfterImage = shopifyBA.beforeAfterImage || matchingFallback?.beforeAfterImage;
-  const beforeAfterList = shopifyBA.beforeAfterList || matchingFallback?.beforeAfterList;
+  const beforeAfterImage = shopifyBA.beforeAfterImage;
+  const beforeAfterList = shopifyBA.beforeAfterList;
 
   const tags = (node.tags || []).map((t: string) => t.toLowerCase());
 

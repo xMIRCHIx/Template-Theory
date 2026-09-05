@@ -48,61 +48,21 @@ export const ProductDetailPage: React.FC = () => {
   const hasBeforeAfter = Boolean(
     product &&
       ((product.beforeAfterList && product.beforeAfterList.length > 0) ||
-        product.beforeAfterImage ||
-        product.category === 'presets' ||
-        product.category === 'luts')
+        product.beforeAfterImage)
   );
 
   const beforeAfterPairs = useMemo(() => {
     if (!product) return [];
     if (product.beforeAfterList && product.beforeAfterList.length > 0) {
-      return product.beforeAfterList;
+      return product.beforeAfterList.filter((look) => look.before && look.after);
     }
-    if (product.beforeAfterImage) {
+    if (product.beforeAfterImage?.before && product.beforeAfterImage?.after) {
       return [
         {
           id: 'ba-default',
           title: 'Main Look',
           before: product.beforeAfterImage.before,
           after: product.beforeAfterImage.after,
-        },
-      ];
-    }
-    if (product.category === 'presets') {
-      return [
-        {
-          id: 'ba-p-1',
-          title: 'Look #1: Warm Golden Glow',
-          before: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=-25',
-          after: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=25&hue=12',
-        },
-        {
-          id: 'ba-p-2',
-          title: 'Look #2: Sun-Drenched Coastal',
-          before: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=-20',
-          after: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=30&hue=8',
-        },
-        {
-          id: 'ba-p-3',
-          title: 'Look #3: Moody Vintage Contrast',
-          before: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=-20&bri=-10',
-          after: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=25&hue=15',
-        },
-      ];
-    }
-    if (product.category === 'luts') {
-      return [
-        {
-          id: 'ba-l-1',
-          title: 'Look #1: Cinematic Teal & Orange',
-          before: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop&sat=-20',
-          after: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop&sat=20&hue=-10',
-        },
-        {
-          id: 'ba-l-2',
-          title: 'Look #2: Signature Warm Film',
-          before: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop&sat=-15',
-          after: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop&sat=25&hue=10',
         },
       ];
     }
