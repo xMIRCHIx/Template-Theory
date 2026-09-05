@@ -35,43 +35,7 @@ export const PRODUCTS: Product[] = [
     license: 'commercial',
     featured: true,
     bestseller: true,
-    itemCount: '12 Presets',
-    beforeAfterImage: {
-      before: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=-20&bri=-10',
-      after: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=25&hue=15'
-    },
-    beforeAfterList: [
-      {
-        id: 'ba-film-1',
-        title: 'Alpine Vista (35mm Nostalgia)',
-        before: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=-20&bri=-10',
-        after: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=25&hue=15'
-      },
-      {
-        id: 'ba-film-2',
-        title: 'Moody Pine Forest (Filmic Grain)',
-        before: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1200&auto=format&fit=crop&sat=20&hue=10'
-      },
-      {
-        id: 'ba-film-3',
-        title: 'Coastal Golden Hour (Portra 400)',
-        before: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=-15',
-        after: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=30&hue=5'
-      },
-      {
-        id: 'ba-film-4',
-        title: 'City Architecture (Vintage Contrast)',
-        before: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop&sat=-30',
-        after: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop&sat=25&hue=15'
-      },
-      {
-        id: 'ba-film-5',
-        title: 'Golden Portrait (Soft Highlight Roll-off)',
-        before: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=-20',
-        after: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=20&hue=12'
-      }
-    ]
+    itemCount: '12 Presets'
   },
   {
     id: 'warm-travel-presets',
@@ -104,43 +68,7 @@ export const PRODUCTS: Product[] = [
     version: '1.8',
     license: 'commercial',
     featured: true,
-    itemCount: '10 Presets',
-    beforeAfterImage: {
-      before: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1200&auto=format&fit=crop&sat=-20',
-      after: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1200&auto=format&fit=crop&sat=30'
-    },
-    beforeAfterList: [
-      {
-        id: 'ba-travel-1',
-        title: 'Santorini Coast (Terracotta & Cyan)',
-        before: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1200&auto=format&fit=crop&sat=30&hue=8'
-      },
-      {
-        id: 'ba-travel-2',
-        title: 'Tropical Palm Beach (Sun-Kissed Glow)',
-        before: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=-20',
-        after: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=35'
-      },
-      {
-        id: 'ba-travel-3',
-        title: 'Old European Alley (Golden Stone)',
-        before: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1200&auto=format&fit=crop&sat=30&hue=15'
-      },
-      {
-        id: 'ba-travel-4',
-        title: 'Desert Dunes (Amber Warmth)',
-        before: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1200&auto=format&fit=crop&sat=-15',
-        after: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1200&auto=format&fit=crop&sat=35&hue=15'
-      },
-      {
-        id: 'ba-travel-5',
-        title: 'Wanderer Portrait (Natural Skin Tones)',
-        before: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=1200&auto=format&fit=crop&sat=-20',
-        after: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=1200&auto=format&fit=crop&sat=25&hue=10'
-      }
-    ]
+    itemCount: '10 Presets'
   },
   {
     id: 'cinematic-lut-pack',
@@ -174,43 +102,7 @@ export const PRODUCTS: Product[] = [
     license: 'commercial',
     featured: true,
     bestseller: true,
-    itemCount: '16 LUTs',
-    beforeAfterImage: {
-      before: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop&sat=-30',
-      after: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop&sat=20'
-    },
-    beforeAfterList: [
-      {
-        id: 'ba-lut-1',
-        title: 'Mountain Drone Shot (Teal & Warmth)',
-        before: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop&sat=-30',
-        after: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop&sat=25&hue=15'
-      },
-      {
-        id: 'ba-lut-2',
-        title: 'Tokyo Night Alley (Neon Deep Blacks)',
-        before: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=1200&auto=format&fit=crop&sat=-35',
-        after: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=1200&auto=format&fit=crop&sat=30'
-      },
-      {
-        id: 'ba-lut-3',
-        title: 'Supercar Motion (Commercial Grade)',
-        before: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1200&auto=format&fit=crop&sat=25&hue=10'
-      },
-      {
-        id: 'ba-lut-4',
-        title: 'Studio Lighting (Filmic Skin Harmony)',
-        before: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=-30',
-        after: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=20&hue=15'
-      },
-      {
-        id: 'ba-lut-5',
-        title: 'Misty Coastline (Anamorphic Feel)',
-        before: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop&sat=25&hue=5'
-      }
-    ]
+    itemCount: '16 LUTs'
   },
   {
     id: 'moody-cinema-luts',
@@ -240,43 +132,7 @@ export const PRODUCTS: Product[] = [
     fileSize: '48 MB',
     version: '1.5',
     license: 'commercial',
-    itemCount: '14 LUTs',
-    beforeAfterImage: {
-      before: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200&auto=format&fit=crop&bri=-10&sat=-20',
-      after: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200&auto=format&fit=crop&bri=5&sat=15'
-    },
-    beforeAfterList: [
-      {
-        id: 'ba-moody-1',
-        title: 'Foggy Forest (Deep Shadows & Rolloff)',
-        before: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200&auto=format&fit=crop&bri=-10&sat=-25',
-        after: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200&auto=format&fit=crop&bri=5&sat=20&hue=10'
-      },
-      {
-        id: 'ba-moody-2',
-        title: 'Rainy Night City (Blade Runner Mood)',
-        before: 'https://images.unsplash.com/photo-1514306191717-452ec28c7814?q=80&w=1200&auto=format&fit=crop&sat=-30',
-        after: 'https://images.unsplash.com/photo-1514306191717-452ec28c7814?q=80&w=1200&auto=format&fit=crop&sat=30'
-      },
-      {
-        id: 'ba-moody-3',
-        title: 'Low Key Interior (High Drama)',
-        before: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=1200&auto=format&fit=crop&sat=20&hue=15'
-      },
-      {
-        id: 'ba-moody-4',
-        title: 'Night Street Glow (Warm Amber)',
-        before: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=1200&auto=format&fit=crop&sat=-30',
-        after: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=1200&auto=format&fit=crop&sat=25&hue=8'
-      },
-      {
-        id: 'ba-moody-5',
-        title: 'Mountain Pass (Dark Filmic Mood)',
-        before: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=-25',
-        after: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=20&hue=18'
-      }
-    ]
+    itemCount: '14 LUTs'
   },
   {
     id: 'minimal-social-psd-pack',

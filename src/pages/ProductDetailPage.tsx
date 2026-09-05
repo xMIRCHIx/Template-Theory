@@ -45,16 +45,10 @@ export const ProductDetailPage: React.FC = () => {
     return getProductBySlug(slug) || products.find((p) => p.id === slug || p.slug === slug);
   }, [slug, getProductBySlug, products]);
 
-  const hasBeforeAfter = Boolean(
-    product &&
-      ((product.beforeAfterList && product.beforeAfterList.length > 0) ||
-        product.beforeAfterImage)
-  );
-
   const beforeAfterPairs = useMemo(() => {
     if (!product) return [];
     if (product.beforeAfterList && product.beforeAfterList.length > 0) {
-      return product.beforeAfterList.filter((look) => look.before && look.after);
+      return product.beforeAfterList.filter((look) => Boolean(look.before && look.after));
     }
     if (product.beforeAfterImage?.before && product.beforeAfterImage?.after) {
       return [
@@ -68,6 +62,8 @@ export const ProductDetailPage: React.FC = () => {
     }
     return [];
   }, [product]);
+
+  const hasBeforeAfter = beforeAfterPairs.length > 0;
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeBAIndex, setActiveBAIndex] = useState(0);

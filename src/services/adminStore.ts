@@ -34,6 +34,29 @@ export function setAdminPin(newPin: string): void {
   }
 }
 
+function cleanLegacyCustomizations(data: AdminCustomizations): AdminCustomizations {
+  const cleanedBA: Record<string, CustomBeforeAfterLook[]> = {};
+  for (const [key, looks] of Object.entries(data.beforeAfter || {})) {
+    if (Array.isArray(looks)) {
+      const validLooks = looks.filter((l) => {
+        if (!l || (!l.before && !l.after)) return false;
+        // Purge legacy mock sample IDs from early development
+        if (l.id && (l.id.startsWith('ba-film') || l.id.startsWith('ba-travel') || l.id.startsWith('ba-lut') || l.id.startsWith('ba-moody'))) {
+          return false;
+        }
+        return true;
+      });
+      if (validLooks.length > 0) {
+        cleanedBA[key] = validLooks;
+      }
+    }
+  }
+  return {
+    ...data,
+    beforeAfter: cleanedBA,
+  };
+}
+
 export function getAdminCustomizations(): AdminCustomizations {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -41,11 +64,12 @@ export function getAdminCustomizations(): AdminCustomizations {
       return { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
     }
     const parsed = JSON.parse(raw);
-    return {
+    const cleaned = cleanLegacyCustomizations({
       beforeAfter: parsed.beforeAfter || {},
       productOrder: Array.isArray(parsed.productOrder) ? parsed.productOrder : [],
       collectionOverrides: parsed.collectionOverrides || {},
-    };
+    });
+    return cleaned;
   } catch (err) {
     console.warn('Failed to read admin customizations from localStorage:', err);
     return { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
