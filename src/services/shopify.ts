@@ -70,13 +70,16 @@ export const GET_ALL_PRODUCTS_QUERY = `
             url
             altText
           }
-          images(first: 10) {
+          images(first: 20) {
             edges {
               node {
                 url
                 altText
               }
             }
+          }
+          metafield(namespace: "custom", key: "before_after_looks") {
+            value
           }
           variants(first: 10) {
             edges {
@@ -146,11 +149,30 @@ function inferCategory(node: any): ProductCategory {
   return 'assets';
 }
 
-// Automatically parse Before & After pairs from Shopify media Alt tags
+// Automatically parse Before & After pairs from Shopify Metafield or Media Alt tags
 function extractBeforeAfterFromShopify(node: any): {
   beforeAfterImage?: { before: string; after: string };
   beforeAfterList?: Array<{ id: string; title: string; before: string; after: string }>;
 } {
+  // 1. Check if Shopify Product has custom.before_after_looks JSON metafield
+  if (node.metafield?.value) {
+    try {
+      const parsed = JSON.parse(node.metafield.value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const valid = parsed.filter((look: any) => look.before && look.after);
+        if (valid.length > 0) {
+          return {
+            beforeAfterImage: { before: valid[0].before, after: valid[0].after },
+            beforeAfterList: valid,
+          };
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // 2. Otherwise, check if Shopify Media has Alt tags (before/after)
   const imageNodes = (node.images?.edges || []).map((e: any) => ({
     url: e.node.url,
     alt: (e.node.altText || '').trim(),

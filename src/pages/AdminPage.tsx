@@ -30,6 +30,7 @@ import {
   Code2,
   AlertCircle,
   Loader2,
+  ShoppingBag,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
@@ -51,6 +52,12 @@ import {
   uploadImageToSupabaseStorage,
   SUPABASE_SQL_SETUP,
 } from '../services/db';
+import {
+  getShopifyAdminCredentials,
+  saveShopifyAdminCredentials,
+  testShopifyAdminConnection,
+  saveLooksToShopifyProduct,
+} from '../services/shopifyAdmin';
 
 type AdminTab = 'beforeAfter' | 'productOrder' | 'collections' | 'settings';
 
@@ -283,6 +290,11 @@ export const AdminPage: React.FC = () => {
   const [newPin, setNewPin] = useState<string>('');
   const [pinSuccess, setPinSuccess] = useState<string | null>(null);
 
+  const [shopifyAdminToken, setShopifyAdminToken] = useState<string>(() => getShopifyAdminCredentials().adminToken);
+  const [isTestingShopifyAdmin, setIsTestingShopifyAdmin] = useState<boolean>(false);
+  const [shopifyAdminResult, setShopifyAdminResult] = useState<{ success: boolean; message: string; shopName?: string } | null>(null);
+  const [isSavingToShopify, setIsSavingToShopify] = useState<boolean>(false);
+
   const [supabaseUrl, setSupabaseUrl] = useState<string>(() => getSupabaseCredentials().url);
   const [supabaseKey, setSupabaseKey] = useState<string>(() => getSupabaseCredentials().anonKey);
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
@@ -418,10 +430,27 @@ export const AdminPage: React.FC = () => {
     });
   };
 
-  const handleSaveBeforeAfter = () => {
+  const handleSaveBeforeAfter = async () => {
     if (!selectedProductSlug) return;
+    
+    // 1. Update Context & Supabase
     updateProductBeforeAfter(selectedProductSlug, activeLooks);
-    showToast(`✓ Before/After Looks saved for "${selectedProduct?.name}"!`);
+
+    // 2. If Shopify Admin Token is set, upload directly into Shopify's database!
+    const { adminToken } = getShopifyAdminCredentials();
+    if (adminToken && selectedProduct) {
+      setIsSavingToShopify(true);
+      showToast(`⏳ Uploading media & metafields directly to Shopify for "${selectedProduct.name}"...`);
+      const shopifyRes = await saveLooksToShopifyProduct(selectedProduct, activeLooks);
+      setIsSavingToShopify(false);
+      if (shopifyRes.success) {
+        showToast(`✓ Before/After looks saved directly into Shopify database & media for "${selectedProduct.name}"!`);
+      } else {
+        showToast(`✓ Saved to local & cloud database (Shopify push: ${shopifyRes.error})`);
+      }
+    } else {
+      showToast(`✓ Before/After Looks saved for "${selectedProduct?.name}"!`);
+    }
   };
 
   // --- Product Ordering Actions ---
@@ -517,6 +546,25 @@ export const AdminPage: React.FC = () => {
     if (window.confirm('Are you sure you want to reset all custom Before/After and product order back to Shopify defaults?')) {
       resetAllCustomizations();
       showToast('✓ Reset to Shopify defaults complete.');
+    }
+  };
+
+  // --- Shopify Admin Direct API Handlers ---
+  const handleSaveShopifyToken = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    saveShopifyAdminCredentials(shopifyAdminToken);
+    showToast('✓ Shopify Admin API Token saved!');
+  };
+
+  const handleTestShopifyAdmin = async () => {
+    setIsTestingShopifyAdmin(true);
+    setShopifyAdminResult(null);
+    saveShopifyAdminCredentials(shopifyAdminToken);
+    const res = await testShopifyAdminConnection();
+    setShopifyAdminResult(res);
+    setIsTestingShopifyAdmin(false);
+    if (res.success) {
+      showToast(`✓ Connected to Shopify Store: ${res.shopName || 'template-theory-2'}`);
     }
   };
 
@@ -1604,12 +1652,219 @@ export const AdminPage: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: CLOUD DATABASE (SUPABASE), PIN & BACKUP                            */}
+        {/* TAB 4: DIRECT SHOPIFY DATABASE, SUPABASE CLOUD & BACKUP                   */}
         {/* ========================================================================= */}
         {activeTab === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* 1. PRIMARY CARD: SUPABASE CENTRAL CLOUD DATABASE */}
+            {/* 1. PRIMARY CARD: DIRECT SHOPIFY DATABASE & MEDIA API */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '28px',
+                boxShadow: 'var(--shadow-clay)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(201, 130, 103, 0.12)',
+                      border: '1.5px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--terracotta)',
+                    }}
+                  >
+                    <ShoppingBag size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Direct Shopify Database Integration (Admin API)
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--muted)', margin: '2px 0 0 0' }}>
+                      Uploads Before/After photos directly into Shopify's product media and saves looks to Shopify's product database.
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    backgroundColor: shopifyAdminToken ? '#dcfce7' : '#fef3c7',
+                    color: shopifyAdminToken ? '#15803d' : '#b45309',
+                    border: `1px solid ${shopifyAdminToken ? '#bbf7d0' : '#fde68a'}`,
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {shopifyAdminToken ? (
+                    <>
+                      <CheckCircle size={14} /> 🟢 SHOPIFY ADMIN TOKEN SET
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={14} /> 🟡 TOKEN REQUIRED FOR DIRECT SHOPIFY UPLOAD
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Shopify Admin Token Input */}
+              <form onSubmit={handleSaveShopifyToken} style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }} className="admin-grid-2col">
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '6px' }}>
+                      SHOPIFY STORE DOMAIN:
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      value="template-theory-2.myshopify.com"
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--border)',
+                        backgroundColor: 'var(--cream)',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        color: 'var(--brown)',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        cursor: 'not-allowed',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '6px' }}>
+                      SHOPIFY ADMIN API ACCESS TOKEN (shpat_...):
+                    </label>
+                    <input
+                      type="password"
+                      value={shopifyAdminToken}
+                      onChange={(e) => setShopifyAdminToken(e.target.value)}
+                      placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--border)',
+                        backgroundColor: 'var(--cream-light)',
+                        fontSize: '0.88rem',
+                        fontWeight: 600,
+                        color: 'var(--brown)',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Shopify Test Result Banner */}
+                {shopifyAdminResult && (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: shopifyAdminResult.success ? '#f0fdf4' : '#fef2f2',
+                      border: `1.5px solid ${shopifyAdminResult.success ? '#bbf7d0' : '#fecaca'}`,
+                      color: shopifyAdminResult.success ? '#15803d' : '#b91c1c',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {shopifyAdminResult.success ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                    <span>{shopifyAdminResult.message}</span>
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    <Save size={15} /> Save Shopify Admin Token
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestShopifyAdmin}
+                    disabled={isTestingShopifyAdmin}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--cream-light)',
+                      border: '1.5px solid var(--border)',
+                      color: 'var(--brown)',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: isTestingShopifyAdmin ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {isTestingShopifyAdmin ? (
+                      <>
+                        <Loader2 size={15} className="spin-animation" /> Testing Shopify API...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={15} /> Test Shopify Connection
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Instructions Guide */}
+              <div style={{ marginTop: '16px', borderTop: '1px dashed var(--border)', paddingTop: '12px' }}>
+                <details style={{ fontSize: '0.82rem', color: 'var(--brown)' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--terracotta)' }}>
+                    📖 How to generate your Shopify Admin API Token in 1 minute
+                  </summary>
+                  <div style={{ marginTop: '8px', padding: '12px 16px', backgroundColor: 'var(--cream-light)', borderRadius: 'var(--radius-sm)', lineHeight: 1.6 }}>
+                    <ol style={{ margin: 0, paddingLeft: '20px' }}>
+                      <li>In your Shopify Admin (<strong>admin.shopify.com</strong>), go to <strong>Settings</strong> → <strong>Apps and sales channels</strong> → <strong>Develop apps</strong>.</li>
+                      <li>Click <strong>Create an app</strong> (name it <code>Template Theory Admin</code>).</li>
+                      <li>Click <strong>Configure Admin API scopes</strong>, search and enable:
+                        <ul>
+                          <li><code>write_products</code> &amp; <code>read_products</code></li>
+                          <li><code>write_files</code> &amp; <code>read_files</code></li>
+                        </ul>
+                      </li>
+                      <li>Click <strong>Install app</strong> and copy the <strong>Admin API access token</strong> (starts with <code>shpat_...</code>).</li>
+                    </ol>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            {/* 2. SECOND CARD: SUPABASE CENTRAL CLOUD DATABASE */}
             <div
               style={{
                 backgroundColor: '#ffffff',
