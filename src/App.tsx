@@ -22,6 +22,7 @@ import { FAQPage } from './pages/FAQPage';
 import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
+import { AdminPage } from './pages/AdminPage';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -67,6 +68,7 @@ const AppContent: React.FC = () => {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-success" element={<OrderSuccessPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           {/* Fallback */}
           <Route path="*" element={<HomePage />} />
         </Routes>

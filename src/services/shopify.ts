@@ -208,8 +208,8 @@ export function mapShopifyProductToAppProduct(node: any): Product {
   // Check if Shopify has custom Before/After uploaded via Alt tags
   const shopifyBA = extractBeforeAfterFromShopify(node);
 
-  // Check if matching fallback product exists to borrow rich before/after visuals if none uploaded
-  const matchingFallback = FALLBACK_PRODUCTS.find((p) => p.slug === node.handle || p.category === category);
+  // Check if matching fallback product exists with exact same slug
+  const matchingFallback = FALLBACK_PRODUCTS.find((p) => p.slug === node.handle);
 
   const beforeAfterImage = shopifyBA.beforeAfterImage || matchingFallback?.beforeAfterImage;
   const beforeAfterList = shopifyBA.beforeAfterList || matchingFallback?.beforeAfterList;
