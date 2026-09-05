@@ -70,6 +70,56 @@ interface ImageDropZoneProps {
   placeholder?: string;
 }
 
+// Fast client-side image downscaler to prevent memory bloat and browser freeze
+async function compressImageFile(file: File, maxDimension = 1400, quality = 0.82): Promise<string> {
+  return new Promise((resolve) => {
+    if (file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve((e.target?.result as string) || '');
+        reader.readAsDataURL(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(dataUrl);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
 const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   label,
   value,
@@ -100,19 +150,31 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
         return;
       }
     } catch (e) {
-      // Supabase storage bucket not configured yet or connection error
+      // ignore
     }
 
-    // 2. Fallback to high-fidelity Base64 Data URL (saved straight into Supabase JSON DB)
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        onChange(e.target.result as string);
+    try {
+      // 2. Client-side downscaling prevents huge uncompressed memory bloat & browser lag
+      const compressedDataUrl = await compressImageFile(file, 1400, 0.82);
+      if (compressedDataUrl) {
+        onChange(compressedDataUrl);
       }
+    } catch (err) {
+      console.warn('Compression fallback:', err);
+    } finally {
       setIsUploading(false);
-    };
-    reader.onerror = () => setIsUploading(false);
-    reader.readAsDataURL(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleZoneClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isUploading) {
+      fileInputRef.current?.click();
+    }
   };
 
   return (
@@ -124,7 +186,10 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
         {value && (
           <button
             type="button"
-            onClick={onClear}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
             style={{ fontSize: '0.7rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
           >
             Clear
@@ -132,8 +197,19 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
         )}
       </div>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png, image/jpeg, image/webp, image/jpg"
+        style={{ display: 'none' }}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          handleFiles(e.target.files);
+        }}
+      />
+
       <div
-        onClick={() => fileInputRef.current?.click()}
+        onClick={handleZoneClick}
         onDragOver={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -170,18 +246,10 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
           transition: 'all 0.2s ease',
         }}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-
         {isUploading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--terracotta)' }}>
             <Loader2 size={24} className="spin-animation" />
-            <span style={{ fontSize: '0.74rem', fontWeight: 700 }}>Processing Image...</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700 }}>Optimizing Photo...</span>
           </div>
         ) : value ? (
           <div style={{ width: '100%', height: '100%', position: 'relative' }}>
