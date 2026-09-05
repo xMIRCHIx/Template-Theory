@@ -142,8 +142,7 @@ function inferCategory(node: any): ProductCategory {
   if (text.includes('lut') || text.includes('cube')) return 'luts';
   if (text.includes('preset') || text.includes('xmp') || text.includes('dng') || text.includes('lightroom')) return 'presets';
   if (text.includes('font') || text.includes('typeface') || text.includes('otf') || text.includes('serif')) return 'fonts';
-  if (text.includes('album') || text.includes('lookbook')) return 'albums';
-  if (text.includes('psd') || text.includes('mockup') || text.includes('stationery')) return 'psds';
+  if (text.includes('album') || text.includes('psd') || text.includes('mockup') || text.includes('stationery') || text.includes('lookbook') || text.includes('photoshop')) return 'psds';
   return 'assets';
 }
 

@@ -22,7 +22,11 @@ export const CategoryCollectionPage: React.FC = () => {
 
   // Identify current category info
   const categoryInfo = useMemo(() => {
-    return CATEGORIES.find((c) => c.slug === categorySlug) || CATEGORIES[0];
+    return (
+      CATEGORIES.find((c) => c.slug === categorySlug) ||
+      (categorySlug === 'albums' ? CATEGORIES.find((c) => c.slug === 'psds') : null) ||
+      CATEGORIES[0]
+    );
   }, [categorySlug]);
 
   const catalog = products.length > 0 ? products : LOCAL_PRODUCTS;
@@ -51,8 +55,11 @@ export const CategoryCollectionPage: React.FC = () => {
   // Filter products
   const categoryProducts = useMemo(() => {
     return catalog.filter((p) => {
-      // Must match active category
-      if (p.category !== categoryInfo.id) return false;
+      // Must match active category (also matching 'albums' under 'psds')
+      const isMatchingCat =
+        p.category === categoryInfo.id ||
+        (categoryInfo.id === 'psds' && ((p.category as string) === 'albums' || p.category === 'psds'));
+      if (!isMatchingCat) return false;
 
       // Price filter
       if (p.price > maxPrice) return false;

@@ -170,21 +170,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 <span className="app-badge">FCP</span>
               </>
             )}
-            {product.category === 'psds' && (
+            {(product.category === 'psds' || (product.category as string) === 'albums') && (
               <>
                 <span className="app-badge">Ps</span>
+                <span className="app-badge">Id</span>
               </>
             )}
             {product.category === 'fonts' && (
               <>
                 <span className="app-badge">Aa</span>
                 <span className="app-badge">OTF</span>
-              </>
-            )}
-            {product.category === 'albums' && (
-              <>
-                <span className="app-badge">Id</span>
-                <span className="app-badge">Ps</span>
               </>
             )}
             {product.category === 'assets' && (

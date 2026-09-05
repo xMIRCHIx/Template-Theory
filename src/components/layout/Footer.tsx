@@ -156,9 +156,8 @@ export const Footer: React.FC = () => {
               <Link to="/shop" style={{ color: 'var(--muted)' }}>All Products</Link>
               <Link to="/collections/presets" style={{ color: 'var(--muted)' }}>Presets</Link>
               <Link to="/collections/luts" style={{ color: 'var(--muted)' }}>LUTs</Link>
-              <Link to="/collections/psds" style={{ color: 'var(--muted)' }}>PSDs</Link>
+              <Link to="/collections/psds" style={{ color: 'var(--muted)' }}>PSDs & Albums</Link>
               <Link to="/collections/fonts" style={{ color: 'var(--muted)' }}>Fonts</Link>
-              <Link to="/collections/albums" style={{ color: 'var(--muted)' }}>Albums</Link>
               <Link to="/collections/assets" style={{ color: 'var(--muted)' }}>Assets</Link>
             </div>
           </div>

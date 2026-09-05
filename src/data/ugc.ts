@@ -21,7 +21,7 @@ export const UGC_DATA: UGCItem[] = [
     productName: 'Wanderlust Photo Album',
     productPrice: 32,
     caption: 'Finished printing my Kyoto visual journal with the Wanderlust spread template.',
-    category: 'albums'
+    category: 'psds'
   },
   {
     id: 'ugc-3',

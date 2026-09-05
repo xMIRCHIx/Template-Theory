@@ -414,7 +414,7 @@ export const PRODUCTS: Product[] = [
     id: 'wanderlust-photo-album',
     slug: 'wanderlust-photo-album',
     name: 'Wanderlust Photo Album Template',
-    category: 'albums',
+    category: 'psds',
     price: 32,
     compareAtPrice: 48,
     rating: 4.9,

@@ -24,12 +24,12 @@ export const CATEGORIES: CategoryInfo[] = [
   {
     id: 'psds',
     slug: 'psds',
-    title: 'PSDs',
-    subtitle: 'Editable PSD Templates',
-    description: 'Editable Photoshop templates and layouts built for fast, high-converting content creation.',
+    title: 'PSDs & Albums',
+    subtitle: 'Photoshop Templates & Album Spreads',
+    description: 'Editable Photoshop templates, album spreads, and layouts built for fast, high-converting content creation.',
     iconImage: '/assets/clay/PSDS.png',
     themeColor: 'var(--terracotta)',
-    filterTags: ['All PSDs', 'Social Media', 'YouTube Thumbnails', 'Posters', 'Brand Mockups', 'Editorial'],
+    filterTags: ['All PSDs & Albums', 'Wedding Albums', 'Social Media', 'YouTube Thumbnails', 'Posters', 'Brand Mockups', 'Editorial', 'Photo Spreads'],
   },
   {
     id: 'fonts',
@@ -40,16 +40,6 @@ export const CATEGORIES: CategoryInfo[] = [
     iconImage: '/assets/clay/FONT ASSET.png',
     themeColor: 'var(--brown)',
     filterTags: ['All Fonts', 'Display Serif', 'Modern Sans', 'Handcrafted Script', 'Vintage Lettering'],
-  },
-  {
-    id: 'albums',
-    slug: 'albums',
-    title: 'Albums',
-    subtitle: 'Photo & Video Albums',
-    description: 'Beautiful editorial spreads and page templates for photo and story documentation.',
-    iconImage: '/assets/clay/ALBMUN PSD.png',
-    themeColor: 'var(--olive-dark)',
-    filterTags: ['All Albums', 'Travel Journal', 'Wedding Book', 'Portfolio Spread', 'Lookbook'],
   },
   {
     id: 'assets',

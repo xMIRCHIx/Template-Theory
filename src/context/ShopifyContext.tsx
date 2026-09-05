@@ -126,6 +126,9 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const getProductsByCategory = (category: ProductCategory | 'all'): Product[] => {
     if (category === 'all') return products;
+    if (category === 'psds' || (category as string) === 'albums') {
+      return products.filter((p) => p.category === 'psds' || (p.category as string) === 'albums');
+    }
     return products.filter((p) => p.category === category);
   };
 
