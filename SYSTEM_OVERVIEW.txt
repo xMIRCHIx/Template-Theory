@@ -1,0 +1,179 @@
+================================================================================
+CINEVO / TEMPLATE THEORY — COMPLETE SYSTEM ARCHITECTURE & MIGRATION GUIDE
+================================================================================
+
+1. WHAT IS THIS WEBSITE ABOUT?
+--------------------------------------------------------------------------------
+Cinevo (Template Theory) is a high-performance Headless E-Commerce storefront
+for modern creators, video editors, photographers, and designers.
+
+Products Sold:
+- Cinematic 3D LUTs (.CUBE, .3DL, .LOOK for Premiere Pro, DaVinci, FCPX)
+- Lightroom Presets (.XMP, .DNG for Desktop and Mobile)
+- Editorial & Display Fonts (.OTF, .TTF, .WOFF2 with live interactive type tester)
+- Layered Photoshop Templates (.PSD with smart objects & mockups)
+- Creator Albums & Digital Lookbooks
+
+Tech Stack:
+- Frontend: React 18 + Vite 6 + TypeScript
+- Styling: Pure Vanilla CSS (Claymorphism & warm earthy design tokens)
+- Animations: Framer Motion + Canvas Confetti + Hardware-Accelerated CSS
+- Backend: Shopify Storefront GraphQL API (Headless Architecture)
+- Hosting: Vercel Global Edge Network (with Netlify/Cloudflare compatibility)
+
+
+2. HOW IT WORKS (FRONTEND ARCHITECTURE & DATA FLOW)
+--------------------------------------------------------------------------------
+Flow Overview:
+1. User opens website -> Hosted on Vercel Edge CDN.
+2. React SPA initializes -> React Router v6 handles client-side routing.
+3. ShopifyContext executes GraphQL query (GET_ALL_PRODUCTS_QUERY) to fetch
+   live products from Shopify.
+4. If Shopify API is active, real-time products render with prices in INR/USD.
+   If offline, it smoothly falls back to local data (src/data/products.ts).
+5. User adds items to Cart -> Stored in CartContext and localStorage.
+6. User clicks "Buy Now" or "Checkout" -> Shopify cartCreate mutation generates
+   a direct official Shopify checkout URL (https://template-theory-2.myshopify.com/checkouts/...)
+7. User pays securely on Shopify (UPI, Cards, NetBanking, Razorpay, PayPal) ->
+   Shopify processes payment and delivers digital downloads.
+
+
+3. HOW IT IS CONNECTED WITH SHOPIFY
+--------------------------------------------------------------------------------
+Files:
+- src/services/shopify.ts (GraphQL queries, mutations, mappers, API calls)
+- src/context/ShopifyContext.tsx (Global state provider & Buy Now triggers)
+
+Environment Variables in .env:
+  VITE_SHOPIFY_STORE_DOMAIN=template-theory-2.myshopify.com
+  VITE_SHOPIFY_STOREFRONT_TOKEN=e9c5ed69764a1c1ee180980e3e8a5434
+  VITE_SHOPIFY_API_VERSION=2024-07
+
+Key Features of Shopify Integration:
+- Real-time catalog syncing: Any product created/updated in Shopify Admin
+  automatically appears on this website.
+- Auto-Categorization (inferCategory):
+  * Titles/Tags with 'lut' or 'cube' -> LUTs
+  * Titles/Tags with 'preset', 'xmp', 'dng' -> Presets
+  * Titles/Tags with 'font', 'serif', 'otf' -> Fonts
+  * Titles/Tags with 'psd', 'mockup' -> PSDs
+  * Titles/Tags with 'album', 'lookbook' -> Albums
+- Direct Checkout Session: Uses cartCreate GraphQL mutation to send
+  merchandiseId (Shopify variant ID) and quantity to create a direct checkout URL.
+
+
+4. HOW IT IS DEPLOYED ON VERCEL & EXTERNALLY
+--------------------------------------------------------------------------------
+GitHub Repository:
+  https://github.com/xMIRCHIx/Template-Theory.git
+
+Routing & SPA Configuration:
+- vercel.json in root:
+  {
+    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  }
+- public/_redirects for Netlify:
+  /*    /index.html   200
+
+Environment Variables to add in Vercel Dashboard:
+- VITE_SHOPIFY_STORE_DOMAIN = template-theory-2.myshopify.com
+- VITE_SHOPIFY_STOREFRONT_TOKEN = e9c5ed69764a1c1ee180980e3e8a5434
+- VITE_SHOPIFY_API_VERSION = 2024-07
+
+
+5. KEY COMPONENTS & INTERACTIVE FEATURES
+--------------------------------------------------------------------------------
+- Top Navbar (src/components/layout/Header.tsx):
+  Floating frosted glass dynamic island with blur, sticky across all pages.
+- Hero Scene (src/components/hero/HeroScene.tsx):
+  3D floating clay elements with interactive mouse/gyro parallax tracking.
+- Before/After Split Comparison (src/components/comparison/BeforeAfterSlider.tsx):
+  Smart dual-layer containment (ambient blurred glow backdrop + contained crisp image)
+  guaranteeing zero image cut-offs or overflow on vertical 9:16 reels, 1:1, or 16:9.
+- Product Details Engine (src/pages/ProductDetailPage.tsx):
+  Horizontal smooth sliding carousel track, multi-look preset variations switcher,
+  live typography test lab, fullscreen touch-swipe zoom lightbox with back-button popstate.
+- Search Modal (src/components/layout/SearchModal.tsx):
+  Keyboard '/' shortcut trigger, live instant search query filter.
+- Mobile Sticky Buy Dock (src/components/pdp/MobileStickyBuyBar.tsx):
+  Floating bottom purchase bar with one-click direct Shopify checkout.
+
+
+6. DIRECTORY STRUCTURE & FILE INVENTORY
+--------------------------------------------------------------------------------
+cinevo/
+├── .env                           -> Local secrets (Domain & Storefront Token)
+├── .env.example                   -> Template environment file
+├── .gitignore                     -> Git ignore rules
+├── vercel.json                    -> Vercel SPA routing rewrites
+├── vite.config.ts                 -> Vite configuration
+├── package.json                   -> Dependencies and build scripts
+├── index.html                     -> HTML entry document
+├── SYSTEM_OVERVIEW.md             -> Markdown technical overview
+├── SYSTEM_OVERVIEW.txt            -> Plain text technical overview
+├── public/
+│   ├── _redirects                 -> Netlify SPA redirect rule
+│   └── assets/clay/               -> 3D floating clay PNG assets
+└── src/
+    ├── main.tsx                   -> React root mount
+    ├── App.tsx                    -> Providers, router routes, global drawers
+    ├── types/index.ts             -> TypeScript models (Product, CartItem, etc.)
+    ├── styles/
+    │   ├── tokens.css             -> Design tokens (Colors, Typography, Radii)
+    │   ├── global.css             -> Layouts, glassmorphism, responsive utilities
+    │   └── animations.css         -> Keyframe animations (float, shimmer, pulse)
+    ├── services/
+    │   └── shopify.ts             -> Shopify Storefront GraphQL engine & cartCreate
+    ├── context/
+    │   ├── ShopifyContext.tsx     -> Live catalog fetching & direct Buy Now
+    │   ├── CartContext.tsx        -> Shopping cart management & localStorage sync
+    │   └── WishlistContext.tsx    -> Wishlist state & localStorage persistence
+    ├── hooks/
+    │   └── useHeroParallax.ts     -> Parallax physics calculation
+    ├── components/
+    │   ├── cards/                 -> ProductCard.tsx, CategoryCard.tsx
+    │   ├── comparison/            -> BeforeAfterSlider.tsx, CardSplitPreview.tsx
+    │   ├── filters/               -> SidebarFilters.tsx
+    │   ├── hero/                  -> HeroScene.tsx
+    │   ├── layout/                -> Header.tsx, Footer.tsx, CartDrawer.tsx,
+    │   │                             SearchModal.tsx, WishlistDrawer.tsx, MobileBottomNav.tsx
+    │   ├── pdp/                   -> MobileStickyBuyBar.tsx
+    │   └── ui/                    -> Magnetic.tsx, FloatingClayProp.tsx
+    └── pages/
+        ├── HomePage.tsx           -> Hero, featured packs, category grid, UGC
+        ├── ShopPage.tsx           -> Complete catalog with filters & sorting
+        ├── CollectionsIndexPage.tsx-> All collections index
+        ├── CategoryCollectionPage.tsx-> Category specific filter pages
+        ├── ProductDetailPage.tsx  -> PDP with slider, thumbnails, buy box, lightbox
+        ├── AboutPage.tsx          -> Brand story & craft philosophy
+        ├── ContactPage.tsx        -> Support contact form
+        ├── FAQPage.tsx            -> Interactive expandable FAQs
+        ├── CartPage.tsx           -> Full-page cart summary
+        ├── CheckoutPage.tsx       -> Checkout summary & Shopify redirect
+        └── OrderSuccessPage.tsx   -> Order celebration page with confetti
+
+
+7. MIGRATION GUIDE (HOW TO RUN ON ANOTHER SYSTEM / ANOTHER ANTIGRAVITY AGENT)
+--------------------------------------------------------------------------------
+1. Clone / Copy Repository to new system:
+   git clone https://github.com/xMIRCHIx/Template-Theory.git
+   cd Template-Theory
+
+2. Install dependencies:
+   npm install
+
+3. Verify .env file:
+   Make sure .env contains:
+   VITE_SHOPIFY_STORE_DOMAIN=template-theory-2.myshopify.com
+   VITE_SHOPIFY_STOREFRONT_TOKEN=e9c5ed69764a1c1ee180980e3e8a5434
+   VITE_SHOPIFY_API_VERSION=2024-07
+
+4. Run locally:
+   npm run dev
+
+5. Build for production:
+   npm run build
+
+Any new developer or AI assistant reading this file can instantly understand
+all function calls, data flows, and architecture without guesswork.
+================================================================================
