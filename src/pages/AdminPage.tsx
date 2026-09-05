@@ -501,15 +501,25 @@ export const AdminPage: React.FC = () => {
   const handleSaveBeforeAfter = async () => {
     if (!selectedProductSlug) return;
     
-    // 1. Update Context & Supabase
-    updateProductBeforeAfter(selectedProductSlug, activeLooks);
+    // Filter to looks that have at least before or after
+    const validLooks = activeLooks.filter((l) => l.before || l.after);
+    const looksToSave = validLooks.length > 0 ? validLooks : activeLooks;
+
+    // 1. Update Context & Supabase under slug, id, and product name
+    updateProductBeforeAfter(selectedProductSlug, looksToSave);
+    if (selectedProduct?.id && selectedProduct.id !== selectedProductSlug) {
+      updateProductBeforeAfter(selectedProduct.id, looksToSave);
+    }
+    if (selectedProduct?.name) {
+      updateProductBeforeAfter(selectedProduct.name, looksToSave);
+    }
 
     // 2. If Shopify Admin Token is set, upload directly into Shopify's database!
     const { adminToken } = getShopifyAdminCredentials();
     if (adminToken && selectedProduct) {
       setIsSavingToShopify(true);
       showToast(`⏳ Uploading media & metafields directly to Shopify for "${selectedProduct.name}"...`);
-      const shopifyRes = await saveLooksToShopifyProduct(selectedProduct, activeLooks);
+      const shopifyRes = await saveLooksToShopifyProduct(selectedProduct, looksToSave);
       setIsSavingToShopify(false);
       if (shopifyRes.success) {
         showToast(`✓ Before/After looks saved directly into Shopify database & media for "${selectedProduct.name}"!`);

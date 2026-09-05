@@ -36,6 +36,13 @@ interface ShopifyContextType {
 
 const ShopifyContext = createContext<ShopifyContextType | undefined>(undefined);
 
+const normalizeKey = (key: string): string => {
+  return decodeURIComponent(key || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+};
+
 export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [rawProducts, setRawProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -97,18 +104,41 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       let updatedProduct = { ...p };
 
       // Apply custom Before/After if defined in Admin
-      const customBA = beforeAfter[p.slug] || beforeAfter[p.id];
+      const cleanSlug = normalizeKey(p.slug);
+      const cleanId = normalizeKey(p.id);
+      const cleanName = normalizeKey(p.name);
+
+      let customBA = beforeAfter[p.slug] || beforeAfter[p.id];
+      if (!customBA || customBA.length === 0) {
+        for (const [key, val] of Object.entries(beforeAfter)) {
+          const normKey = normalizeKey(key);
+          if (
+            normKey === cleanSlug ||
+            normKey === cleanId ||
+            normKey === cleanName ||
+            (cleanSlug && normKey.includes(cleanSlug)) ||
+            (normKey && cleanSlug.includes(normKey))
+          ) {
+            customBA = val;
+            break;
+          }
+        }
+      }
+
       if (customBA && customBA.length > 0) {
-        updatedProduct = {
-          ...updatedProduct,
-          beforeAfterImage: { before: customBA[0].before, after: customBA[0].after },
-          beforeAfterList: customBA,
-        };
+        const validLooks = customBA.filter((l) => l.before && l.after);
+        if (validLooks.length > 0) {
+          updatedProduct = {
+            ...updatedProduct,
+            beforeAfterImage: { before: validLooks[0].before, after: validLooks[0].after },
+            beforeAfterList: validLooks,
+          };
+        }
       }
 
       // Check if product has a collection override
       for (const [colCategory, assignedList] of Object.entries(collectionOverrides)) {
-        if (assignedList.includes(p.slug) || assignedList.includes(p.id)) {
+        if (assignedList.some((item) => normalizeKey(item) === cleanSlug || normalizeKey(item) === cleanId)) {
           updatedProduct = {
             ...updatedProduct,
             category: colCategory as ProductCategory,
@@ -124,11 +154,24 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const orderMap = new Map<string, number>();
       productOrder.forEach((idOrSlug, index) => {
         orderMap.set(idOrSlug, index);
+        orderMap.set(normalizeKey(idOrSlug), index);
       });
 
       merged = [...merged].sort((a, b) => {
-        const orderA = orderMap.has(a.slug) ? orderMap.get(a.slug)! : orderMap.has(a.id) ? orderMap.get(a.id)! : 9999;
-        const orderB = orderMap.has(b.slug) ? orderMap.get(b.slug)! : orderMap.has(b.id) ? orderMap.get(b.id)! : 9999;
+        const orderA = orderMap.has(a.slug)
+          ? orderMap.get(a.slug)!
+          : orderMap.has(a.id)
+          ? orderMap.get(a.id)!
+          : orderMap.has(normalizeKey(a.slug))
+          ? orderMap.get(normalizeKey(a.slug))!
+          : 9999;
+        const orderB = orderMap.has(b.slug)
+          ? orderMap.get(b.slug)!
+          : orderMap.has(b.id)
+          ? orderMap.get(b.id)!
+          : orderMap.has(normalizeKey(b.slug))
+          ? orderMap.get(normalizeKey(b.slug))!
+          : 9999;
         return orderA - orderB;
       });
     }
@@ -148,7 +191,21 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [currencyCode]);
 
   const getProductBySlug = (slug: string): Product | undefined => {
-    return products.find((p) => p.slug === slug);
+    if (!slug) return undefined;
+    const clean = normalizeKey(slug);
+    return products.find((p) => {
+      if (p.slug === slug || p.id === slug) return true;
+      const pCleanSlug = normalizeKey(p.slug);
+      const pCleanId = normalizeKey(p.id);
+      const pCleanName = normalizeKey(p.name);
+      return (
+        pCleanSlug === clean ||
+        pCleanId === clean ||
+        pCleanName === clean ||
+        (clean.length > 3 && pCleanSlug.includes(clean)) ||
+        (pCleanSlug.length > 3 && clean.includes(pCleanSlug))
+      );
+    });
   };
 
   const getProductsByCategory = (category: ProductCategory | 'all'): Product[] => {

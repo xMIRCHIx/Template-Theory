@@ -20,7 +20,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   afterLabel = 'AFTER',
   aspectRatio = '16 / 9',
   fallbackImage = DEFAULT_FALLBACK,
-  fitMode = 'cover',
+  fitMode = 'contain',
 }) => {
   const [sliderPos, setSliderPos] = useState(50); // percentage 0 to 100
   const [isDragging, setIsDragging] = useState(false);
@@ -80,7 +80,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         border: '1.5px solid var(--border)',
         boxShadow: 'var(--shadow-clay)',
         touchAction: 'pan-y', // Natural vertical page scrolling on mobile
-        backgroundColor: '#181310',
+        backgroundColor: '#120f0d',
       }}
     >
       {/* ========================================================================= */}
@@ -94,20 +94,40 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           width: '100%',
           height: '100%',
           overflow: 'hidden',
-          backgroundColor: '#181310',
+          backgroundColor: '#120f0d',
         }}
       >
+        {/* Soft Ambient Backdrop */}
+        <img
+          src={activeAfter}
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: '-10%',
+            width: '120%',
+            height: '120%',
+            objectFit: 'cover',
+            filter: 'blur(24px)',
+            opacity: 0.3,
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Sharp Main After Photo (Contained uncropped) */}
         <img
           src={activeAfter}
           alt={afterLabel}
           onError={() => setAfterError(true)}
           style={{
+            position: 'relative',
             width: '100%',
             height: '100%',
             objectFit: fitMode,
             objectPosition: 'center',
             display: 'block',
             pointerEvents: 'none',
+            zIndex: 1,
           }}
         />
       </div>
@@ -126,21 +146,41 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           WebkitClipPath: `inset(0 ${100 - sliderPos}% 0 0)`,
           pointerEvents: 'none',
           overflow: 'hidden',
-          backgroundColor: '#181310',
+          backgroundColor: '#120f0d',
           zIndex: 2,
         }}
       >
+        {/* Soft Ambient Backdrop */}
+        <img
+          src={activeBefore}
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: '-10%',
+            width: '120%',
+            height: '120%',
+            objectFit: 'cover',
+            filter: 'blur(24px)',
+            opacity: 0.3,
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Sharp Main Before Photo (Contained uncropped) */}
         <img
           src={activeBefore}
           alt={beforeLabel}
           onError={() => setBeforeError(true)}
           style={{
+            position: 'relative',
             width: '100%',
             height: '100%',
             objectFit: fitMode,
             objectPosition: 'center',
             display: 'block',
             pointerEvents: 'none',
+            zIndex: 1,
           }}
         />
       </div>
