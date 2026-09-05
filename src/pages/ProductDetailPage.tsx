@@ -46,7 +46,11 @@ export const ProductDetailPage: React.FC = () => {
   }, [slug, getProductBySlug, products]);
 
   const hasBeforeAfter = Boolean(
-    product && ((product.beforeAfterList && product.beforeAfterList.length > 0) || product.beforeAfterImage)
+    product &&
+      ((product.beforeAfterList && product.beforeAfterList.length > 0) ||
+        product.beforeAfterImage ||
+        product.category === 'presets' ||
+        product.category === 'luts')
   );
 
   const beforeAfterPairs = useMemo(() => {
@@ -61,6 +65,44 @@ export const ProductDetailPage: React.FC = () => {
           title: 'Main Look',
           before: product.beforeAfterImage.before,
           after: product.beforeAfterImage.after,
+        },
+      ];
+    }
+    if (product.category === 'presets') {
+      return [
+        {
+          id: 'ba-p-1',
+          title: 'Look #1: Warm Golden Glow',
+          before: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=-25',
+          after: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop&sat=25&hue=12',
+        },
+        {
+          id: 'ba-p-2',
+          title: 'Look #2: Sun-Drenched Coastal',
+          before: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=-20',
+          after: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&sat=30&hue=8',
+        },
+        {
+          id: 'ba-p-3',
+          title: 'Look #3: Moody Vintage Contrast',
+          before: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=-20&bri=-10',
+          after: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=25&hue=15',
+        },
+      ];
+    }
+    if (product.category === 'luts') {
+      return [
+        {
+          id: 'ba-l-1',
+          title: 'Look #1: Cinematic Teal & Orange',
+          before: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop&sat=-20',
+          after: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop&sat=20&hue=-10',
+        },
+        {
+          id: 'ba-l-2',
+          title: 'Look #2: Signature Warm Film',
+          before: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop&sat=-15',
+          after: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop&sat=25&hue=10',
         },
       ];
     }
@@ -1370,9 +1412,9 @@ export const ProductDetailPage: React.FC = () => {
                   <button
                     onClick={() => {
                       setActiveTab('beforeAfter');
-                      const previewEl = document.getElementById('product-preview-section');
-                      if (previewEl) {
-                        previewEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      const showcaseEl = document.getElementById('before-after-showcase-section') || document.getElementById('product-preview-section');
+                      if (showcaseEl) {
+                        showcaseEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }
                     }}
                     style={{
@@ -1494,7 +1536,181 @@ export const ProductDetailPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. WHAT'S INCLUDED & PRODUCT SPECIFICATIONS */}
+      {/* 2. DEDICATED BEFORE & AFTER TRANSFORMATION SHOWCASE */}
+      {hasBeforeAfter && beforeAfterPairs.length > 0 && (
+        <section id="before-after-showcase-section" style={{ paddingTop: '10px' }}>
+          <div className="container">
+            <div
+              style={{
+                backgroundColor: 'var(--cream-light)',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                padding: '36px',
+                boxShadow: 'var(--shadow-clay)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+              }}
+              className="pdp-ba-showcase-card"
+            >
+              {/* Header Strip */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span
+                      style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        color: 'var(--terracotta-dark)',
+                        backgroundColor: 'var(--terracotta-light)',
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Interactive Comparison
+                    </span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--muted)', fontWeight: 600 }}>
+                      • {beforeAfterPairs.length} Variation {beforeAfterPairs.length === 1 ? 'Look' : 'Looks'}
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                    Live Transformation Looks
+                  </h3>
+                  <p style={{ fontSize: '0.92rem', color: 'var(--muted)', marginTop: '4px', maxWidth: '600px' }}>
+                    Drag the slider back and forth to inspect shadow recovery, color calibration & skin-tone rendering.
+                  </p>
+                </div>
+
+                {/* Variation Pills on Top */}
+                {beforeAfterPairs.length > 1 && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {beforeAfterPairs.map((pair, idx) => {
+                      const isActive = activeBAIndex === idx;
+                      return (
+                        <button
+                          key={pair.id || idx}
+                          onClick={() => setActiveBAIndex(idx)}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            backgroundColor: isActive ? 'var(--brown)' : 'var(--white)',
+                            color: isActive ? 'var(--white)' : 'var(--brown)',
+                            border: '1.5px solid',
+                            borderColor: isActive ? 'var(--brown-dark)' : 'var(--border)',
+                            cursor: 'pointer',
+                            boxShadow: isActive ? '0 4px 12px rgba(96, 68, 46, 0.25)' : 'var(--shadow-sm)',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {pair.title || `Look #${idx + 1}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Big Slider Frame */}
+              <div
+                style={{
+                  width: '100%',
+                  borderRadius: 'var(--radius-lg)',
+                  overflow: 'hidden',
+                  border: '1.5px solid var(--border)',
+                  backgroundColor: '#181310',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.18)',
+                  position: 'relative',
+                }}
+              >
+                <BeforeAfterSlider
+                  key={`pdp-showcase-${currentBAPair?.id || activeBAIndex}`}
+                  beforeImage={currentBAPair?.before || ''}
+                  afterImage={currentBAPair?.after || ''}
+                  beforeLabel="ORIGINAL RAW"
+                  afterLabel="PRO GRADED"
+                  aspectRatio="16 / 9"
+                  fallbackImage={product.thumbnail}
+                />
+              </div>
+
+              {/* Look Cards Strip Below Slider */}
+              {beforeAfterPairs.length > 1 && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`,
+                    gap: '12px',
+                  }}
+                >
+                  {beforeAfterPairs.map((pair, idx) => {
+                    const isActive = activeBAIndex === idx;
+                    return (
+                      <div
+                        key={pair.id || idx}
+                        onClick={() => setActiveBAIndex(idx)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: isActive ? 'var(--cream-dark)' : 'var(--white)',
+                          border: isActive ? '2px solid var(--terracotta)' : '1px solid var(--border)',
+                          cursor: 'pointer',
+                          boxShadow: isActive ? '0 4px 12px rgba(201, 130, 103, 0.25)' : 'none',
+                          transform: isActive ? 'translateY(-2px)' : 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            backgroundColor: '#181310',
+                          }}
+                        >
+                          <img
+                            src={pair.after || product.thumbnail}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--terracotta-dark)', textTransform: 'uppercase' }}>
+                            Look #{idx + 1}
+                          </span>
+                          <h5
+                            style={{
+                              fontSize: '0.84rem',
+                              fontWeight: 700,
+                              color: 'var(--brown)',
+                              margin: 0,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {pair.title || `Preset Variation ${idx + 1}`}
+                          </h5>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. WHAT'S INCLUDED & PRODUCT SPECIFICATIONS */}
       <section>
         <div className="container">
           <div

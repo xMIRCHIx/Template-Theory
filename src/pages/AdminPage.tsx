@@ -37,6 +37,170 @@ import {
 
 type AdminTab = 'beforeAfter' | 'productOrder' | 'collections' | 'settings';
 
+interface ImageDropZoneProps {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  onClear: () => void;
+  accentColor?: string;
+  placeholder?: string;
+}
+
+const ImageDropZone: React.FC<ImageDropZoneProps> = ({
+  label,
+  value,
+  onChange,
+  onClear,
+  accentColor = 'var(--terracotta)',
+  placeholder = 'Or paste Image URL'
+}) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (JPG, PNG, WebP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        onChange(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--brown)' }}>
+          {label}
+        </span>
+        {value && (
+          <button
+            type="button"
+            onClick={onClear}
+            style={{ fontSize: '0.7rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(true);
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(false);
+          handleFiles(e.dataTransfer.files);
+        }}
+        style={{
+          height: '118px',
+          borderRadius: 'var(--radius-md)',
+          border: isDragOver ? `2px dashed ${accentColor}` : value ? '1.5px solid var(--border)' : '1.5px dashed var(--border)',
+          backgroundColor: isDragOver ? 'rgba(201, 130, 103, 0.12)' : value ? '#ffffff' : 'var(--cream-light)',
+          overflow: 'hidden',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+
+        {value ? (
+          <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <img
+              src={value}
+              alt="Preview"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(33, 25, 19, 0.55)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isDragOver ? 1 : 0,
+                transition: 'opacity 0.2s',
+                color: '#fff',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                padding: '8px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => {
+                if (!isDragOver) e.currentTarget.style.opacity = '0';
+              }}
+            >
+              <span>Click or Drop to Replace</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '12px', textAlign: 'center', pointerEvents: 'none' }}>
+            <Upload size={20} color={isDragOver ? accentColor : 'var(--terracotta)'} />
+            <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--brown)' }}>
+              {isDragOver ? 'Drop Image Here!' : 'Click or Drag Photo Here'}
+            </span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--muted)' }}>
+              Supports JPG, PNG, WebP
+            </span>
+          </div>
+        )}
+      </div>
+
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          width: '100%',
+          padding: '7px 10px',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--border)',
+          fontSize: '0.75rem',
+          color: 'var(--brown)',
+          outline: 'none',
+          boxSizing: 'border-box',
+          backgroundColor: '#fff',
+        }}
+      />
+    </div>
+  );
+};
+
 export const AdminPage: React.FC = () => {
   const {
     products,
@@ -805,172 +969,22 @@ export const AdminPage: React.FC = () => {
                         {/* 2-Box Split: Before Box & After Box */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                           {/* BEFORE IMAGE BOX */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--muted)' }}>
-                                📸 BEFORE IMAGE
-                              </span>
-                              {look.before && (
-                                <button
-                                  onClick={() => handleUpdateLook(idx, 'before', '')}
-                                  style={{ fontSize: '0.7rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-                                >
-                                  Clear
-                                </button>
-                              )}
-                            </div>
-
-                            <div
-                              style={{
-                                height: '110px',
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1.5px dashed var(--border)',
-                                backgroundColor: '#fff',
-                                overflow: 'hidden',
-                                position: 'relative',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              {look.before ? (
-                                <img
-                                  src={look.before}
-                                  alt="Before Preview"
-                                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                              ) : (
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '100%',
-                                    height: '100%',
-                                    cursor: 'pointer',
-                                    padding: '8px',
-                                    textAlign: 'center',
-                                  }}
-                                >
-                                  <Upload size={18} color="var(--terracotta)" />
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: '4px' }}>
-                                    Upload / Drop Photo
-                                  </span>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: 'none' }}
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleFileUpload(file, (url) => handleUpdateLook(idx, 'before', url));
-                                    }}
-                                  />
-                                </label>
-                              )}
-                            </div>
-
-                            <input
-                              type="text"
-                              value={look.before}
-                              onChange={(e) => handleUpdateLook(idx, 'before', e.target.value)}
-                              placeholder="Or paste Before Image URL"
-                              style={{
-                                width: '100%',
-                                padding: '6px 8px',
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1px solid var(--border)',
-                                fontSize: '0.74rem',
-                                color: 'var(--brown)',
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                              }}
-                            />
-                          </div>
+                          <ImageDropZone
+                            label="📸 BEFORE IMAGE"
+                            value={look.before}
+                            onChange={(url) => handleUpdateLook(idx, 'before', url)}
+                            onClear={() => handleUpdateLook(idx, 'before', '')}
+                            placeholder="Or paste Before Image URL"
+                          />
 
                           {/* AFTER IMAGE BOX */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--terracotta-dark)' }}>
-                                ✨ AFTER IMAGE
-                              </span>
-                              {look.after && (
-                                <button
-                                  onClick={() => handleUpdateLook(idx, 'after', '')}
-                                  style={{ fontSize: '0.7rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-                                >
-                                  Clear
-                                </button>
-                              )}
-                            </div>
-
-                            <div
-                              style={{
-                                height: '110px',
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1.5px dashed var(--terracotta-light)',
-                                backgroundColor: '#fff',
-                                overflow: 'hidden',
-                                position: 'relative',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              {look.after ? (
-                                <img
-                                  src={look.after}
-                                  alt="After Preview"
-                                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                              ) : (
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '100%',
-                                    height: '100%',
-                                    cursor: 'pointer',
-                                    padding: '8px',
-                                    textAlign: 'center',
-                                  }}
-                                >
-                                  <Upload size={18} color="var(--terracotta)" />
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: '4px' }}>
-                                    Upload / Drop Photo
-                                  </span>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: 'none' }}
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleFileUpload(file, (url) => handleUpdateLook(idx, 'after', url));
-                                    }}
-                                  />
-                                </label>
-                              )}
-                            </div>
-
-                            <input
-                              type="text"
-                              value={look.after}
-                              onChange={(e) => handleUpdateLook(idx, 'after', e.target.value)}
-                              placeholder="Or paste After Image URL"
-                              style={{
-                                width: '100%',
-                                padding: '6px 8px',
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1px solid var(--border)',
-                                fontSize: '0.74rem',
-                                color: 'var(--brown)',
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                              }}
-                            />
-                          </div>
+                          <ImageDropZone
+                            label="✨ AFTER IMAGE"
+                            value={look.after}
+                            onChange={(url) => handleUpdateLook(idx, 'after', url)}
+                            onClear={() => handleUpdateLook(idx, 'after', '')}
+                            placeholder="Or paste After Image URL"
+                          />
                         </div>
                       </div>
                     );
