@@ -24,12 +24,12 @@ export const CATEGORIES: CategoryInfo[] = [
   {
     id: 'psds',
     slug: 'psds',
-    title: 'PSDs & Albums',
-    subtitle: 'Photoshop Templates & Album Spreads',
+    title: 'Album PSDs',
+    subtitle: 'Photoshop Album Templates & Spreads',
     description: 'Editable Photoshop templates, album spreads, and layouts built for fast, high-converting content creation.',
-    iconImage: '/assets/clay/PSDS.png',
+    iconImage: '/assets/clay/ALBMUN PSD.png',
     themeColor: 'var(--terracotta)',
-    filterTags: ['All PSDs & Albums', 'Wedding Albums', 'Social Media', 'YouTube Thumbnails', 'Posters', 'Brand Mockups', 'Editorial', 'Photo Spreads'],
+    filterTags: ['All Album PSDs', 'Wedding Albums', 'Photobooks', 'Social Media', 'Portfolios', 'Editorial', 'Photo Spreads'],
   },
   {
     id: 'fonts',

@@ -68,8 +68,9 @@ export const AdminPage: React.FC = () => {
   const [orderedProductList, setOrderedProductList] = useState<Product[]>([]);
 
   // --- TAB 3: Collections State ---
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('luts');
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('presets');
   const [collectionProductIds, setCollectionProductIds] = useState<string[]>([]);
+  const [collectionFilterMode, setCollectionFilterMode] = useState<'all' | 'inCollection'>('all');
 
   // --- TAB 4: Settings State ---
   const [currentPin, setCurrentPin] = useState<string>('');
@@ -128,8 +129,15 @@ export const AdminPage: React.FC = () => {
 
   // Sync collection product IDs when selected category changes
   useEffect(() => {
-    const matching = products.filter((p) => p.category === selectedCategory).map((p) => p.slug);
-    setCollectionProductIds(matching);
+    const overrides = getAdminCustomizations().collectionOverrides;
+    if (overrides && overrides[selectedCategory] && Array.isArray(overrides[selectedCategory])) {
+      setCollectionProductIds(overrides[selectedCategory]);
+    } else {
+      const matching = products
+        .filter((p) => p.category === selectedCategory || (selectedCategory === 'psds' && ((p.category as string) === 'albums' || p.category === 'psds')))
+        .map((p) => p.slug);
+      setCollectionProductIds(matching);
+    }
   }, [selectedCategory, products]);
 
   // PIN Login Handler
@@ -1333,60 +1341,109 @@ export const AdminPage: React.FC = () => {
               ))}
             </div>
 
+            {/* View Filter Bar (All Products vs In Collection Only) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 600 }}>
+                {collectionProductIds.length} {collectionProductIds.length === 1 ? 'product' : 'products'} assigned to this collection
+              </span>
+
+              <div style={{ display: 'inline-flex', backgroundColor: 'var(--cream)', padding: '3px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)' }}>
+                <button
+                  onClick={() => setCollectionFilterMode('all')}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    backgroundColor: collectionFilterMode === 'all' ? 'var(--brown)' : 'transparent',
+                    color: collectionFilterMode === 'all' ? '#fff' : 'var(--brown)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  All Products ({products.length})
+                </button>
+                <button
+                  onClick={() => setCollectionFilterMode('inCollection')}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    backgroundColor: collectionFilterMode === 'inCollection' ? 'var(--brown)' : 'transparent',
+                    color: collectionFilterMode === 'inCollection' ? '#fff' : 'var(--brown)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  In Collection Only ({collectionProductIds.length})
+                </button>
+              </div>
+            </div>
+
             {/* Product Assignment Checklist */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {products.map((product) => {
-                const isChecked = collectionProductIds.includes(product.slug);
-                return (
-                  <div
-                    key={product.id}
-                    onClick={() => handleToggleProductInCollection(product.slug)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: isChecked ? 'rgba(201, 130, 103, 0.08)' : 'var(--cream-light)',
-                      border: isChecked ? '1.5px solid var(--terracotta)' : '1px solid var(--border)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {}}
-                        style={{ width: '18px', height: '18px', accentColor: 'var(--terracotta)', cursor: 'pointer' }}
-                      />
-                      <img
-                        src={product.thumbnail}
-                        alt=""
-                        style={{ width: '38px', height: '38px', borderRadius: '4px', objectFit: 'contain', backgroundColor: '#fff' }}
-                      />
-                      <div>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--brown)', margin: 0 }}>
-                          {product.name}
-                        </h4>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
-                          Original Category: {product.category.toUpperCase()} • ₹{product.price}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span
+              {products
+                .filter((product) => {
+                  if (collectionFilterMode === 'inCollection') {
+                    return collectionProductIds.includes(product.slug);
+                  }
+                  return true;
+                })
+                .map((product) => {
+                  const isChecked = collectionProductIds.includes(product.slug);
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => handleToggleProductInCollection(product.slug)}
                       style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: isChecked ? 'var(--terracotta-dark)' : 'var(--muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 16px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: isChecked ? 'rgba(201, 130, 103, 0.08)' : 'var(--cream-light)',
+                        border: isChecked ? '1.5px solid var(--terracotta)' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
                       }}
                     >
-                      {isChecked ? '✓ In Collection' : '+ Excluded'}
-                    </span>
-                  </div>
-                );
-              })}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--terracotta)', cursor: 'pointer' }}
+                        />
+                        <img
+                          src={product.thumbnail}
+                          alt=""
+                          style={{ width: '38px', height: '38px', borderRadius: '4px', objectFit: 'contain', backgroundColor: '#fff' }}
+                        />
+                        <div>
+                          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--brown)', margin: 0 }}>
+                            {product.name}
+                          </h4>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
+                            Original Category: {product.category.toUpperCase()} • ₹{product.price}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: isChecked ? 'var(--terracotta-dark)' : 'var(--muted)',
+                        }}
+                      >
+                        {isChecked ? '✓ In Collection' : '+ Excluded'}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}

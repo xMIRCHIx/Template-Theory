@@ -138,11 +138,11 @@ export const CREATE_CART_MUTATION = `
 
 // Helper to determine category from product title, tags or productType
 function inferCategory(node: any): ProductCategory {
-  const text = `${node.title} ${node.productType} ${node.tags.join(' ')}`.toLowerCase();
+  const text = `${node.title || ''} ${node.productType || ''} ${(node.tags || []).join(' ')}`.toLowerCase();
+  if (text.includes('preset') || text.includes('lightroom') || text.includes('xmp') || text.includes('dng')) return 'presets';
   if (text.includes('lut') || text.includes('cube')) return 'luts';
-  if (text.includes('preset') || text.includes('xmp') || text.includes('dng') || text.includes('lightroom')) return 'presets';
-  if (text.includes('font') || text.includes('typeface') || text.includes('otf') || text.includes('serif')) return 'fonts';
-  if (text.includes('album') || text.includes('psd') || text.includes('mockup') || text.includes('stationery') || text.includes('lookbook') || text.includes('photoshop')) return 'psds';
+  if (text.includes('album') || text.includes('psd') || text.includes('photoshop') || text.includes('mockup') || text.includes('stationery') || text.includes('lookbook')) return 'psds';
+  if (text.includes('font') || text.includes('typeface') || text.includes('otf') || text.includes('ttf') || text.includes('serif')) return 'fonts';
   return 'assets';
 }
 

@@ -16,8 +16,11 @@ export const ShopPage: React.FC = () => {
   const filteredProducts = useMemo(() => {
     return catalog.filter((p) => {
       // Category filter
-      if (selectedCategory !== 'all' && p.category !== selectedCategory) {
-        return false;
+      if (selectedCategory !== 'all') {
+        const matchesCat =
+          p.category === selectedCategory ||
+          (selectedCategory === 'psds' && ((p.category as string) === 'albums' || p.category === 'psds'));
+        if (!matchesCat) return false;
       }
 
       // Search query
