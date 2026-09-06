@@ -105,6 +105,7 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (liveProductsRes.status === 'fulfilled' && liveProductsRes.value && liveProductsRes.value.length > 0) {
         setRawProducts(liveProductsRes.value);
+        setCustomizationVersion((v) => v + 1);
         try {
           localStorage.setItem(CACHED_PRODUCTS_KEY, JSON.stringify(liveProductsRes.value));
         } catch {

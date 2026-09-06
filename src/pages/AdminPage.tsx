@@ -592,7 +592,7 @@ export const AdminPage: React.FC = () => {
     if (shopifyCloudRes.success) {
       showToast('✓ Saved globally to Shopify Cloud! All visitors worldwide will now see this.');
     } else {
-      showToast('✓ Homepage Showcase settings saved to store!');
+      showToast(`⚠️ Saved locally. Cloud error: ${shopifyCloudRes.error || 'Network error'}`);
     }
     await refreshProducts();
   };

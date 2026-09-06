@@ -281,6 +281,51 @@ export async function fetchAllProductMetafieldsFromShopify(): Promise<Record<str
 
 const SHOP_OWNER_GID = 'gid://shopify/Shop/88097947925';
 
+// Helper to auto-downscale data URLs so they never hit Shopify's metafield payload limit
+async function optimizeImageForCloud(src: string, maxDimension = 650, quality = 0.65): Promise<string> {
+  if (!src || !src.startsWith('data:image')) {
+    return src;
+  }
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return src;
+  }
+  // If already lightweight (< 50KB), return as-is
+  if (src.length < 50000) {
+    return src;
+  }
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(src);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    } catch {
+      resolve(src);
+    }
+  });
+}
+
 // 6. Save Homepage Settings globally to Shopify Cloud Database
 export async function saveHomepageSettingsToShopify(
   settings: HomepageSettings
@@ -288,6 +333,20 @@ export async function saveHomepageSettingsToShopify(
   const { domain, adminToken } = getShopifyAdminCredentials();
 
   try {
+    // 1. Auto-optimize images so JSON string never exceeds Shopify limit
+    const optimizedLooks = await Promise.all(
+      settings.looks.map(async (look) => ({
+        ...look,
+        before: await optimizeImageForCloud(look.before, 650, 0.65),
+        after: await optimizeImageForCloud(look.after, 650, 0.65),
+      }))
+    );
+
+    const payload = {
+      ...settings,
+      looks: optimizedLooks,
+    };
+
     const mutation = `
       mutation SetHomepageMetafield($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) {
@@ -311,7 +370,7 @@ export async function saveHomepageSettingsToShopify(
           namespace: 'custom',
           key: 'homepage_settings',
           type: 'json',
-          value: JSON.stringify(settings),
+          value: JSON.stringify(payload),
         },
       ],
     };
@@ -353,6 +412,13 @@ export async function saveUGCToShopify(
   const { domain, adminToken } = getShopifyAdminCredentials();
 
   try {
+    const optimizedItems = await Promise.all(
+      items.map(async (item) => ({
+        ...item,
+        image: await optimizeImageForCloud(item.image, 600, 0.68),
+      }))
+    );
+
     const mutation = `
       mutation SetUGCMetafield($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) {
@@ -376,7 +442,7 @@ export async function saveUGCToShopify(
           namespace: 'custom',
           key: 'ugc_showcase',
           type: 'json',
-          value: JSON.stringify(items),
+          value: JSON.stringify(optimizedItems),
         },
       ],
     };
