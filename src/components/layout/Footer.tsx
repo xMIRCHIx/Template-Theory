@@ -222,35 +222,10 @@ export const Footer: React.FC = () => {
             gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link
-              to="/admin"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: 'var(--muted)',
-                fontSize: '0.8rem',
-                opacity: 0.7,
-                transition: 'opacity 0.2s',
-                textDecoration: 'none',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
-              title="Template Theory Admin Studio"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 3v3m0 12v3M3 12h3m12 0h3"/>
-              </svg>
-              <span>Admin Studio</span>
-            </Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>Made with</span>
-              <span style={{ color: 'var(--terracotta)' }}>♥</span>
-              <span>for creators.</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>Made with</span>
+            <span style={{ color: 'var(--terracotta)' }}>♥</span>
+            <span>for creators.</span>
           </div>
         </div>
       </div>
