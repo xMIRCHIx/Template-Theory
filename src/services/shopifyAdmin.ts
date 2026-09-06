@@ -45,21 +45,18 @@ function getAdminApiUrl(path: string, domain: string): string {
 export async function testShopifyAdminConnection(): Promise<{ success: boolean; message: string; shopName?: string }> {
   const { domain, adminToken } = getShopifyAdminCredentials();
 
-  if (!adminToken) {
-    return {
-      success: false,
-      message: 'Shopify Admin API Token is missing. Please enter your shpat_... token.',
-    };
-  }
-
   try {
     const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      headers['X-Shopify-Access-Token'] = adminToken;
+    }
+
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': adminToken,
-      },
+      headers,
       body: JSON.stringify({
         query: `
           query GetShopDetails {
@@ -78,7 +75,7 @@ export async function testShopifyAdminConnection(): Promise<{ success: boolean; 
       if (res.status === 401 || res.status === 403) {
         return {
           success: false,
-          message: 'Authentication failed: Invalid Admin API token or insufficient permissions (ensure write_products and read_products scopes are enabled).',
+          message: 'Authentication failed: Please verify Shopify Admin API token and ensure product read/write scopes are enabled.',
         };
       }
       return {
@@ -125,18 +122,18 @@ export async function saveLooksToShopifyProduct(
 ): Promise<{ success: boolean; error?: string; imagesUploaded?: number }> {
   const { domain, adminToken } = getShopifyAdminCredentials();
 
-  if (!adminToken) {
-    return {
-      success: false,
-      error: 'Shopify Admin API Token is not configured. Go to Tab 4 (Settings) to configure it.',
-    };
-  }
-
   const numericId = getNumericShopifyId(product.id);
   const graphqlId = product.id.startsWith('gid://') ? product.id : `gid://shopify/Product/${product.id}`;
 
   try {
     let imagesUploaded = 0;
+
+    const baseHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      baseHeaders['X-Shopify-Access-Token'] = adminToken;
+    }
 
     // 1. Upload Images to Product Media in Shopify with Alt tags
     for (let i = 0; i < looks.length; i++) {
@@ -287,16 +284,19 @@ export async function saveLooksToShopifyProduct(
 // 5. Fetch All Live Product Metafields from Shopify Database
 export async function fetchAllProductMetafieldsFromShopify(): Promise<Record<string, CustomBeforeAfterLook[]>> {
   const { domain, adminToken } = getShopifyAdminCredentials();
-  if (!adminToken) return {};
 
   try {
     const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      headers['X-Shopify-Access-Token'] = adminToken;
+    }
+
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': adminToken,
-      },
+      headers,
       body: JSON.stringify({
         query: `
           query GetAllMetafields {
