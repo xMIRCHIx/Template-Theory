@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -33,6 +33,19 @@ export const HomePage: React.FC = () => {
   const { addToCart } = useCart();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'subscribed'>('idle');
+
+  // Dedicated Homepage Category Filter State (Independent from Shop page)
+  const [homeCategory, setHomeCategory] = useState<string>('all');
+
+  const displayedHomeProducts = useMemo(() => {
+    if (homeCategory === 'all') return products;
+    return products.filter((p) => {
+      if (homeCategory === 'psds' || homeCategory === 'albums') {
+        return p.category === 'psds' || (p.category as string) === 'albums';
+      }
+      return p.category === homeCategory;
+    });
+  }, [products, homeCategory]);
 
   // UGC Image Lightbox Modal State
   const [selectedUgcIndex, setSelectedUgcIndex] = useState<number | null>(null);
@@ -320,7 +333,7 @@ export const HomePage: React.FC = () => {
             </div>
 
             <Link
-              to="/collections/luts"
+              to="/shop"
               style={{
                 fontSize: '0.92rem',
                 fontWeight: 700,
@@ -330,9 +343,106 @@ export const HomePage: React.FC = () => {
                 gap: '6px',
               }}
             >
-              <span>View all products</span>
+              <span>View all in shop</span>
               <ArrowRight size={15} />
             </Link>
+          </div>
+
+          {/* Dedicated Homepage Category Filter Pills */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '8px',
+              marginBottom: '26px',
+            }}
+            className="smooth-scroll"
+          >
+            <button
+              type="button"
+              onClick={() => setHomeCategory('all')}
+              style={{
+                padding: '8px 18px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                backgroundColor: homeCategory === 'all' ? 'var(--brown)' : 'var(--cream-light)',
+                color: homeCategory === 'all' ? '#ffffff' : 'var(--brown)',
+                border: '1.5px solid',
+                borderColor: homeCategory === 'all' ? 'var(--brown-dark)' : 'var(--border)',
+                boxShadow: homeCategory === 'all' ? '0 4px 12px rgba(96, 68, 46, 0.25)' : 'var(--shadow-sm)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+            >
+              <span>All Products</span>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 7px',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: homeCategory === 'all' ? 'rgba(255, 255, 255, 0.22)' : 'var(--cream-dark)',
+                  color: homeCategory === 'all' ? '#ffffff' : 'var(--muted)',
+                  fontWeight: 800,
+                }}
+              >
+                {products.length}
+              </span>
+            </button>
+
+            {CATEGORIES.map((cat) => {
+              const isSelected = homeCategory === cat.id;
+              const count = products.filter((p) => {
+                if (cat.id === 'psds') return p.category === 'psds' || (p.category as string) === 'albums';
+                return p.category === cat.id;
+              }).length;
+
+              if (count === 0) return null;
+
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setHomeCategory(cat.id)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    backgroundColor: isSelected ? 'var(--brown)' : 'var(--cream-light)',
+                    color: isSelected ? '#ffffff' : 'var(--brown)',
+                    border: '1.5px solid',
+                    borderColor: isSelected ? 'var(--brown-dark)' : 'var(--border)',
+                    boxShadow: isSelected ? '0 4px 12px rgba(96, 68, 46, 0.25)' : 'var(--shadow-sm)',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                >
+                  <span>{cat.title}</span>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      padding: '2px 7px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.22)' : 'var(--cream-dark)',
+                      color: isSelected ? '#ffffff' : 'var(--muted)',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Multi-Row Product Grid */}
@@ -366,7 +476,7 @@ export const HomePage: React.FC = () => {
                 </div>
               ))
             ) : (
-              products.map((product) => (
+              displayedHomeProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))
             )}
