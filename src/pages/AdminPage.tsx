@@ -409,13 +409,13 @@ export const AdminPage: React.FC = () => {
         },
       ]);
     } else {
-      // Default empty look template
+      // Default empty look template ready for admin upload
       setActiveLooks([
         {
           id: `ba-${Date.now()}-1`,
-          title: 'Cinematic Look #1',
-          before: currentProd.thumbnail || '',
-          after: currentProd.gallery?.[1] || currentProd.thumbnail || '',
+          title: 'Look #1',
+          before: '',
+          after: '',
         },
       ]);
     }
