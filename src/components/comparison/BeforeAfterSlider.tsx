@@ -9,6 +9,8 @@ interface BeforeAfterSliderProps {
   aspectRatio?: string;
   fallbackImage?: string;
   fitMode?: 'cover' | 'contain';
+  style?: React.CSSProperties;
+  className?: string;
 }
 
 const DEFAULT_FALLBACK = '';
@@ -21,6 +23,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   aspectRatio = '16 / 9',
   fallbackImage = DEFAULT_FALLBACK,
   fitMode = 'contain',
+  style: customStyle,
+  className,
 }) => {
   const [sliderPos, setSliderPos] = useState(50); // percentage 0 to 100
   const [isDragging, setIsDragging] = useState(false);
@@ -69,6 +73,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   return (
     <div
       ref={containerRef}
+      className={className}
       style={{
         position: 'relative',
         width: '100%',
@@ -81,6 +86,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         boxShadow: 'var(--shadow-clay)',
         touchAction: 'pan-y', // Natural vertical page scrolling on mobile
         backgroundColor: '#120f0d',
+        ...customStyle,
       }}
     >
       {/* ========================================================================= */}
