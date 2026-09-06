@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Product, ProductCategory, UGCItem } from '../types';
 import { fetchLiveShopifyProducts } from '../services/shopify';
+import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import {
   getAdminCustomizations,
   saveCustomBeforeAfterForProduct,
@@ -46,9 +47,26 @@ const normalizeKey = (key: string): string => {
     .replace(/[^a-z0-9]/g, '');
 };
 
+const CACHED_PRODUCTS_KEY = 'cinevo_cached_products_v2';
+
+function getInitialCachedProducts(): Product[] {
+  try {
+    const raw = localStorage.getItem(CACHED_PRODUCTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return FALLBACK_PRODUCTS || [];
+}
+
 export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [rawProducts, setRawProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [rawProducts, setRawProducts] = useState<Product[]>(() => getInitialCachedProducts());
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [customizationVersion, setCustomizationVersion] = useState(0);
   const [isCloudSyncActive, setIsCloudSyncActive] = useState<boolean>(false);
@@ -70,28 +88,32 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const loadProducts = async () => {
-    setIsLoading(true);
     setError(null);
     try {
-      // Sync cloud customizations simultaneously
-      await syncWithCloud();
+      // Parallel non-blocking background revalidation
+      const [cloudRes, liveProductsRes] = await Promise.allSettled([
+        syncWithCloud(),
+        fetchLiveShopifyProducts(),
+      ]);
 
-      const liveProducts = await fetchLiveShopifyProducts();
-      if (liveProducts && liveProducts.length > 0) {
-        setRawProducts(liveProducts);
-      } else {
-        setRawProducts([]);
+      if (liveProductsRes.status === 'fulfilled' && liveProductsRes.value && liveProductsRes.value.length > 0) {
+        setRawProducts(liveProductsRes.value);
+        try {
+          localStorage.setItem(CACHED_PRODUCTS_KEY, JSON.stringify(liveProductsRes.value));
+        } catch {
+          // ignore quota error
+        }
       }
     } catch (err: any) {
       console.warn('Could not load live Shopify products:', err);
-      setError(err?.message || 'Failed to load products');
-      setRawProducts([]);
+      setError(err?.message || 'Failed to refresh products');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // Immediately kick off background revalidation
     loadProducts();
   }, []);
 

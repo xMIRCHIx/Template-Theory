@@ -19,22 +19,34 @@ export const HeroScene: React.FC = () => {
   const toolRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // On mobile devices (touch screens / screens <= 768px), disable the JS RAF loop to eliminate CPU contention
+    const isMobile = window.innerWidth <= 768 || window.matchMedia('(hover: none)').matches;
+    if (isMobile) return;
+
     let mouseX = 0;
     let mouseY = 0;
     let currentX = 0;
     let currentY = 0;
     let isHovered = false;
     let isVisible = true;
+    let isLoopRunning = false;
     let animId: number;
-    let idleTime = 0;
 
     let cachedRect: DOMRect | null = null;
+
+    const startLoopIfNeeded = () => {
+      if (!isLoopRunning && isVisible) {
+        isLoopRunning = true;
+        animId = requestAnimationFrame(updateFrame);
+      }
+    };
 
     const handlePointerEnter = () => {
       if (containerRef.current) {
         cachedRect = containerRef.current.getBoundingClientRect();
       }
       isHovered = true;
+      startLoopIfNeeded();
     };
 
     const handlePointerMove = (e: PointerEvent) => {
@@ -47,6 +59,7 @@ export const HeroScene: React.FC = () => {
       mouseX = Math.max(-1, Math.min(1, x));
       mouseY = Math.max(-1, Math.min(1, y));
       isHovered = true;
+      startLoopIfNeeded();
     };
 
     const handlePointerLeave = () => {
@@ -54,6 +67,7 @@ export const HeroScene: React.FC = () => {
       mouseY = 0;
       isHovered = false;
       cachedRect = null;
+      startLoopIfNeeded();
     };
 
     const container = containerRef.current;
@@ -63,10 +77,12 @@ export const HeroScene: React.FC = () => {
       container.addEventListener('pointerleave', handlePointerLeave, { passive: true });
     }
 
-    // Pause animation when scrolled off-screen for 100% smooth page scroll
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
+        if (isVisible && isHovered) {
+          startLoopIfNeeded();
+        }
       },
       { threshold: 0.05 }
     );
@@ -76,90 +92,93 @@ export const HeroScene: React.FC = () => {
     }
 
     const updateFrame = () => {
-      if (isVisible) {
-        idleTime += 0.012;
-        const idleX = Math.sin(idleTime) * 0.035;
-        const idleY = Math.cos(idleTime * 0.8) * 0.035;
+      if (!isVisible) {
+        isLoopRunning = false;
+        return;
+      }
 
-        const targetX = isHovered ? mouseX : idleX;
-        const targetY = isHovered ? mouseY : idleY;
+      const targetX = isHovered ? mouseX : 0;
+      const targetY = isHovered ? mouseY : 0;
 
-        // Silky smooth spring lerp
-        currentX += (targetX - currentX) * 0.065;
-        currentY += (targetY - currentY) * 0.065;
+      // Spring lerp
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
 
-        const nx = currentX;
-        const ny = currentY;
+      const nx = currentX;
+      const ny = currentY;
 
-        // 1. Scene tilt (Subtle natural perspective)
-        if (sceneRef.current) {
-          sceneRef.current.style.transform = `rotateX(${-ny * 1.6}deg) rotateY(${nx * 2.0}deg)`;
-        }
+      // 1. Scene tilt
+      if (sceneRef.current) {
+        sceneRef.current.style.transform = `rotateX(${-ny * 1.6}deg) rotateY(${nx * 2.0}deg)`;
+      }
 
-        // 2. Base Floor Shadow
-        if (shadowRef.current) {
-          shadowRef.current.style.transform = `translate3d(${nx * 1.5}px, ${ny * 1.0}px, 0px)`;
-        }
+      // 2. Base Floor Shadow
+      if (shadowRef.current) {
+        shadowRef.current.style.transform = `translate3d(${nx * 1.5}px, ${ny * 1.0}px, 0px)`;
+      }
 
-        // 3. Background Splatter Blob
-        if (bgRef.current) {
-          bgRef.current.style.transform = `translate3d(${nx * 2}px, ${ny * 1.5}px, 0px)`;
-        }
+      // 3. Background Splatter Blob
+      if (bgRef.current) {
+        bgRef.current.style.transform = `translate3d(${nx * 2}px, ${ny * 1.5}px, 0px)`;
+      }
 
-        // 4. Background Clay Sphere
-        if (bgCircleRef.current) {
-          bgCircleRef.current.style.transform = `translate3d(${nx * 2.5}px, ${ny * 1.8}px, 6px)`;
-        }
+      // 4. Background Clay Sphere
+      if (bgCircleRef.current) {
+        bgCircleRef.current.style.transform = `translate3d(${nx * 2.5}px, ${ny * 1.8}px, 6px)`;
+      }
 
-        // 5. Plant Leaf (Far Right)
-        if (leafRef.current) {
-          leafRef.current.style.transform = `translate3d(${nx * 3}px, ${ny * 2}px, 10px) rotate(${nx * 0.4}deg)`;
-        }
+      // 5. Plant Leaf (Far Right)
+      if (leafRef.current) {
+        leafRef.current.style.transform = `translate3d(${nx * 3}px, ${ny * 2}px, 10px) rotate(${nx * 0.4}deg)`;
+      }
 
-        // 6. LUTs Folder (Back Left)
-        if (lutsRef.current) {
-          lutsRef.current.style.transform = `translate3d(${nx * 3.5}px, ${ny * 2.5}px, 12px) rotate(${-nx * 0.3}deg)`;
-        }
+      // 6. LUTs Folder (Back Left)
+      if (lutsRef.current) {
+        lutsRef.current.style.transform = `translate3d(${nx * 3.5}px, ${ny * 2.5}px, 12px) rotate(${-nx * 0.3}deg)`;
+      }
 
-        // 7. PSDs Folder (Back Right)
-        if (psdsRef.current) {
-          psdsRef.current.style.transform = `translate3d(${nx * 4}px, ${ny * 2.8}px, 14px) rotate(${nx * 0.3}deg)`;
-        }
+      // 7. PSDs Folder (Back Right)
+      if (psdsRef.current) {
+        psdsRef.current.style.transform = `translate3d(${nx * 4}px, ${ny * 2.8}px, 14px) rotate(${nx * 0.3}deg)`;
+      }
 
-        // 8. Cube Badge (Foreground on top of circle)
-        if (cubeRef.current) {
-          cubeRef.current.style.transform = `translate3d(${nx * 8}px, ${ny * 5.5}px, 34px) rotate(${nx * 0.8}deg)`;
-        }
+      // 8. Cube Badge (Foreground on top of circle)
+      if (cubeRef.current) {
+        cubeRef.current.style.transform = `translate3d(${nx * 8}px, ${ny * 5.5}px, 34px) rotate(${nx * 0.8}deg)`;
+      }
 
-        // 9. Orange Sphere & Tool Rod
-        if (orangeCircleRef.current) {
-          orangeCircleRef.current.style.transform = `translate3d(${nx * 4.5}px, ${ny * 3.2}px, 18px)`;
-        }
+      // 9. Orange Sphere & Tool Rod
+      if (orangeCircleRef.current) {
+        orangeCircleRef.current.style.transform = `translate3d(${nx * 4.5}px, ${ny * 3.2}px, 18px)`;
+      }
 
-        if (toolRef.current) {
-          toolRef.current.style.transform = `translate3d(${nx * 4.5}px, ${ny * 3.2}px, 18px) rotate(${-20 + nx * 0.4}deg)`;
-        }
+      if (toolRef.current) {
+        toolRef.current.style.transform = `translate3d(${nx * 4.5}px, ${ny * 3.2}px, 18px) rotate(${-20 + nx * 0.4}deg)`;
+      }
 
-        // 10. Presets Folder (Front Left)
-        if (presetsRef.current) {
-          presetsRef.current.style.transform = `translate3d(${nx * 5.5}px, ${ny * 3.8}px, 24px) rotate(${nx * 0.3}deg)`;
-        }
+      // 10. Presets Folder (Front Left)
+      if (presetsRef.current) {
+        presetsRef.current.style.transform = `translate3d(${nx * 5.5}px, ${ny * 3.8}px, 24px) rotate(${nx * 0.3}deg)`;
+      }
 
-        // 11. Albums Folder (Front Right)
-        if (albumsRef.current) {
-          albumsRef.current.style.transform = `translate3d(${nx * 5.5}px, ${ny * 3.8}px, 26px) rotate(${-nx * 0.3}deg)`;
-        }
+      // 11. Albums Folder (Front Right)
+      if (albumsRef.current) {
+        albumsRef.current.style.transform = `translate3d(${nx * 5.5}px, ${ny * 3.8}px, 26px) rotate(${-nx * 0.3}deg)`;
+      }
 
-        // 12. Camera (Front Center)
-        if (cameraRef.current) {
-          cameraRef.current.style.transform = `translate3d(${nx * 6.5}px, ${ny * 4.5}px, 32px) rotate(${nx * 0.2}deg)`;
-        }
+      // 12. Camera (Front Center)
+      if (cameraRef.current) {
+        cameraRef.current.style.transform = `translate3d(${nx * 6.5}px, ${ny * 4.5}px, 32px) rotate(${nx * 0.2}deg)`;
+      }
+
+      // If returned to rest and not hovered, stop RAF to save CPU
+      if (!isHovered && Math.abs(currentX) < 0.001 && Math.abs(currentY) < 0.001) {
+        isLoopRunning = false;
+        return;
       }
 
       animId = requestAnimationFrame(updateFrame);
     };
-
-    animId = requestAnimationFrame(updateFrame);
 
     return () => {
       cancelAnimationFrame(animId);

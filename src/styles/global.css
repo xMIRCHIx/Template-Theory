@@ -36,6 +36,17 @@ body {
   line-height: 1.55;
 }
 
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll !important;
+  }
+}
+
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 350px;
+}
+
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);

@@ -68,6 +68,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
           <img
             src={category.iconImage}
             alt={category.title}
+            loading="lazy"
+            decoding="async"
             style={{
               maxWidth: '100%',
               maxHeight: '100%',

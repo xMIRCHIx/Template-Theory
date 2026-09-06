@@ -17,6 +17,16 @@ export const Magnetic: React.FC<MagneticProps> = ({
   className = '',
   style = {},
 }) => {
+  const isTouch = typeof window !== 'undefined' && (window.innerWidth <= 768 || window.matchMedia('(hover: none)').matches);
+
+  if (isTouch) {
+    return (
+      <div className={className} style={{ display: 'inline-block', ...style }}>
+        {children}
+      </div>
+    );
+  }
+
   const ref = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);

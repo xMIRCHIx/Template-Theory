@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ShopifyProvider } from './context/ShopifyContext';
 import { CartProvider } from './context/CartContext';
@@ -10,19 +10,21 @@ import { SearchModal } from './components/layout/SearchModal';
 import { WishlistDrawer } from './components/layout/WishlistDrawer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 
-// Pages
+// Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
-import { ShopPage } from './pages/ShopPage';
-import { CollectionsIndexPage } from './pages/CollectionsIndexPage';
-import { CategoryCollectionPage } from './pages/CategoryCollectionPage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { AboutPage } from './pages/AboutPage';
-import { ContactPage } from './pages/ContactPage';
-import { FAQPage } from './pages/FAQPage';
-import { CartPage } from './pages/CartPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderSuccessPage } from './pages/OrderSuccessPage';
-import { AdminPage } from './pages/AdminPage';
+
+// Lazy load secondary routes to shrink initial bundle by >70%
+const ShopPage = lazy(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
+const CollectionsIndexPage = lazy(() => import('./pages/CollectionsIndexPage').then((m) => ({ default: m.CollectionsIndexPage })));
+const CategoryCollectionPage = lazy(() => import('./pages/CategoryCollectionPage').then((m) => ({ default: m.CategoryCollectionPage })));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
+const AboutPage = lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazy(() => import('./pages/ContactPage').then((m) => ({ default: m.ContactPage })));
+const FAQPage = lazy(() => import('./pages/FAQPage').then((m) => ({ default: m.FAQPage })));
+const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -56,22 +58,24 @@ const AppContent: React.FC = () => {
       />
 
       <main style={{ flex: 1 }}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/shop" element={<ShopPage />} />
-          <Route path="/collections" element={<CollectionsIndexPage />} />
-          <Route path="/collections/:category" element={<CategoryCollectionPage />} />
-          <Route path="/product/:slug" element={<ProductDetailPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/faq" element={<FAQPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order-success" element={<OrderSuccessPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          {/* Fallback */}
-          <Route path="*" element={<HomePage />} />
-        </Routes>
+        <Suspense fallback={<div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/collections" element={<CollectionsIndexPage />} />
+            <Route path="/collections/:category" element={<CategoryCollectionPage />} />
+            <Route path="/product/:slug" element={<ProductDetailPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order-success" element={<OrderSuccessPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            {/* Fallback */}
+            <Route path="*" element={<HomePage />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <Footer />

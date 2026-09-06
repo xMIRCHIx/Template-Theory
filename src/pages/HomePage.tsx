@@ -341,7 +341,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 4. POPULAR CATEGORIES */}
-      <section>
+      <section className="content-auto">
         <div className="container">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
             <div>
@@ -382,7 +382,7 @@ export const HomePage: React.FC = () => {
 
       {/* 5. COMMUNITY UGC SHOWCASE: INFINITE AUTO SIDE-SCROLLING VERTICAL MARQUEE */}
       {ugcList && ugcList.length > 0 && (
-        <section style={{ position: 'relative', overflow: 'hidden', padding: '10px 0' }}>
+        <section className="content-auto" style={{ position: 'relative', overflow: 'hidden', padding: '10px 0' }}>
           <div className="container" style={{ marginBottom: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
               <div>
@@ -581,7 +581,7 @@ export const HomePage: React.FC = () => {
 
 
       {/* 5. EDITORIAL SPLIT BANNERS */}
-      <section style={{ position: 'relative' }}>
+      <section className="content-auto" style={{ position: 'relative' }}>
         <div className="container" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
           
           {/* Banner 1: For the Cinematic Creator */}
@@ -697,7 +697,7 @@ export const HomePage: React.FC = () => {
 
       {/* 6. SEE THE DIFFERENCE (BEFORE / AFTER) */}
       {featuredBA?.before && featuredBA?.after && (
-        <section>
+        <section className="content-auto">
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: '36px' }}>
               <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>See the Difference</h2>
@@ -726,7 +726,7 @@ export const HomePage: React.FC = () => {
       )}
 
       {/* 8. WHAT'S INSIDE? */}
-      <section>
+      <section className="content-auto">
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '36px' }}>
             <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>What's Inside?</h2>
@@ -836,7 +836,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 9. CREATOR COMMUNITY CTA BANNER */}
-      <section>
+      <section className="content-auto">
         <div className="container">
           <div
             style={{
@@ -870,7 +870,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 10. NEWSLETTER */}
-      <section>
+      <section className="content-auto">
         <div className="container">
           <div
             style={{

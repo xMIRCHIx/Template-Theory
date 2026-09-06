@@ -40,6 +40,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <img
             src={product.thumbnail}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = 'none';
             }}
