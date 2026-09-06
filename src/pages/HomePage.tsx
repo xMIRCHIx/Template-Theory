@@ -29,13 +29,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, isLoading, ugcList, currencySymbol } = useShopify();
+  const { products, isLoading, ugcList, currencySymbol, homeBeforeAfterLooks } = useShopify();
   const { addToCart } = useCart();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'subscribed'>('idle');
 
   // Dedicated Homepage Category Filter State (Independent from Shop page)
   const [homeCategory, setHomeCategory] = useState<string>('all');
+
+  // Homepage Before/After Look Switcher State
+  const [activeHomeLookIndex, setActiveHomeLookIndex] = useState<number>(0);
+  const currentHomeLook = (homeBeforeAfterLooks && homeBeforeAfterLooks.length > 0)
+    ? (homeBeforeAfterLooks[activeHomeLookIndex] || homeBeforeAfterLooks[0])
+    : null;
 
   const displayedHomeProducts = useMemo(() => {
     if (homeCategory === 'all') return products;
@@ -84,8 +90,6 @@ export const HomePage: React.FC = () => {
       setNewsletterEmail('');
     }, 2000);
   };
-
-  const featuredBA = products.find((p) => p.beforeAfterImage?.before && p.beforeAfterImage?.after)?.beforeAfterImage;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '80px', overflowX: 'hidden', position: 'relative' }}>
@@ -853,15 +857,71 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. SEE THE DIFFERENCE (BEFORE / AFTER) */}
-      {featuredBA?.before && featuredBA?.after && (
+      {homeBeforeAfterLooks && homeBeforeAfterLooks.length > 0 && currentHomeLook?.before && currentHomeLook?.after && (
         <section className="content-auto">
           <div className="container">
-            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>See the Difference</h2>
               <p style={{ fontSize: '1.05rem', color: 'var(--muted)', marginTop: '6px' }}>
                 One click. Completely different mood. Drag the slider to compare.
               </p>
             </div>
+
+            {/* Interactive Look Switcher Pills on Homepage */}
+            {homeBeforeAfterLooks.length > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  marginBottom: '26px',
+                  padding: '0 8px',
+                }}
+              >
+                {homeBeforeAfterLooks.map((look, idx) => {
+                  const isSelected = activeHomeLookIndex === idx;
+                  return (
+                    <button
+                      key={look.id || idx}
+                      onClick={() => setActiveHomeLookIndex(idx)}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        backgroundColor: isSelected ? 'var(--brown)' : 'var(--cream-light)',
+                        color: isSelected ? '#ffffff' : 'var(--brown)',
+                        border: isSelected ? '1.5px solid var(--brown)' : '1.5px solid var(--border)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: isSelected ? '0 4px 14px rgba(96, 68, 46, 0.22)' : 'none',
+                        transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'var(--cream)';
+                          e.currentTarget.style.borderColor = 'var(--brown-light)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'var(--cream-light)';
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                        }
+                      }}
+                    >
+                      <Sparkles size={13} color={isSelected ? 'var(--terracotta-light)' : 'var(--terracotta)'} />
+                      <span>{look.title?.split('(')[0]?.trim() || `Look #${idx + 1}`}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div
               style={{
@@ -871,12 +931,41 @@ export const HomePage: React.FC = () => {
               }}
             >
               <BeforeAfterSlider
-                beforeImage={featuredBA.before}
-                afterImage={featuredBA.after}
+                key={currentHomeLook.id || activeHomeLookIndex}
+                beforeImage={currentHomeLook.before}
+                afterImage={currentHomeLook.after}
                 beforeLabel="BEFORE"
                 afterLabel="AFTER"
                 aspectRatio="16 / 9"
               />
+
+              {/* Look Tag Badge on top-left of the slider */}
+              {currentHomeLook.title && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '14px',
+                    left: '14px',
+                    zIndex: 20,
+                    backgroundColor: 'rgba(33, 25, 19, 0.82)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <Sparkles size={12} color="var(--terracotta-light)" />
+                  <span>{currentHomeLook.title}</span>
+                </div>
+              )}
             </div>
           </div>
         </section>

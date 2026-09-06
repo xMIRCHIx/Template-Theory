@@ -27,6 +27,7 @@ interface ShopifyContextType {
   currencyCode: string;
   isCloudSyncActive: boolean;
   ugcList: UGCItem[];
+  homeBeforeAfterLooks: CustomBeforeAfterLook[];
   getProductBySlug: (slug: string) => Product | undefined;
   getProductsByCategory: (category: ProductCategory | 'all') => Product[];
   refreshProducts: () => Promise<void>;
@@ -309,6 +310,44 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return derived;
   }, [products, customizationVersion]);
 
+  // Merge custom homepage showcase Before/After looks with all product looks
+  const homeBeforeAfterLooks = useMemo<CustomBeforeAfterLook[]>(() => {
+    const adminCustom = getAdminCustomizations();
+    const customBA = adminCustom.beforeAfter || {};
+    // 1. Check direct Admin customization for Homepage Showcase
+    const directHome = customBA['__home_showcase__'] || customBA['home'] || customBA['homepage'];
+    if (directHome && Array.isArray(directHome)) {
+      const valid = directHome.filter((l) => Boolean(l && (l.before || l.after)));
+      if (valid.length > 0) return valid;
+    }
+
+    // 2. Aggregate all available Before/After looks across all products
+    const list: CustomBeforeAfterLook[] = [];
+    products.forEach((p) => {
+      if (p.beforeAfterList && p.beforeAfterList.length > 0) {
+        p.beforeAfterList.forEach((look, idx) => {
+          if (look.before && look.after) {
+            list.push({
+              id: look.id || `${p.slug}-look-${idx}`,
+              title: look.title || `${p.name} Look #${idx + 1}`,
+              before: look.before,
+              after: look.after,
+            });
+          }
+        });
+      } else if (p.beforeAfterImage?.before && p.beforeAfterImage?.after) {
+        list.push({
+          id: `${p.slug}-ba-default`,
+          title: p.name,
+          before: p.beforeAfterImage.before,
+          after: p.beforeAfterImage.after,
+        });
+      }
+    });
+
+    return list;
+  }, [products, customizationVersion]);
+
   const updateUGCItems = useCallback((items: UGCItem[]) => {
     saveSavedUGCItems(items);
     setCustomizationVersion((v) => v + 1);
@@ -335,6 +374,7 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         currencyCode,
         isCloudSyncActive,
         ugcList,
+        homeBeforeAfterLooks,
         getProductBySlug,
         getProductsByCategory,
         refreshProducts: loadProducts,

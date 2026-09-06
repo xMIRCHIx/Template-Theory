@@ -328,6 +328,7 @@ export const AdminPage: React.FC = () => {
     updateProductOrder,
     updateCollectionMapping,
     ugcList,
+    homeBeforeAfterLooks,
     updateUGCItems,
     resetAllCustomizations,
     isCloudSyncActive,
@@ -346,7 +347,7 @@ export const AdminPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // --- TAB 1: Before/After State ---
-  const [selectedProductSlug, setSelectedProductSlug] = useState<string>('');
+  const [selectedProductSlug, setSelectedProductSlug] = useState<string>('__home_showcase__');
   const [activeLooks, setActiveLooks] = useState<CustomBeforeAfterLook[]>([]);
   const [previewLookIndex, setPreviewLookIndex] = useState<number>(0);
 
@@ -392,10 +393,10 @@ export const AdminPage: React.FC = () => {
 
   // Initialize selected product when products load
   useEffect(() => {
-    if (products.length > 0 && !selectedProductSlug) {
-      setSelectedProductSlug(products[0].slug);
+    if (!selectedProductSlug) {
+      setSelectedProductSlug('__home_showcase__');
     }
-  }, [products, selectedProductSlug]);
+  }, [selectedProductSlug]);
 
   // Sync ordered product list with current products
   useEffect(() => {
@@ -405,6 +406,28 @@ export const AdminPage: React.FC = () => {
   // Load existing Before/After looks when selected product changes
   useEffect(() => {
     if (!selectedProductSlug) return;
+
+    if (selectedProductSlug === '__home_showcase__') {
+      const customBA = getAdminCustomizations().beforeAfter;
+      const homeSaved = customBA['__home_showcase__'] || customBA['home'] || customBA['homepage'];
+      if (homeSaved && homeSaved.length > 0) {
+        setActiveLooks(JSON.parse(JSON.stringify(homeSaved)));
+      } else if (homeBeforeAfterLooks && homeBeforeAfterLooks.length > 0) {
+        setActiveLooks(JSON.parse(JSON.stringify(homeBeforeAfterLooks)));
+      } else {
+        setActiveLooks([
+          {
+            id: `ba-home-${Date.now()}-1`,
+            title: 'Vintage Wedding Film',
+            before: '',
+            after: '',
+          },
+        ]);
+      }
+      setPreviewLookIndex(0);
+      return;
+    }
+
     const currentProd = products.find((p) => p.slug === selectedProductSlug);
     if (!currentProd) return;
 
@@ -431,7 +454,7 @@ export const AdminPage: React.FC = () => {
       ]);
     }
     setPreviewLookIndex(0);
-  }, [selectedProductSlug, products]);
+  }, [selectedProductSlug, products, homeBeforeAfterLooks]);
 
   // Sync local UGC list with context ugcList
   useEffect(() => {
@@ -522,6 +545,28 @@ export const AdminPage: React.FC = () => {
     // Filter to looks that have at least before or after
     const validLooks = activeLooks.filter((l) => l.before || l.after);
     const looksToSave = validLooks.length > 0 ? validLooks : activeLooks;
+
+    // Homepage showcase looks saving
+    if (selectedProductSlug === '__home_showcase__') {
+      setIsSavingToShopify(true);
+      showToast('⏳ Saving Homepage "See the Difference" showcase looks...');
+
+      updateProductBeforeAfter('__home_showcase__', looksToSave);
+      updateProductBeforeAfter('home', looksToSave);
+      updateProductBeforeAfter('homepage', looksToSave);
+
+      const currentCustomizations = getAdminCustomizations();
+      const cloudRes = await saveCustomizationsToCloud(currentCustomizations);
+      setIsSavingToShopify(false);
+
+      if (cloudRes.success) {
+        showToast('✓ Homepage "See the Difference" looks saved to Cloud Database!');
+      } else {
+        showToast('✓ Homepage "See the Difference" looks saved successfully!');
+      }
+      await refreshProducts();
+      return;
+    }
 
     // 1. Update Context & In-memory store under slug, id, and product name
     updateProductBeforeAfter(selectedProductSlug, looksToSave);
@@ -1250,7 +1295,7 @@ export const AdminPage: React.FC = () => {
                 }}
               >
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '8px' }}>
-                  1. SELECT SHOPIFY PRODUCT TO CONFIGURE:
+                  1. SELECT TARGET TO CONFIGURE BEFORE / AFTER LOOKS:
                 </label>
                 <select
                   value={selectedProductSlug}
@@ -1268,12 +1313,37 @@ export const AdminPage: React.FC = () => {
                     cursor: 'pointer',
                   }}
                 >
-                  {products.map((p) => (
-                    <option key={p.id} value={p.slug}>
-                      [{p.category.toUpperCase()}] {p.name} — (₹{p.price})
-                    </option>
-                  ))}
+                  <option value="__home_showcase__" style={{ fontWeight: 800, color: 'var(--terracotta-dark)' }}>
+                    🏠 [HOMEPAGE SHOWCASE] Hero "See the Difference" Looks Slider
+                  </option>
+                  <optgroup label="🛍️ Individual Products">
+                    {products.map((p) => (
+                      <option key={p.id} value={p.slug}>
+                        [{p.category.toUpperCase()}] {p.name} — (₹{p.price})
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
+
+                {selectedProductSlug === '__home_showcase__' && (
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(201, 130, 103, 0.12)',
+                      border: '1px solid var(--terracotta)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '12px 16px',
+                      marginTop: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                    }}
+                  >
+                    <Sparkles size={18} color="var(--terracotta)" style={{ flexShrink: 0 }} />
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--brown)', fontWeight: 600, lineHeight: 1.4 }}>
+                      <strong>Homepage Showcase Mode:</strong> The looks configured below will appear with interactive look switcher pills on your Homepage's <em>"See the Difference"</em> section!
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Variation Looks List */}
