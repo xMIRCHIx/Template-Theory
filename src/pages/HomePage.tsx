@@ -29,7 +29,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, isLoading, ugcList, currencySymbol, homeBeforeAfterLooks } = useShopify();
+  const { products, isLoading, ugcList, currencySymbol, homepageSettings } = useShopify();
   const { addToCart } = useCart();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'subscribed'>('idle');
@@ -39,8 +39,9 @@ export const HomePage: React.FC = () => {
 
   // Homepage Before/After Look Switcher State
   const [activeHomeLookIndex, setActiveHomeLookIndex] = useState<number>(0);
-  const currentHomeLook = (homeBeforeAfterLooks && homeBeforeAfterLooks.length > 0)
-    ? (homeBeforeAfterLooks[activeHomeLookIndex] || homeBeforeAfterLooks[0])
+  const homeLooks = homepageSettings?.looks || [];
+  const currentHomeLook = (homeLooks.length > 0)
+    ? (homeLooks[activeHomeLookIndex] || homeLooks[0])
     : null;
 
   const displayedHomeProducts = useMemo(() => {
@@ -857,18 +858,20 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. SEE THE DIFFERENCE (BEFORE / AFTER) */}
-      {homeBeforeAfterLooks && homeBeforeAfterLooks.length > 0 && currentHomeLook?.before && currentHomeLook?.after && (
+      {homeLooks.length > 0 && currentHomeLook?.before && currentHomeLook?.after && (
         <section className="content-auto">
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>See the Difference</h2>
+              <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>
+                {homepageSettings?.heading || 'See the Difference'}
+              </h2>
               <p style={{ fontSize: '1.05rem', color: 'var(--muted)', marginTop: '6px' }}>
-                One click. Completely different mood. Drag the slider to compare.
+                {homepageSettings?.subheading || 'One click. Completely different mood. Drag the slider to compare.'}
               </p>
             </div>
 
             {/* Interactive Look Switcher Pills on Homepage */}
-            {homeBeforeAfterLooks.length > 1 && (
+            {homeLooks.length > 1 && (
               <div
                 style={{
                   display: 'flex',
@@ -880,7 +883,7 @@ export const HomePage: React.FC = () => {
                   padding: '0 8px',
                 }}
               >
-                {homeBeforeAfterLooks.map((look, idx) => {
+                {homeLooks.map((look, idx) => {
                   const isSelected = activeHomeLookIndex === idx;
                   return (
                     <button

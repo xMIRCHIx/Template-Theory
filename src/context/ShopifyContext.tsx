@@ -10,7 +10,10 @@ import {
   saveAdminCustomizations,
   getSavedUGCItems,
   saveSavedUGCItems,
+  getSavedHomepageSettings,
+  saveSavedHomepageSettings,
   CustomBeforeAfterLook,
+  HomepageSettings,
 } from '../services/adminStore';
 import {
   fetchCustomizationsFromCloud,
@@ -28,10 +31,12 @@ interface ShopifyContextType {
   isCloudSyncActive: boolean;
   ugcList: UGCItem[];
   homeBeforeAfterLooks: CustomBeforeAfterLook[];
+  homepageSettings: HomepageSettings;
   getProductBySlug: (slug: string) => Product | undefined;
   getProductsByCategory: (category: ProductCategory | 'all') => Product[];
   refreshProducts: () => Promise<void>;
   updateProductBeforeAfter: (slugOrId: string, looks: CustomBeforeAfterLook[]) => void;
+  updateHomepageSettings: (settings: HomepageSettings) => void;
   updateProductOrder: (orderedIdentifiers: string[]) => void;
   updateCollectionMapping: (collectionSlug: string, productIdentifiers: string[]) => void;
   updateUGCItems: (items: UGCItem[]) => void;
@@ -310,18 +315,14 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return derived;
   }, [products, customizationVersion]);
 
-  // Merge custom homepage showcase Before/After looks with all product looks
-  const homeBeforeAfterLooks = useMemo<CustomBeforeAfterLook[]>(() => {
-    const adminCustom = getAdminCustomizations();
-    const customBA = adminCustom.beforeAfter || {};
-    // 1. Check direct Admin customization for Homepage Showcase
-    const directHome = customBA['__home_showcase__'] || customBA['home'] || customBA['homepage'];
-    if (directHome && Array.isArray(directHome)) {
-      const valid = directHome.filter((l) => Boolean(l && (l.before || l.after)));
-      if (valid.length > 0) return valid;
+  // Dedicated Homepage Settings (Heading, Subheading, and specific showcase looks)
+  const homepageSettings = useMemo<HomepageSettings>(() => {
+    const saved = getSavedHomepageSettings();
+    if (saved && saved.looks && saved.looks.length > 0) {
+      return saved;
     }
 
-    // 2. Aggregate all available Before/After looks across all products
+    // Default Fallback: derive looks from products or default look
     const list: CustomBeforeAfterLook[] = [];
     products.forEach((p) => {
       if (p.beforeAfterList && p.beforeAfterList.length > 0) {
@@ -345,8 +346,24 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
 
-    return list;
+    return {
+      heading: saved?.heading || 'See the Difference',
+      subheading: saved?.subheading || 'One click. Completely different mood. Drag the slider to compare.',
+      looks: list,
+    };
   }, [products, customizationVersion]);
+
+  const homeBeforeAfterLooks = useMemo<CustomBeforeAfterLook[]>(() => {
+    return homepageSettings.looks || [];
+  }, [homepageSettings]);
+
+  const updateHomepageSettings = useCallback((settings: HomepageSettings) => {
+    saveSavedHomepageSettings(settings);
+    setCustomizationVersion((v) => v + 1);
+    // Background sync to Cloud Database
+    const allCustomizations = getAdminCustomizations();
+    saveCustomizationsToCloud(allCustomizations).catch((err) => console.warn('Cloud sync error:', err));
+  }, []);
 
   const updateUGCItems = useCallback((items: UGCItem[]) => {
     saveSavedUGCItems(items);
@@ -375,10 +392,12 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isCloudSyncActive,
         ugcList,
         homeBeforeAfterLooks,
+        homepageSettings,
         getProductBySlug,
         getProductsByCategory,
         refreshProducts: loadProducts,
         updateProductBeforeAfter,
+        updateHomepageSettings,
         updateProductOrder,
         updateCollectionMapping,
         updateUGCItems,

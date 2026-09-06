@@ -10,8 +10,15 @@ export interface CustomBeforeAfterLook {
   after: string;
 }
 
+export interface HomepageSettings {
+  heading?: string;
+  subheading?: string;
+  looks: CustomBeforeAfterLook[];
+}
+
 export interface AdminCustomizations {
   beforeAfter: Record<string, CustomBeforeAfterLook[]>; // keyed by product slug or id
+  homepageSettings?: HomepageSettings; // dedicated homepage settings & looks
   productOrder: string[]; // array of product ids / slugs in custom priority order
   collectionOverrides: Record<string, string[]>; // collection slug -> array of product slugs/ids
   ugcItems?: UGCItem[]; // custom vertical UGC items for continuous marquee
@@ -69,14 +76,42 @@ export function getAdminCustomizations(): AdminCustomizations {
     const parsed = JSON.parse(raw);
     const cleaned = cleanLegacyCustomizations({
       beforeAfter: parsed.beforeAfter || {},
+      homepageSettings: parsed.homepageSettings,
       productOrder: Array.isArray(parsed.productOrder) ? parsed.productOrder : [],
       collectionOverrides: parsed.collectionOverrides || {},
+      ugcItems: Array.isArray(parsed.ugcItems) ? parsed.ugcItems : [],
     });
     return cleaned;
   } catch (err) {
     console.warn('Failed to read admin customizations from localStorage:', err);
     return { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
   }
+}
+
+export function getSavedHomepageSettings(): HomepageSettings | null {
+  const custom = getAdminCustomizations();
+  if (custom.homepageSettings && Array.isArray(custom.homepageSettings.looks)) {
+    return custom.homepageSettings;
+  }
+  // Fallback to legacy beforeAfter keys if exists
+  const legacy = custom.beforeAfter['__home_showcase__'] || custom.beforeAfter['home'] || custom.beforeAfter['homepage'];
+  if (legacy && Array.isArray(legacy) && legacy.length > 0) {
+    return {
+      heading: 'See the Difference',
+      subheading: 'One click. Completely different mood. Drag the slider to compare.',
+      looks: legacy,
+    };
+  }
+  return null;
+}
+
+export function saveSavedHomepageSettings(settings: HomepageSettings): void {
+  const custom = getAdminCustomizations();
+  custom.homepageSettings = settings;
+  // Also keep backward compatible key
+  custom.beforeAfter['__home_showcase__'] = settings.looks;
+  custom.beforeAfter['home'] = settings.looks;
+  saveAdminCustomizations(custom);
 }
 
 export function saveAdminCustomizations(data: AdminCustomizations): void {
