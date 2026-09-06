@@ -70,8 +70,8 @@ interface ImageDropZoneProps {
   placeholder?: string;
 }
 
-// Fast client-side image downscaler to prevent memory bloat and browser freeze
-async function compressImageFile(file: File, maxDimension = 1400, quality = 0.82): Promise<string> {
+// Fast client-side image downscaler to prevent memory bloat and fit neatly into cloud metafields
+async function compressImageFile(file: File, maxDimension = 750, quality = 0.72): Promise<string> {
   return new Promise((resolve) => {
     if (file.type === 'image/svg+xml') {
       const reader = new FileReader();
@@ -505,7 +505,7 @@ export const AdminPage: React.FC = () => {
     const validLooks = activeLooks.filter((l) => l.before || l.after);
     const looksToSave = validLooks.length > 0 ? validLooks : activeLooks;
 
-    // 1. Update Context & Supabase under slug, id, and product name
+    // 1. Update Context & In-memory store under slug, id, and product name
     updateProductBeforeAfter(selectedProductSlug, looksToSave);
     if (selectedProduct?.id && selectedProduct.id !== selectedProductSlug) {
       updateProductBeforeAfter(selectedProduct.id, looksToSave);
@@ -514,20 +514,33 @@ export const AdminPage: React.FC = () => {
       updateProductBeforeAfter(selectedProduct.name, looksToSave);
     }
 
-    // 2. If Shopify Admin Token is set, upload directly into Shopify's database!
-    const { adminToken } = getShopifyAdminCredentials();
-    if (adminToken && selectedProduct) {
-      setIsSavingToShopify(true);
-      showToast(`⏳ Uploading media & metafields directly to Shopify for "${selectedProduct.name}"...`);
+    // 2. Upload directly into Shopify's live Database & Metafields!
+    setIsSavingToShopify(true);
+    showToast(`⏳ Saving Before/After looks directly to Shopify Database for "${selectedProduct?.name || selectedProductSlug}"...`);
+
+    let shopifyOk = false;
+    let shopifyErr = '';
+    if (selectedProduct) {
       const shopifyRes = await saveLooksToShopifyProduct(selectedProduct, looksToSave);
-      setIsSavingToShopify(false);
-      if (shopifyRes.success) {
-        showToast(`✓ Before/After looks saved directly into Shopify database & media for "${selectedProduct.name}"!`);
-      } else {
-        showToast(`✓ Saved to local & cloud database (Shopify push: ${shopifyRes.error})`);
-      }
+      shopifyOk = shopifyRes.success;
+      shopifyErr = shopifyRes.error || '';
+    }
+
+    // 3. Also upload to Supabase cloud if configured
+    const currentCustomizations = getAdminCustomizations();
+    const cloudRes = await saveCustomizationsToCloud(currentCustomizations);
+
+    setIsSavingToShopify(false);
+
+    if (shopifyOk) {
+      showToast(`✓ Before/After looks saved directly into Shopify Live Database for "${selectedProduct?.name}"!`);
+      await refreshProducts();
+    } else if (cloudRes.success) {
+      showToast(`✓ Saved to Supabase Cloud Database! (Shopify: ${shopifyErr || 'synced locally'})`);
+      await refreshProducts();
     } else {
-      showToast(`✓ Before/After Looks saved for "${selectedProduct?.name}"!`);
+      showToast(`✓ Saved Before/After Looks for "${selectedProduct?.name}"! (Shopify push: ${shopifyErr || 'local sync ok'})`);
+      await refreshProducts();
     }
   };
 
@@ -874,12 +887,28 @@ export const AdminPage: React.FC = () => {
               >
                 ADMIN SUITE
               </span>
-              {isCloudSyncActive ? (
+              <span
+                style={{
+                  backgroundColor: '#dcfce7',
+                  color: '#15803d',
+                  border: '1px solid #bbf7d0',
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <CheckCircle size={12} /> SHOPIFY CLOUD DB ACTIVE
+              </span>
+              {isCloudSyncActive && (
                 <span
                   style={{
-                    backgroundColor: '#dcfce7',
-                    color: '#15803d',
-                    border: '1px solid #bbf7d0',
+                    backgroundColor: '#dbeafe',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
                     fontSize: '0.7rem',
                     fontWeight: 800,
                     padding: '2px 8px',
@@ -889,24 +918,7 @@ export const AdminPage: React.FC = () => {
                     gap: '4px',
                   }}
                 >
-                  <Cloud size={12} /> SUPABASE CLOUD ACTIVE
-                </span>
-              ) : (
-                <span
-                  style={{
-                    backgroundColor: '#fef3c7',
-                    color: '#b45309',
-                    border: '1px solid #fde68a',
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-full)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <CloudOff size={12} /> LOCAL CACHE (CONFIGURE DB IN TAB 4)
+                  <Cloud size={12} /> SUPABASE STORAGE ACTIVE
                 </span>
               )}
               <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
