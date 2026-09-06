@@ -33,9 +33,9 @@ export function saveShopifyAdminCredentials(token: string): void {
   localStorage.setItem(STORAGE_KEY_ADMIN_TOKEN, token.trim());
 }
 
-// Helper to resolve admin endpoint with local dev proxy support
+// Helper to resolve admin endpoint with local dev and Vercel serverless proxy support
 function getAdminApiUrl(path: string, domain: string): string {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  if (typeof window !== 'undefined') {
     return `/shopify-admin-api${path}`;
   }
   return `https://${domain}${path}`;
