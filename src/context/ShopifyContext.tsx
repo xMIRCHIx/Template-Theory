@@ -12,6 +12,7 @@ import {
   saveSavedUGCItems,
   getSavedHomepageSettings,
   saveSavedHomepageSettings,
+  hydrateFromIndexedDb,
   CustomBeforeAfterLook,
   HomepageSettings,
 } from '../services/adminStore';
@@ -119,6 +120,12 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
+    // Hydrate local customizations from IndexedDB on start (bypasses localStorage 5MB quota)
+    hydrateFromIndexedDb().then((data) => {
+      if (data) {
+        setCustomizationVersion((v) => v + 1);
+      }
+    });
     // Immediately kick off background revalidation
     loadProducts();
   }, []);

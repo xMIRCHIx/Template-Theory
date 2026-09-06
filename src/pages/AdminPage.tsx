@@ -160,7 +160,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
 
     try {
       // 2. Client-side downscaling prevents huge uncompressed memory bloat & browser lag
-      const compressedDataUrl = await compressImageFile(file, 1400, 0.82);
+      const compressedDataUrl = await compressImageFile(file, 900, 0.76);
       if (compressedDataUrl) {
         onChange(compressedDataUrl);
       }

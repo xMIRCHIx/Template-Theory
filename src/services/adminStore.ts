@@ -28,6 +28,75 @@ const STORAGE_KEY = 'cinevo_admin_customizations_v1';
 const ADMIN_PIN_KEY = 'cinevo_admin_pin_v1';
 const DEFAULT_PIN = '2026';
 
+let inMemoryCustomizations: AdminCustomizations | null = null;
+
+// IndexedDB Helper for zero-quota limits on image uploads
+const IDB_NAME = 'cinevo_custom_store_v1';
+const IDB_KEY = 'admin_data';
+
+function getIndexedDb(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      resolve(null);
+      return;
+    }
+    try {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('keyval')) {
+          db.createObjectStore('keyval');
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export async function hydrateFromIndexedDb(): Promise<AdminCustomizations | null> {
+  try {
+    const db = await getIndexedDb();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const tx = db.transaction('keyval', 'readonly');
+      const store = tx.objectStore('keyval');
+      const req = store.get(IDB_KEY);
+      req.onsuccess = () => {
+        if (req.result) {
+          const cleaned = cleanLegacyCustomizations(req.result);
+          inMemoryCustomizations = cleaned;
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+          } catch {
+            // quota limit is fine since memory & IndexedDB hold the source of truth
+          }
+          resolve(cleaned);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function saveToIndexedDb(data: AdminCustomizations): Promise<void> {
+  try {
+    const db = await getIndexedDb();
+    if (!db) return;
+    const tx = db.transaction('keyval', 'readwrite');
+    const store = tx.objectStore('keyval');
+    store.put(data, IDB_KEY);
+  } catch (err) {
+    console.warn('IndexedDB save failed:', err);
+  }
+}
+
 export function getAdminPin(): string {
   try {
     return localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_PIN;
@@ -72,6 +141,9 @@ function cleanLegacyCustomizations(data: AdminCustomizations): AdminCustomizatio
 }
 
 export function getAdminCustomizations(): AdminCustomizations {
+  if (inMemoryCustomizations) {
+    return inMemoryCustomizations;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -85,6 +157,7 @@ export function getAdminCustomizations(): AdminCustomizations {
       collectionOverrides: parsed.collectionOverrides || {},
       ugcItems: Array.isArray(parsed.ugcItems) ? parsed.ugcItems : [],
     });
+    inMemoryCustomizations = cleaned;
     return cleaned;
   } catch (err) {
     console.warn('Failed to read admin customizations from localStorage:', err);
@@ -111,11 +184,13 @@ export function saveSavedHomepageSettings(settings: HomepageSettings): void {
 }
 
 export function saveAdminCustomizations(data: AdminCustomizations): void {
+  inMemoryCustomizations = data;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (err) {
-    console.warn('Failed to save admin customizations to localStorage:', err);
+    console.warn('Failed to save admin customizations to localStorage (Quota reached, saving to IndexedDB):', err);
   }
+  saveToIndexedDb(data).catch(() => {});
 }
 
 export function getCustomBeforeAfterForProduct(identifier: string): CustomBeforeAfterLook[] | null {
