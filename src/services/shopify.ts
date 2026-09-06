@@ -251,6 +251,12 @@ export function mapShopifyProductToAppProduct(node: any): Product {
 }
 
 import { fetchAllProductMetafieldsFromShopify } from './shopifyAdmin';
+import {
+  saveSavedHomepageSettings,
+  saveSavedUGCItems,
+  saveSavedProductOrder,
+  saveSavedCollectionOverrides,
+} from './adminStore';
 
 // Fetch live products
 export async function fetchLiveShopifyProducts(): Promise<Product[]> {
@@ -259,6 +265,43 @@ export async function fetchLiveShopifyProducts(): Promise<Product[]> {
       shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY }),
       fetchAllProductMetafieldsFromShopify().catch(() => ({} as Record<string, any>)),
     ]);
+
+    // Hydrate Global Customizations stored in Shopify Shop Metafields (accessible to every visitor worldwide!)
+    const shopNode = data?.shop;
+    if (shopNode) {
+      if (shopNode.homepageSettings?.value) {
+        try {
+          const parsed = JSON.parse(shopNode.homepageSettings.value);
+          if (parsed && Array.isArray(parsed.looks) && parsed.looks.length > 0) {
+            saveSavedHomepageSettings(parsed);
+          }
+        } catch (e) {}
+      }
+      if (shopNode.ugcShowcase?.value) {
+        try {
+          const parsed = JSON.parse(shopNode.ugcShowcase.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            saveSavedUGCItems(parsed);
+          }
+        } catch (e) {}
+      }
+      if (shopNode.productOrdering?.value) {
+        try {
+          const parsed = JSON.parse(shopNode.productOrdering.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            saveSavedProductOrder(parsed);
+          }
+        } catch (e) {}
+      }
+      if (shopNode.collectionMapping?.value) {
+        try {
+          const parsed = JSON.parse(shopNode.collectionMapping.value);
+          if (parsed && typeof parsed === 'object') {
+            saveSavedCollectionOverrides(parsed);
+          }
+        } catch (e) {}
+      }
+    }
 
     const productEdges = data?.products?.edges || [];
     if (productEdges.length === 0) {
