@@ -72,14 +72,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <span
               className="card-badge-bestseller"
               style={{
-                backgroundColor: 'rgba(96, 68, 46, 0.92)',
-                backdropFilter: 'blur(4px)',
+                backgroundColor: 'rgba(96, 68, 46, 0.95)',
                 color: 'var(--white)',
                 fontSize: '0.7rem',
                 fontWeight: 700,
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-full)',
                 letterSpacing: '0.02em',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
               }}
             >
               Bestseller
@@ -89,13 +89,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <span
               className="card-badge-new"
               style={{
-                backgroundColor: 'rgba(127, 135, 106, 0.92)',
-                backdropFilter: 'blur(4px)',
+                backgroundColor: 'rgba(127, 135, 106, 0.95)',
                 color: 'var(--white)',
                 fontSize: '0.7rem',
                 fontWeight: 700,
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-full)',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
               }}
             >
               New
@@ -117,14 +117,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(4px)',
-                border: '1px solid rgba(229, 213, 193, 0.6)',
+                backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                border: '1px solid rgba(229, 213, 193, 0.8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: isSaved ? 'var(--terracotta)' : 'var(--brown)',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
                 cursor: 'pointer',
                 transition: 'transform 0.2s',
               }}

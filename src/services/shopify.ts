@@ -250,7 +250,6 @@ export function mapShopifyProductToAppProduct(node: any): Product {
   };
 }
 
-import { fetchAllProductMetafieldsFromShopify } from './shopifyAdmin';
 import {
   saveSavedHomepageSettings,
   saveSavedUGCItems,
@@ -261,10 +260,7 @@ import {
 // Fetch live products
 export async function fetchLiveShopifyProducts(): Promise<Product[]> {
   try {
-    const [data, liveMetafields] = await Promise.all([
-      shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY }),
-      fetchAllProductMetafieldsFromShopify().catch(() => ({} as Record<string, any>)),
-    ]);
+    const data = await shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY });
 
     // Hydrate Global Customizations stored in Shopify Shop Metafields (accessible to every visitor worldwide!)
     const shopNode = data?.shop;
@@ -308,20 +304,7 @@ export async function fetchLiveShopifyProducts(): Promise<Product[]> {
       return [];
     }
 
-    const metaMap: Record<string, any> = liveMetafields || {};
-
-    return productEdges.map((edge: any) => {
-      const product = mapShopifyProductToAppProduct(edge.node);
-      const customLooks = metaMap[edge.node?.handle] || metaMap[edge.node?.id];
-      if (customLooks && Array.isArray(customLooks) && customLooks.length > 0) {
-        const valid = customLooks.filter((l: any) => l && (l.before || l.after));
-        if (valid.length > 0) {
-          product.beforeAfterList = valid;
-          product.beforeAfterImage = { before: valid[0].before || '', after: valid[0].after || '' };
-        }
-      }
-      return product;
-    });
+    return productEdges.map((edge: any) => mapShopifyProductToAppProduct(edge.node));
   } catch (err) {
     console.warn('Shopify product fetch error:', err);
     return [];

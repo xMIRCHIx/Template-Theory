@@ -553,7 +553,7 @@ export const HomePage: React.FC = () => {
                   </span>
                 </div>
                 <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.3rem)', fontWeight: 800, color: 'var(--brown)' }}>
-                  Made with Cinevo
+                  Made with Template Theory
                 </h2>
                 <p style={{ fontSize: '0.95rem', color: 'var(--muted)', marginTop: '4px' }}>
                   Real edits, film grades and creations by storytellers worldwide. Click any card to preview full creation.
@@ -587,6 +587,8 @@ export const HomePage: React.FC = () => {
                       boxShadow: 'var(--shadow-clay)',
                       transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                       cursor: 'pointer',
+                      contain: 'paint',
+                      transform: 'translateZ(0)',
                     }}
                     onClick={() => {
                       setSelectedUgcIndex(originalIndex);
@@ -613,7 +615,7 @@ export const HomePage: React.FC = () => {
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        background: 'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(20,14,10,0.88) 100%)',
+                        background: 'linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.05) 40%, rgba(20,14,10,0.92) 100%)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
@@ -625,17 +627,17 @@ export const HomePage: React.FC = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                         <span
                           style={{
-                            backgroundColor: 'rgba(255,255,255,0.85)',
-                            backdropFilter: 'blur(8px)',
+                            backgroundColor: 'rgba(255,255,255,0.95)',
                             color: 'var(--brown-dark)',
                             fontSize: '0.68rem',
                             fontWeight: 800,
-                            padding: '3px 9px',
+                            padding: '4px 10px',
                             borderRadius: 'var(--radius-full)',
                             letterSpacing: '0.02em',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
                           }}
                         >
-                          {item.creatorHandle || '@cinevo_creator'}
+                          {item.creatorHandle || '@templatetheory'}
                         </span>
 
                         {item.category && (
@@ -665,7 +667,7 @@ export const HomePage: React.FC = () => {
                               fontWeight: 600,
                               lineHeight: 1.35,
                               margin: 0,
-                              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                              textShadow: '0 2px 8px rgba(0,0,0,0.7)',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical',
@@ -689,15 +691,14 @@ export const HomePage: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            backgroundColor: 'rgba(255,255,255,0.18)',
-                            backdropFilter: 'blur(10px)',
-                            padding: '6px 10px',
+                            backgroundColor: 'rgba(28, 20, 15, 0.85)',
+                            padding: '7px 11px',
                             borderRadius: 'var(--radius-md)',
-                            border: '1px solid rgba(255,255,255,0.25)',
-                            transition: 'background-color 0.2s',
+                            border: '1px solid rgba(255,255,255,0.22)',
+                            transition: 'background-color 0.2s, transform 0.2s',
                           }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.18)')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(28, 20, 15, 0.98)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(28, 20, 15, 0.85)')}
                         >
                           <div style={{ minWidth: 0, flex: 1, paddingRight: '6px' }}>
                             <span
@@ -1432,7 +1433,7 @@ export const HomePage: React.FC = () => {
                         {activeUgcModalItem.creatorHandle || '@templatetheory'}
                       </h3>
                       <span style={{ fontSize: '0.76rem', color: 'var(--muted)', fontWeight: 600 }}>
-                        Verified Creator • Cinevo Community
+                        Verified Creator • Template Theory Community
                       </span>
                     </div>
                   </div>
@@ -1458,7 +1459,7 @@ export const HomePage: React.FC = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Sparkles size={14} color="var(--terracotta)" />
-                      <span>Color graded & curated with official Cinevo digital toolkits.</span>
+                      <span>Color graded & curated with official Template Theory digital toolkits.</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <CheckCircle2 size={14} color="var(--olive)" />
