@@ -31,10 +31,13 @@ export default async function handler(req, res) {
     process.env.SHOPIFY_API_VERSION ||
     '2024-07';
 
-  // Resolve target path from query parameter or URL
-  let targetPath = req.query && req.query.path ? req.query.path : req.url || '';
+  // Resolve target path
+  let targetPath = (req.query && req.query.path) || req.url || '';
   if (Array.isArray(targetPath)) {
     targetPath = targetPath.join('/');
+  }
+  if (targetPath.includes('?')) {
+    targetPath = targetPath.split('?')[0];
   }
   targetPath = targetPath.replace(/^\/api\/shopify-admin\/?/, '').replace(/^\/shopify-admin-api\/?/, '');
   if (!targetPath.startsWith('/')) {
@@ -46,7 +49,7 @@ export default async function handler(req, res) {
 
   try {
     const fetchHeaders = {
-      'Content-Type': req.headers['content-type'] || 'application/json',
+      'Content-Type': 'application/json',
       'X-Shopify-Access-Token': token,
     };
 

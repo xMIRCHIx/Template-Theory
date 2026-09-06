@@ -1,15 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/api/shopify-admin/:path*",
-      "destination": "/api/shopify-admin"
+      "source": "/shopify-admin-api/(.*)",
+      "destination": "/api/shopify-admin?path=/$1"
     },
     {
-      "source": "/shopify-admin-api/:path*",
-      "destination": "/api/shopify-admin?path=/:path*"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
