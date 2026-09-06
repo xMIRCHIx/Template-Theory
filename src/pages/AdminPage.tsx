@@ -44,6 +44,7 @@ import {
   setAdminPin,
   getAdminCustomizations,
   saveAdminCustomizations,
+  getSavedHomepageSettings,
   CustomBeforeAfterLook,
   HomepageSettings,
 } from '../services/adminStore';
@@ -349,31 +350,45 @@ export const AdminPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // --- TAB 1: Dedicated Homepage Showcase State ---
-  const [homeHeading, setHomeHeading] = useState<string>(() => homepageSettings?.heading || 'See the Difference');
-  const [homeSubheading, setHomeSubheading] = useState<string>(() => homepageSettings?.subheading || 'One click. Completely different mood. Drag the slider to compare.');
-  const [homeLooksList, setHomeLooksList] = useState<CustomBeforeAfterLook[]>([]);
+  const [homeHeading, setHomeHeading] = useState<string>(() => {
+    const saved = getSavedHomepageSettings();
+    return saved?.heading || 'See the Difference';
+  });
+  const [homeSubheading, setHomeSubheading] = useState<string>(() => {
+    const saved = getSavedHomepageSettings();
+    return saved?.subheading || 'One click. Completely different mood. Drag the slider to compare.';
+  });
+  const [homeLooksList, setHomeLooksList] = useState<CustomBeforeAfterLook[]>(() => {
+    const saved = getSavedHomepageSettings();
+    if (saved && Array.isArray(saved.looks) && saved.looks.length > 0) {
+      return JSON.parse(JSON.stringify(saved.looks));
+    }
+    return [
+      {
+        id: `ba-home-${Date.now()}-1`,
+        title: 'Look #1',
+        before: '',
+        after: '',
+      },
+    ];
+  });
   const [previewHomeLookIndex, setPreviewHomeLookIndex] = useState<number>(0);
   const [isSavingHome, setIsSavingHome] = useState<boolean>(false);
 
-  // Sync Homepage state with Context
+  // Sync Homepage state with Context on initial load if empty
+  const hasInitializedHomeRef = useRef(false);
   useEffect(() => {
-    if (homepageSettings) {
-      if (homepageSettings.heading) setHomeHeading(homepageSettings.heading);
-      if (homepageSettings.subheading) setHomeSubheading(homepageSettings.subheading);
-      if (homepageSettings.looks && homepageSettings.looks.length > 0) {
-        setHomeLooksList(JSON.parse(JSON.stringify(homepageSettings.looks)));
-      } else {
-        setHomeLooksList([
-          {
-            id: `ba-home-${Date.now()}-1`,
-            title: 'Vintage Wedding Film',
-            before: '',
-            after: '',
-          },
-        ]);
+    if (hasInitializedHomeRef.current) return;
+    const saved = getSavedHomepageSettings();
+    if (saved) {
+      if (saved.heading) setHomeHeading(saved.heading);
+      if (saved.subheading) setHomeSubheading(saved.subheading);
+      if (saved.looks && saved.looks.length > 0) {
+        setHomeLooksList(JSON.parse(JSON.stringify(saved.looks)));
       }
+      hasInitializedHomeRef.current = true;
     }
-  }, [homepageSettings]);
+  }, []);
 
   // --- TAB 2: Product Before/After (PDP) State ---
   const [selectedProductSlug, setSelectedProductSlug] = useState<string>('');

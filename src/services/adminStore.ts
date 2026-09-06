@@ -47,6 +47,10 @@ export function setAdminPin(newPin: string): void {
 function cleanLegacyCustomizations(data: AdminCustomizations): AdminCustomizations {
   const cleanedBA: Record<string, CustomBeforeAfterLook[]> = {};
   for (const [key, looks] of Object.entries(data.beforeAfter || {})) {
+    // Exclude internal/homepage keys from product Before/After dictionary
+    if (key === '__home_showcase__' || key === 'home' || key === 'homepage') {
+      continue;
+    }
     if (Array.isArray(looks)) {
       const validLooks = looks.filter((l) => {
         if (!l || (!l.before && !l.after)) return false;
@@ -90,17 +94,8 @@ export function getAdminCustomizations(): AdminCustomizations {
 
 export function getSavedHomepageSettings(): HomepageSettings | null {
   const custom = getAdminCustomizations();
-  if (custom.homepageSettings && Array.isArray(custom.homepageSettings.looks)) {
+  if (custom.homepageSettings && Array.isArray(custom.homepageSettings.looks) && custom.homepageSettings.looks.length > 0) {
     return custom.homepageSettings;
-  }
-  // Fallback to legacy beforeAfter keys if exists
-  const legacy = custom.beforeAfter['__home_showcase__'] || custom.beforeAfter['home'] || custom.beforeAfter['homepage'];
-  if (legacy && Array.isArray(legacy) && legacy.length > 0) {
-    return {
-      heading: 'See the Difference',
-      subheading: 'One click. Completely different mood. Drag the slider to compare.',
-      looks: legacy,
-    };
   }
   return null;
 }
@@ -108,9 +103,10 @@ export function getSavedHomepageSettings(): HomepageSettings | null {
 export function saveSavedHomepageSettings(settings: HomepageSettings): void {
   const custom = getAdminCustomizations();
   custom.homepageSettings = settings;
-  // Also keep backward compatible key
-  custom.beforeAfter['__home_showcase__'] = settings.looks;
-  custom.beforeAfter['home'] = settings.looks;
+  // Ensure no pollution of product beforeAfter map
+  delete custom.beforeAfter['__home_showcase__'];
+  delete custom.beforeAfter['home'];
+  delete custom.beforeAfter['homepage'];
   saveAdminCustomizations(custom);
 }
 

@@ -142,6 +142,9 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       let customBA = beforeAfter[p.slug] || beforeAfter[p.id];
       if (!customBA || customBA.length === 0) {
         for (const [key, val] of Object.entries(beforeAfter)) {
+          if (key === '__home_showcase__' || key === 'home' || key === 'homepage' || key.startsWith('__')) {
+            continue;
+          }
           const normKey = normalizeKey(key);
           if (
             normKey === cleanSlug ||
@@ -318,40 +321,24 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Dedicated Homepage Settings (Heading, Subheading, and specific showcase looks)
   const homepageSettings = useMemo<HomepageSettings>(() => {
     const saved = getSavedHomepageSettings();
-    if (saved && saved.looks && saved.looks.length > 0) {
+    if (saved && Array.isArray(saved.looks) && saved.looks.length > 0) {
       return saved;
     }
 
-    // Default Fallback: derive looks from products or default look
-    const list: CustomBeforeAfterLook[] = [];
-    products.forEach((p) => {
-      if (p.beforeAfterList && p.beforeAfterList.length > 0) {
-        p.beforeAfterList.forEach((look, idx) => {
-          if (look.before && look.after) {
-            list.push({
-              id: look.id || `${p.slug}-look-${idx}`,
-              title: look.title || `${p.name} Look #${idx + 1}`,
-              before: look.before,
-              after: look.after,
-            });
-          }
-        });
-      } else if (p.beforeAfterImage?.before && p.beforeAfterImage?.after) {
-        list.push({
-          id: `${p.slug}-ba-default`,
-          title: p.name,
-          before: p.beforeAfterImage.before,
-          after: p.beforeAfterImage.after,
-        });
-      }
-    });
-
+    // Default standalone homepage showcase look (Does NOT pull or contaminate product looks)
     return {
       heading: saved?.heading || 'See the Difference',
       subheading: saved?.subheading || 'One click. Completely different mood. Drag the slider to compare.',
-      looks: list,
+      looks: [
+        {
+          id: 'ba-home-showcase-1',
+          title: 'Wedding Mood',
+          before: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+          after: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=95',
+        },
+      ],
     };
-  }, [products, customizationVersion]);
+  }, [customizationVersion]);
 
   const homeBeforeAfterLooks = useMemo<CustomBeforeAfterLook[]>(() => {
     return homepageSettings.looks || [];
