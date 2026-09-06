@@ -177,7 +177,7 @@ function extractBeforeAfterFromShopify(node: any): {
 // Convert Shopify GraphQL Product Node to our app's Product type
 export function mapShopifyProductToAppProduct(node: any): Product {
   const images = (node.images?.edges || []).map((e: any) => e.node.url);
-  const featured = node.featuredImage?.url || images[0] || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=900&auto=format&fit=crop';
+  const featured = node.featuredImage?.url || images[0] || '';
   
   const firstVariant = node.variants?.edges?.[0]?.node;
   const price = parseFloat(firstVariant?.price?.amount || node.priceRange?.minVariantPrice?.amount || '0');
@@ -247,7 +247,7 @@ export async function fetchLiveShopifyProducts(): Promise<Product[]> {
 
     const productEdges = data?.products?.edges || [];
     if (productEdges.length === 0) {
-      return FALLBACK_PRODUCTS;
+      return [];
     }
 
     const metaMap: Record<string, any> = liveMetafields || {};
@@ -265,8 +265,8 @@ export async function fetchLiveShopifyProducts(): Promise<Product[]> {
       return product;
     });
   } catch (err) {
-    console.warn('Falling back to local product data due to Shopify error:', err);
-    return FALLBACK_PRODUCTS;
+    console.warn('Shopify product fetch error:', err);
+    return [];
   }
 }
 

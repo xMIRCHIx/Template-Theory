@@ -10,7 +10,6 @@ import {
   Play
 } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
-import { PRODUCTS as LOCAL_PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/cards/ProductCard';
 import { SidebarFilters } from '../components/filters/SidebarFilters';
 import { ProductCategory } from '../types';
@@ -18,7 +17,7 @@ import { useShopify } from '../context/ShopifyContext';
 
 export const CategoryCollectionPage: React.FC = () => {
   const { category: categorySlug } = useParams<{ category: string }>();
-  const { products } = useShopify();
+  const { products, isLoading } = useShopify();
 
   // Identify current category info
   const categoryInfo = useMemo(() => {
@@ -29,7 +28,7 @@ export const CategoryCollectionPage: React.FC = () => {
     );
   }, [categorySlug]);
 
-  const catalog = products.length > 0 ? products : LOCAL_PRODUCTS;
+  const catalog = products;
 
   // Filter States
   const [selectedTag, setSelectedTag] = useState<string>('All');

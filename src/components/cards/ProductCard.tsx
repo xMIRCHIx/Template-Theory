@@ -41,7 +41,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             src={product.thumbnail}
             alt={product.name}
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=900&auto=format&fit=crop';
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
             }}
             style={{
               width: '100%',

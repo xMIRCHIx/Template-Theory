@@ -2,9 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
-import { PRODUCTS } from '../data/products';
+import { useShopify } from '../context/ShopifyContext';
 
 export const CollectionsIndexPage: React.FC = () => {
+  const { products } = useShopify();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '80px' }}>
       
@@ -48,7 +49,7 @@ export const CollectionsIndexPage: React.FC = () => {
             className="collections-grid"
           >
             {CATEGORIES.map((category) => {
-              const productCount = PRODUCTS.filter((p) => p.category === category.id).length;
+              const productCount = products.filter((p) => p.category === category.id).length;
               return (
                 <div
                   key={category.id}

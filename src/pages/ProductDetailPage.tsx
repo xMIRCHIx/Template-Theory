@@ -92,6 +92,15 @@ export const ProductDetailPage: React.FC = () => {
     }
   }, [product?.fontPreviewText]);
 
+  useEffect(() => {
+    if (hasBeforeAfter) {
+      setActiveTab('beforeAfter');
+      setActiveBAIndex(0);
+    } else {
+      setActiveTab('preview');
+    }
+  }, [product?.slug, hasBeforeAfter]);
+
   // Gallery swipe navigation
   const handlePrevImage = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) e.stopPropagation();
@@ -685,15 +694,43 @@ export const ProductDetailPage: React.FC = () => {
                 }}
               >
                 {activeTab === 'beforeAfter' && currentBAPair ? (
-                  <BeforeAfterSlider
-                    key={currentBAPair.id || activeBAIndex}
-                    beforeImage={currentBAPair.before}
-                    afterImage={currentBAPair.after}
-                    beforeLabel="BEFORE"
-                    afterLabel="AFTER"
-                    aspectRatio="1 / 1"
-                    fallbackImage={product.thumbnail}
-                  />
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <BeforeAfterSlider
+                      key={currentBAPair.id || activeBAIndex}
+                      beforeImage={currentBAPair.before}
+                      afterImage={currentBAPair.after}
+                      beforeLabel="BEFORE"
+                      afterLabel="AFTER"
+                      aspectRatio="1 / 1"
+                      fallbackImage={product.thumbnail}
+                    />
+                    {beforeAfterPairs.length > 1 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '12px',
+                          left: '12px',
+                          zIndex: 20,
+                          backgroundColor: 'rgba(33, 25, 19, 0.82)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          color: '#ffffff',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <Sparkles size={12} color="var(--terracotta-light)" />
+                        <span>{currentBAPair?.title || `Look #${activeBAIndex + 1}`}</span>
+                      </div>
+                    )}
+                  </div>
                 ) : activeTab === 'typeTester' ? (
                   <div style={{ padding: '36px 30px', backgroundColor: 'var(--white)', aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -957,120 +994,84 @@ export const ProductDetailPage: React.FC = () => {
                 )}
               </div>
 
-              {/* 4-5 Before/After Variation Thumbnails */}
-              {hasBeforeAfter && activeTab === 'beforeAfter' && beforeAfterPairs.length > 1 && (
-                <div style={{ marginTop: '18px' }}>
-                  <div
+              {/* Category-Specific / Look Switcher Tabs (Positioned directly below image preview) */}
+              {hasBeforeAfter && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setActiveTab('preview')}
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                      marginBottom: '10px',
+                      padding: '8px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      backgroundColor: activeTab === 'preview' ? 'var(--brown)' : 'var(--cream-light)',
+                      color: activeTab === 'preview' ? 'var(--white)' : 'var(--brown)',
+                      border: activeTab === 'preview' ? '1.5px solid var(--brown)' : '1.5px solid var(--border)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: activeTab === 'preview' ? 'var(--shadow-sm)' : 'none',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                      <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--brown)' }}>
-                        Preset Variations ({activeBAIndex + 1}/{beforeAfterPairs.length}):{' '}
-                        <span style={{ color: 'var(--terracotta-dark)', fontWeight: 800 }}>{currentBAPair?.title}</span>
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.72rem',
-                          color: 'var(--muted)',
-                          backgroundColor: 'var(--cream-light)',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-full)',
-                          border: '1px solid var(--border)',
-                          fontWeight: 600,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        ⇄ Drag slider to compare
-                      </span>
-                    </div>
-                  </div>
+                    📸 Gallery Photos
+                  </button>
 
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: `repeat(${beforeAfterPairs.length}, minmax(0, 1fr))`,
-                      gap: '10px',
-                    }}
-                  >
-                    {beforeAfterPairs.map((pair, idx) => {
-                      const isActive = activeBAIndex === idx;
+                  {beforeAfterPairs.length === 1 ? (
+                    <button
+                      onClick={() => {
+                        setActiveTab('beforeAfter');
+                        setActiveBAIndex(0);
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        backgroundColor: activeTab === 'beforeAfter' ? 'var(--brown)' : 'var(--cream-light)',
+                        color: activeTab === 'beforeAfter' ? 'var(--white)' : 'var(--brown)',
+                        border: activeTab === 'beforeAfter' ? '1.5px solid var(--brown)' : '1.5px solid var(--border)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: activeTab === 'beforeAfter' ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <Sparkles size={14} color={activeTab === 'beforeAfter' ? '#fff' : 'var(--terracotta)'} />
+                      Before & After
+                    </button>
+                  ) : (
+                    beforeAfterPairs.map((pair, idx) => {
+                      const isSelected = activeTab === 'beforeAfter' && activeBAIndex === idx;
                       return (
                         <button
                           key={pair.id || idx}
-                          onClick={() => setActiveBAIndex(idx)}
+                          onClick={() => {
+                            setActiveTab('beforeAfter');
+                            setActiveBAIndex(idx);
+                          }}
                           style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            backgroundColor: isActive ? 'var(--cream-dark)' : 'var(--cream-light)',
-                            border: isActive ? '2px solid var(--terracotta)' : '1px solid var(--border)',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '6px',
+                            padding: '8px 16px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            backgroundColor: isSelected ? 'var(--brown)' : 'var(--cream-light)',
+                            color: isSelected ? 'var(--white)' : 'var(--brown)',
+                            border: isSelected ? '1.5px solid var(--brown)' : '1.5px solid var(--border)',
                             cursor: 'pointer',
-                            boxShadow: isActive ? '0 4px 14px rgba(201, 130, 103, 0.35)' : 'var(--shadow-sm)',
-                            transform: isActive ? 'translateY(-2px)' : 'none',
-                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                            textAlign: 'center',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
+                            transition: 'all 0.2s ease',
                           }}
                         >
-                          <div
-                            style={{
-                              width: '100%',
-                              aspectRatio: '1 / 1',
-                              borderRadius: '4px',
-                              overflow: 'hidden',
-                              marginBottom: '6px',
-                              position: 'relative',
-                              backgroundColor: '#181310',
-                            }}
-                          >
-                            <img
-                              src={pair.after || product.thumbnail}
-                              alt={pair.title}
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = product.thumbnail;
-                              }}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                            <span
-                              style={{
-                                position: 'absolute',
-                                bottom: '3px',
-                                right: '3px',
-                                fontSize: '0.62rem',
-                                fontWeight: 800,
-                                backgroundColor: 'rgba(33, 25, 19, 0.75)',
-                                color: '#fff',
-                                padding: '1px 4px',
-                                borderRadius: '3px',
-                              }}
-                            >
-                              #{idx + 1}
-                            </span>
-                          </div>
-                          <span
-                            style={{
-                              fontSize: '0.72rem',
-                              fontWeight: isActive ? 700 : 600,
-                              color: isActive ? 'var(--terracotta-dark)' : 'var(--brown)',
-                              lineHeight: 1.2,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              width: '100%',
-                            }}
-                          >
-                            {pair.title?.split('(')[0] || `Look ${idx + 1}`}
-                          </span>
+                          <Sparkles size={13} color={isSelected ? '#fff' : 'var(--terracotta)'} />
+                          {pair.title?.split('(')[0]?.trim() || `Look #${idx + 1}`}
                         </button>
                       );
-                    })}
-                  </div>
+                    })
+                  )}
                 </div>
               )}
 
@@ -1127,50 +1128,6 @@ export const ProductDetailPage: React.FC = () => {
                       />
                     </button>
                   ))}
-                </div>
-              )}
-
-              {/* Category-Specific Preview Switcher Tabs (Positioned below image preview & thumbnails, above title) */}
-              {hasBeforeAfter && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setActiveTab('preview')}
-                    style={{
-                      padding: '8px 18px',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      backgroundColor: activeTab === 'preview' ? 'var(--brown)' : 'var(--cream-light)',
-                      color: activeTab === 'preview' ? 'var(--white)' : 'var(--brown)',
-                      border: '1.5px solid var(--border)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      boxShadow: activeTab === 'preview' ? 'var(--shadow-sm)' : 'none',
-                    }}
-                  >
-                    📸 Gallery Photos
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('beforeAfter')}
-                    style={{
-                      padding: '8px 18px',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      backgroundColor: activeTab === 'beforeAfter' ? 'var(--brown)' : 'var(--cream-light)',
-                      color: activeTab === 'beforeAfter' ? 'var(--white)' : 'var(--brown)',
-                      border: '1.5px solid var(--border)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: activeTab === 'beforeAfter' ? 'var(--shadow-sm)' : 'none',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <Sparkles size={14} color={activeTab === 'beforeAfter' ? '#fff' : 'var(--terracotta)'} />
-                    View Before & After
-                  </button>
                 </div>
               )}
 
@@ -1996,7 +1953,8 @@ export const ProductDetailPage: React.FC = () => {
             max-width: 100% !important;
           }
           .pdp-preview-wrapper {
-            max-height: 320px !important;
+            max-height: 440px !important;
+            min-height: 350px !important;
             aspect-ratio: 1 / 1 !important;
             border-radius: var(--radius-lg) !important;
           }
@@ -2024,7 +1982,8 @@ export const ProductDetailPage: React.FC = () => {
 
         @media (max-width: 480px) {
           .pdp-preview-wrapper {
-            max-height: 290px !important;
+            max-height: 390px !important;
+            min-height: 340px !important;
             aspect-ratio: 1 / 1 !important;
           }
           .pdp-details-grid .clay-card {

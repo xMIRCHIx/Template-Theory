@@ -18,16 +18,12 @@ import { CategoryCard } from '../components/cards/CategoryCard';
 import { ProductCard } from '../components/cards/ProductCard';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import { CATEGORIES } from '../data/categories';
-import { PRODUCTS as LOCAL_PRODUCTS } from '../data/products';
-import { UGC_DATA } from '../data/ugc';
-import { UGCItem } from '../types';
 import { useShopify } from '../context/ShopifyContext';
 import { motion } from 'framer-motion';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { products } = useShopify();
-  const [selectedUgc, setSelectedUgc] = useState<UGCItem | null>(null);
+  const { products, isLoading } = useShopify();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'subscribed'>('idle');
 
@@ -40,8 +36,9 @@ export const HomePage: React.FC = () => {
     }, 2000);
   };
 
-  const catalog = products.length > 0 ? products : LOCAL_PRODUCTS;
+  const catalog = products;
   const cinematicProducts = catalog.filter((p) => p.category === 'presets' || p.category === 'luts' || p.category === 'psds');
+  const featuredBA = products.find((p) => p.beforeAfterImage?.before && p.beforeAfterImage?.after)?.beforeAfterImage;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '80px', overflowX: 'hidden', position: 'relative' }}>
@@ -336,9 +333,32 @@ export const HomePage: React.FC = () => {
               gap: '22px',
             }}
           >
-            {cinematicProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {isLoading && products.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    backgroundColor: 'var(--cream-light)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    aspectRatio: '3 / 4',
+                    animation: 'pulse 1.5s infinite ease-in-out',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '16px',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ width: '100%', flex: 1, backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-md)' }} />
+                  <div style={{ width: '70%', height: '20px', backgroundColor: 'var(--cream-dark)', borderRadius: '4px' }} />
+                  <div style={{ width: '40%', height: '16px', backgroundColor: 'var(--cream-dark)', borderRadius: '4px' }} />
+                </div>
+              ))
+            ) : (
+              (cinematicProducts.length > 0 ? cinematicProducts : products).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -458,146 +478,35 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. UGC / CREATOR SHOWCASE */}
-      <section>
-        <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <h2 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--brown)' }}>Made With Template Theory</h2>
-                <span
-                  style={{
-                    backgroundColor: 'var(--clay-light)',
-                    color: 'var(--brown-dark)',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    padding: '3px 10px',
-                    borderRadius: 'var(--radius-full)',
-                  }}
-                >
-                  #templatetheory
-                </span>
-              </div>
-              <p style={{ fontSize: '0.95rem', color: 'var(--muted)' }}>
-                Real creations from talented creators around the world.
+      {/* 6. SEE THE DIFFERENCE (BEFORE / AFTER) */}
+      {featuredBA?.before && featuredBA?.after && (
+        <section>
+          <div className="container">
+            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+              <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>See the Difference</h2>
+              <p style={{ fontSize: '1.05rem', color: 'var(--muted)', marginTop: '6px' }}>
+                One click. Completely different mood. Drag the slider to compare.
               </p>
             </div>
 
-            <Link to="/shop" className="btn-secondary" style={{ padding: '10px 20px', fontSize: '0.88rem' }}>
-              View more creations →
-            </Link>
+            <div
+              style={{
+                maxWidth: '960px',
+                margin: '0 auto',
+                position: 'relative',
+              }}
+            >
+              <BeforeAfterSlider
+                beforeImage={featuredBA.before}
+                afterImage={featuredBA.after}
+                beforeLabel="BEFORE"
+                afterLabel="AFTER"
+                aspectRatio="16 / 9"
+              />
+            </div>
           </div>
-
-          {/* Masonry-Style UGC Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
-              gap: '20px',
-            }}
-          >
-            {UGC_DATA.map((item) => (
-              <motion.div
-                key={item.id}
-                onClick={() => setSelectedUgc(item)}
-                whileHover={{ y: -6, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 18 }}
-                style={{
-                  position: 'relative',
-                  borderRadius: 'var(--radius-lg)',
-                  overflow: 'hidden',
-                  aspectRatio: '1 / 1.15',
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-clay)',
-                  border: '1px solid var(--border)',
-                }}
-                className="ugc-card"
-              >
-                <img
-                  src={item.image}
-                  alt={item.caption}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.4s ease',
-                  }}
-                  className="ugc-img"
-                />
-
-                {/* Gradient Overlay & Tag */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '100%',
-                    padding: '18px 16px',
-                    background: 'linear-gradient(to top, rgba(33, 25, 19, 0.85) 0%, transparent 100%)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-end',
-                  }}
-                >
-                  <div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--white)' }}>
-                      {item.creatorHandle}
-                    </span>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--clay-light)', marginTop: '2px' }}>
-                      Used: {item.productName}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                      backdropFilter: 'blur(4px)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--white)',
-                    }}
-                  >
-                    <ExternalLink size={14} />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 7. SEE THE DIFFERENCE (BEFORE / AFTER) */}
-      <section>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>See the Difference</h2>
-            <p style={{ fontSize: '1.05rem', color: 'var(--muted)', marginTop: '6px' }}>
-              One click. Completely different mood. Drag the slider to compare.
-            </p>
-          </div>
-
-          <div
-            style={{
-              maxWidth: '960px',
-              margin: '0 auto',
-              position: 'relative',
-            }}
-          >
-            <BeforeAfterSlider
-              beforeImage="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=-35&bri=-10"
-              afterImage="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200&auto=format&fit=crop&sat=30&hue=10"
-              beforeLabel="RAW UNGRADED"
-              afterLabel="TEMPLATE THEORY FILM TONE"
-              aspectRatio="16 / 9"
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 8. WHAT'S INSIDE? */}
       <section>
@@ -822,101 +731,7 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* UGC Modal */}
-      {selectedUgc && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 350,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
-        >
-          <div
-            onClick={() => setSelectedUgc(null)}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(33, 25, 19, 0.65)',
-              backdropFilter: 'blur(6px)',
-            }}
-          />
 
-          <div
-            style={{
-              position: 'relative',
-              backgroundColor: 'var(--cream-light)',
-              borderRadius: 'var(--radius-xl)',
-              overflow: 'hidden',
-              maxWidth: '720px',
-              width: '100%',
-              boxShadow: 'var(--shadow-floating)',
-              zIndex: 351,
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-            }}
-            className="ugc-modal-grid"
-          >
-            <img
-              src={selectedUgc.image}
-              alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--terracotta)', textTransform: 'uppercase' }}>
-                  Creator Spotlight
-                </span>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)', marginTop: '4px' }}>
-                  {selectedUgc.creatorName}
-                </h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '4px' }}>
-                  {selectedUgc.creatorHandle}
-                </p>
-                <p style={{ fontSize: '0.95rem', color: 'var(--text)', marginTop: '16px', lineHeight: 1.6 }}>
-                  "{selectedUgc.caption}"
-                </p>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '20px' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Product Used:</span>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--brown)', marginTop: '2px' }}>
-                  {selectedUgc.productName}
-                </h4>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-                  <button
-                    onClick={() => {
-                      const slug = selectedUgc.productSlug;
-                      setSelectedUgc(null);
-                      navigate(`/product/${slug}`);
-                    }}
-                    className="btn-primary"
-                    style={{ flex: 1, padding: '10px 16px', fontSize: '0.88rem' }}
-                  >
-                    View Product (${selectedUgc.productPrice})
-                  </button>
-                  <button
-                    onClick={() => setSelectedUgc(null)}
-                    className="btn-secondary"
-                    style={{ padding: '10px 16px', fontSize: '0.88rem' }}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style>{`
         .home-products-grid {

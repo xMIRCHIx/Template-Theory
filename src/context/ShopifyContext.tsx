@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Product, ProductCategory } from '../types';
 import { fetchLiveShopifyProducts } from '../services/shopify';
-import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import {
   getAdminCustomizations,
   saveCustomBeforeAfterForProduct,
@@ -77,12 +76,12 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (liveProducts && liveProducts.length > 0) {
         setRawProducts(liveProducts);
       } else {
-        setRawProducts(FALLBACK_PRODUCTS);
+        setRawProducts([]);
       }
     } catch (err: any) {
-      console.warn('Could not load live Shopify products, using fallback:', err);
+      console.warn('Could not load live Shopify products:', err);
       setError(err?.message || 'Failed to load products');
-      setRawProducts(FALLBACK_PRODUCTS);
+      setRawProducts([]);
     } finally {
       setIsLoading(false);
     }

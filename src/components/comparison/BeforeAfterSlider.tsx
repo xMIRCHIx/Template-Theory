@@ -11,7 +11,7 @@ interface BeforeAfterSliderProps {
   fitMode?: 'cover' | 'contain';
 }
 
-const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop';
+const DEFAULT_FALLBACK = '';
 
 export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   beforeImage,

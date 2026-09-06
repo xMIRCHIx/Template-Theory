@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ArrowRight, Sparkles } from 'lucide-react';
-import { PRODUCTS as LOCAL_PRODUCTS } from '../../data/products';
 import { Product } from '../../types';
 import { useShopify } from '../../context/ShopifyContext';
 
@@ -12,7 +11,7 @@ interface SearchModalProps {
 
 export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   const { products, currencySymbol } = useShopify();
-  const catalog = products.length > 0 ? products : LOCAL_PRODUCTS;
+  const catalog = products;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);

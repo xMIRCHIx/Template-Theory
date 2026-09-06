@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { PRODUCTS as LOCAL_PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
 import { ProductCard } from '../components/cards/ProductCard';
 import { useShopify } from '../context/ShopifyContext';
@@ -11,7 +10,7 @@ export const ShopPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('featured');
 
-  const catalog = products.length > 0 ? products : LOCAL_PRODUCTS;
+  const catalog = products;
 
   const filteredProducts = useMemo(() => {
     return catalog.filter((p) => {
@@ -64,18 +63,18 @@ export const ShopPage: React.FC = () => {
               marginBottom: '12px',
             }}
           >
-            Curated Creator Catalog
+            Digital Catalog
           </span>
           <h1 style={{ fontSize: 'clamp(2.4rem, 5vw, 3.6rem)', fontWeight: 800, color: 'var(--brown)', marginBottom: '10px' }}>
-            Shop All Products
+            Store Catalog
           </h1>
-          <p style={{ fontSize: '1.1rem', color: 'var(--muted)', maxWidth: '520px', margin: '0 auto' }}>
-            Handcrafted presets, cinematic LUTs, PSD kits, typefaces and 3D clay assets.
+          <p style={{ fontSize: '1.1rem', color: 'var(--muted)', maxWidth: '500px', margin: '0 auto' }}>
+            Explore our full catalog of premium digital products.
           </p>
         </div>
       </section>
 
-      {/* Filter Controls Bar */}
+      {/* Filter & Search Bar */}
       <section>
         <div className="container">
           <div
@@ -83,81 +82,86 @@ export const ShopPage: React.FC = () => {
               backgroundColor: 'var(--cream-light)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-xl)',
-              padding: '16px 24px',
+              padding: '24px',
               boxShadow: 'var(--shadow-clay)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px',
+              gap: '20px',
             }}
           >
-            {/* Top Row: Search & Sort */}
             <div
               style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
                 gap: '16px',
                 flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
-              {/* Search Field */}
+              {/* Search Box */}
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  backgroundColor: 'var(--white)',
-                  border: '1.5px solid var(--border)',
-                  borderRadius: 'var(--radius-full)',
-                  padding: '8px 16px',
-                  flex: 1,
-                  maxWidth: '420px',
+                  position: 'relative',
+                  flex: '1 1 300px',
+                  maxWidth: '500px',
                 }}
               >
-                <Search size={18} color="var(--brown)" />
+                <Search
+                  size={18}
+                  style={{
+                    position: 'absolute',
+                    left: '16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--muted)',
+                  }}
+                />
                 <input
                   type="text"
-                  placeholder="Search products, formats, tags..."
+                  placeholder="Search assets, formats, tags..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
-                    border: 'none',
-                    outline: 'none',
-                    backgroundColor: 'transparent',
                     width: '100%',
-                    fontSize: '0.92rem',
-                    color: 'var(--brown)',
+                    padding: '12px 16px 12px 46px',
+                    borderRadius: 'var(--radius-full)',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--white)',
+                    color: 'var(--brown-dark)',
+                    outline: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
                   }}
                 />
               </div>
 
-              {/* Sort Selection */}
+              {/* Sort By Dropdown */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 600 }}>Sort by:</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)' }}>
+                  Sort by:
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--white)',
+                    padding: '10px 18px',
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
+                    backgroundColor: 'var(--white)',
                     color: 'var(--brown)',
                     fontWeight: 600,
-                    fontSize: '0.85rem',
                     outline: 'none',
                     cursor: 'pointer',
                   }}
                 >
-                  <option value="featured">Featured</option>
-                  <option value="price-low">Price: Low → High</option>
-                  <option value="price-high">Price: High → Low</option>
-                  <option value="rating">Top Rated</option>
+                  <option value="featured">Featured First</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Highest Rated</option>
                 </select>
               </div>
             </div>
 
-            {/* Bottom Row: Category Filter Pills */}
+            {/* Category Tabs */}
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
               <button
                 onClick={() => setSelectedCategory('all')}
@@ -174,7 +178,7 @@ export const ShopPage: React.FC = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                All ({catalog.length})
+                All Products ({catalog.length})
               </button>
 
               {CATEGORIES.map((cat) => {
@@ -209,7 +213,37 @@ export const ShopPage: React.FC = () => {
       {/* Product Catalog Grid */}
       <section>
         <div className="container">
-          {filteredProducts.length === 0 ? (
+          {isLoading ? (
+            <div
+              className="shop-catalog-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                gap: '22px',
+              }}
+            >
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    backgroundColor: 'var(--cream-light)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    aspectRatio: '3 / 4',
+                    animation: 'pulse 1.5s infinite ease-in-out',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '16px',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ width: '100%', flex: 1, backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-md)' }} />
+                  <div style={{ width: '70%', height: '20px', backgroundColor: 'var(--cream-dark)', borderRadius: '4px' }} />
+                  <div style={{ width: '40%', height: '16px', backgroundColor: 'var(--cream-dark)', borderRadius: '4px' }} />
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -253,6 +287,10 @@ export const ShopPage: React.FC = () => {
       </section>
 
       <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
         @media (max-width: 768px) {
           .shop-catalog-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
