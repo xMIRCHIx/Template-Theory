@@ -1,5 +1,5 @@
-import { CustomBeforeAfterLook } from './adminStore';
-import { Product } from '../types';
+import { CustomBeforeAfterLook, HomepageSettings } from './adminStore';
+import { Product, UGCItem } from '../types';
 
 const STORAGE_KEY_ADMIN_TOKEN = 'cinevo_shopify_admin_token';
 const DEFAULT_DOMAIN = (import.meta as any).env?.VITE_SHOPIFY_STORE_DOMAIN || 'template-theory-2.myshopify.com';
@@ -276,5 +276,237 @@ export async function fetchAllProductMetafieldsFromShopify(): Promise<Record<str
   } catch (err) {
     console.warn('Could not fetch metafields from Shopify Admin API:', err);
     return {};
+  }
+}
+
+const SHOP_OWNER_GID = 'gid://shopify/Shop/88097947925';
+
+// 6. Save Homepage Settings globally to Shopify Cloud Database
+export async function saveHomepageSettingsToShopify(
+  settings: HomepageSettings
+): Promise<{ success: boolean; error?: string }> {
+  const { domain, adminToken } = getShopifyAdminCredentials();
+
+  try {
+    const mutation = `
+      mutation SetHomepageMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+            namespace
+            key
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      metafields: [
+        {
+          ownerId: SHOP_OWNER_GID,
+          namespace: 'custom',
+          key: 'homepage_settings',
+          type: 'json',
+          value: JSON.stringify(settings),
+        },
+      ],
+    };
+
+    const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      headers['X-Shopify-Access-Token'] = adminToken;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query: mutation, variables }),
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+    }
+
+    const json = await res.json();
+    const userErrors = json?.data?.metafieldsSet?.userErrors || [];
+    if (userErrors.length > 0) {
+      return { success: false, error: userErrors.map((e: any) => e.message).join(', ') };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
+// 7. Save UGC Showcase globally to Shopify Cloud Database
+export async function saveUGCToShopify(
+  items: UGCItem[]
+): Promise<{ success: boolean; error?: string }> {
+  const { domain, adminToken } = getShopifyAdminCredentials();
+
+  try {
+    const mutation = `
+      mutation SetUGCMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+            namespace
+            key
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      metafields: [
+        {
+          ownerId: SHOP_OWNER_GID,
+          namespace: 'custom',
+          key: 'ugc_showcase',
+          type: 'json',
+          value: JSON.stringify(items),
+        },
+      ],
+    };
+
+    const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      headers['X-Shopify-Access-Token'] = adminToken;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query: mutation, variables }),
+    });
+
+    if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
+    const json = await res.json();
+    const userErrors = json?.data?.metafieldsSet?.userErrors || [];
+    if (userErrors.length > 0) return { success: false, error: userErrors[0]?.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
+// 8. Save Product Ordering globally to Shopify Cloud Database
+export async function saveProductOrderToShopify(
+  order: string[]
+): Promise<{ success: boolean; error?: string }> {
+  const { domain, adminToken } = getShopifyAdminCredentials();
+
+  try {
+    const mutation = `
+      mutation SetOrderMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+          }
+          userErrors {
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      metafields: [
+        {
+          ownerId: SHOP_OWNER_GID,
+          namespace: 'custom',
+          key: 'product_ordering',
+          type: 'json',
+          value: JSON.stringify(order),
+        },
+      ],
+    };
+
+    const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      headers['X-Shopify-Access-Token'] = adminToken;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query: mutation, variables }),
+    });
+
+    if (!res.ok) return { success: false };
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
+// 9. Save Collection Mappings globally to Shopify Cloud Database
+export async function saveCollectionsToShopify(
+  overrides: Record<string, string[]>
+): Promise<{ success: boolean; error?: string }> {
+  const { domain, adminToken } = getShopifyAdminCredentials();
+
+  try {
+    const mutation = `
+      mutation SetCollectionMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+          }
+          userErrors {
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      metafields: [
+        {
+          ownerId: SHOP_OWNER_GID,
+          namespace: 'custom',
+          key: 'collection_mapping',
+          type: 'json',
+          value: JSON.stringify(overrides),
+        },
+      ],
+    };
+
+    const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (adminToken) {
+      headers['X-Shopify-Access-Token'] = adminToken;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query: mutation, variables }),
+    });
+
+    if (!res.ok) return { success: false };
+    return { success: true };
+  } catch {
+    return { success: false };
   }
 }

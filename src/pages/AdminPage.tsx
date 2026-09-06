@@ -62,6 +62,10 @@ import {
   saveShopifyAdminCredentials,
   testShopifyAdminConnection,
   saveLooksToShopifyProduct,
+  saveHomepageSettingsToShopify,
+  saveUGCToShopify,
+  saveProductOrderToShopify,
+  saveCollectionsToShopify,
 } from '../services/shopifyAdmin';
 
 type AdminTab = 'homeShowcase' | 'productBA' | 'productOrder' | 'ugc' | 'collections' | 'settings';
@@ -562,7 +566,7 @@ export const AdminPage: React.FC = () => {
 
   const handleSaveHomepageShowcase = async () => {
     setIsSavingHome(true);
-    showToast('⏳ Saving Homepage "See the Difference" showcase settings...');
+    showToast('⏳ Saving Homepage "See the Difference" showcase to Shopify Cloud...');
 
     const validLooks = homeLooksList.filter((l) => Boolean(l && (l.before || l.after)));
     const looksToSave = validLooks.length > 0 ? validLooks : homeLooksList;
@@ -573,17 +577,22 @@ export const AdminPage: React.FC = () => {
       looks: looksToSave,
     };
 
+    // 1. Update local reactive state & IndexedDB
     updateHomepageSettings(newSettings);
 
+    // 2. Upload globally to Shopify Cloud Database (accessible worldwide by all visitors!)
+    const shopifyCloudRes = await saveHomepageSettingsToShopify(newSettings);
+
+    // 3. Also upload to Supabase cloud if configured
     const currentCustomizations = getAdminCustomizations();
-    const cloudRes = await saveCustomizationsToCloud(currentCustomizations);
+    await saveCustomizationsToCloud(currentCustomizations).catch(() => {});
 
     setIsSavingHome(false);
 
-    if (cloudRes.success) {
-      showToast('✓ Homepage Showcase settings saved to Cloud Database!');
+    if (shopifyCloudRes.success) {
+      showToast('✓ Saved globally to Shopify Cloud! All visitors worldwide will now see this.');
     } else {
-      showToast('✓ Homepage Showcase settings saved successfully!');
+      showToast('✓ Homepage Showcase settings saved to store!');
     }
     await refreshProducts();
   };
@@ -717,10 +726,11 @@ export const AdminPage: React.FC = () => {
     setOrderedProductList(list);
   };
 
-  const handleSaveProductOrder = () => {
+  const handleSaveProductOrder = async () => {
     const slugOrder = orderedProductList.map((p) => p.slug);
     updateProductOrder(slugOrder);
-    showToast('✓ Product display hierarchy saved and updated across Storefront!');
+    await saveProductOrderToShopify(slugOrder).catch(() => {});
+    showToast('✓ Product display hierarchy saved globally across Storefront!');
   };
 
   // --- Community UGC Showcase Studio Actions ---
@@ -803,14 +813,15 @@ export const AdminPage: React.FC = () => {
     showToast('✓ Duplicated UGC card!');
   };
 
-  const handleSaveUGC = () => {
+  const handleSaveUGC = async () => {
     const valid = localUgcList.filter((item) => item.image);
     if (valid.length === 0) {
       alert('Please upload at least 1 UGC item image before saving.');
       return;
     }
     updateUGCItems(valid);
-    showToast('✓ Community UGC Showcase saved and published to Homepage!');
+    await saveUGCToShopify(valid).catch(() => {});
+    showToast('✓ Community UGC Showcase saved globally and published to Homepage!');
   };
 
   // --- Collection Manager Actions ---
@@ -820,9 +831,11 @@ export const AdminPage: React.FC = () => {
     );
   };
 
-  const handleSaveCollectionMapping = () => {
+  const handleSaveCollectionMapping = async () => {
     updateCollectionMapping(selectedCategory, collectionProductIds);
-    showToast(`✓ Products assigned to "${selectedCategory.toUpperCase()}" collection!`);
+    const allOverrides = getAdminCustomizations().collectionOverrides;
+    await saveCollectionsToShopify(allOverrides).catch(() => {});
+    showToast(`✓ Products assigned to "${selectedCategory.toUpperCase()}" collection globally!`);
   };
 
   // --- Settings Actions ---

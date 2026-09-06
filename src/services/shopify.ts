@@ -114,6 +114,21 @@ export const GET_ALL_PRODUCTS_QUERY = `
         }
       }
     }
+    shop {
+      name
+      homepageSettings: metafield(namespace: "custom", key: "homepage_settings") {
+        value
+      }
+      ugcShowcase: metafield(namespace: "custom", key: "ugc_showcase") {
+        value
+      }
+      productOrdering: metafield(namespace: "custom", key: "product_ordering") {
+        value
+      }
+      collectionMapping: metafield(namespace: "custom", key: "collection_mapping") {
+        value
+      }
+    }
   }
 `;
 
