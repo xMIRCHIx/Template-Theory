@@ -283,3 +283,65 @@ export async function saveLooksToShopifyProduct(
     };
   }
 }
+
+// 5. Fetch All Live Product Metafields from Shopify Database
+export async function fetchAllProductMetafieldsFromShopify(): Promise<Record<string, CustomBeforeAfterLook[]>> {
+  const { domain, adminToken } = getShopifyAdminCredentials();
+  if (!adminToken) return {};
+
+  try {
+    const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': adminToken,
+      },
+      body: JSON.stringify({
+        query: `
+          query GetAllMetafields {
+            products(first: 50) {
+              edges {
+                node {
+                  id
+                  handle
+                  metafield(namespace: "custom", key: "before_after_looks") {
+                    value
+                  }
+                }
+              }
+            }
+          }
+        `,
+      }),
+    });
+
+    if (!res.ok) return {};
+    const data = await res.json();
+    const result: Record<string, CustomBeforeAfterLook[]> = {};
+
+    const edges = data?.data?.products?.edges || [];
+    for (const edge of edges) {
+      const node = edge?.node;
+      if (node?.metafield?.value) {
+        try {
+          const parsed = JSON.parse(node.metafield.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const valid = parsed.filter((l: any) => l && (l.before || l.after));
+            if (valid.length > 0) {
+              if (node.handle) result[node.handle] = valid;
+              if (node.id) result[node.id] = valid;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+
+    return result;
+  } catch (err) {
+    console.warn('Could not fetch metafields from Shopify Admin API:', err);
+    return {};
+  }
+}
