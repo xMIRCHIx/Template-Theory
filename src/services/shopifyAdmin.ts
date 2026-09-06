@@ -33,6 +33,14 @@ export function saveShopifyAdminCredentials(token: string): void {
   localStorage.setItem(STORAGE_KEY_ADMIN_TOKEN, token.trim());
 }
 
+// Helper to resolve admin endpoint with local dev proxy support
+function getAdminApiUrl(path: string, domain: string): string {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return `/shopify-admin-api${path}`;
+  }
+  return `https://${domain}${path}`;
+}
+
 // 3. Test Connection to Shopify Admin API
 export async function testShopifyAdminConnection(): Promise<{ success: boolean; message: string; shopName?: string }> {
   const { domain, adminToken } = getShopifyAdminCredentials();
@@ -45,8 +53,8 @@ export async function testShopifyAdminConnection(): Promise<{ success: boolean; 
   }
 
   try {
-    // Test with Admin GraphQL Shop query
-    const res = await fetch(`https://${domain}/admin/api/${API_VERSION}/graphql.json`, {
+    const url = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,13 +102,6 @@ export async function testShopifyAdminConnection(): Promise<{ success: boolean; 
       shopName: shop?.name,
     };
   } catch (err: any) {
-    // If CORS prevents direct browser Admin API call, provide clear guidance
-    if (err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
-      return {
-        success: false,
-        message: 'Direct browser connection blocked by Shopify CORS security. (In production, calls route via serverless proxy or token is authenticated directly).',
-      };
-    }
     return {
       success: false,
       message: `Connection error: ${err.message || err}`,
@@ -146,7 +147,8 @@ export async function saveLooksToShopifyProduct(
       if (look.before && look.before.startsWith('data:image/')) {
         const base64Data = look.before.split(',')[1];
         if (base64Data) {
-          await fetch(`https://${domain}/admin/api/${API_VERSION}/products/${numericId}/images.json`, {
+          const imgUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/products/${numericId}/images.json`, domain);
+          await fetch(imgUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -163,7 +165,8 @@ export async function saveLooksToShopifyProduct(
         }
       } else if (look.before && look.before.startsWith('http')) {
         // Source URL upload
-        await fetch(`https://${domain}/admin/api/${API_VERSION}/products/${numericId}/images.json`, {
+        const imgUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/products/${numericId}/images.json`, domain);
+        await fetch(imgUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -183,7 +186,8 @@ export async function saveLooksToShopifyProduct(
       if (look.after && look.after.startsWith('data:image/')) {
         const base64Data = look.after.split(',')[1];
         if (base64Data) {
-          await fetch(`https://${domain}/admin/api/${API_VERSION}/products/${numericId}/images.json`, {
+          const imgUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/products/${numericId}/images.json`, domain);
+          await fetch(imgUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -200,7 +204,8 @@ export async function saveLooksToShopifyProduct(
         }
       } else if (look.after && look.after.startsWith('http')) {
         // Source URL upload
-        await fetch(`https://${domain}/admin/api/${API_VERSION}/products/${numericId}/images.json`, {
+        const imgUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/products/${numericId}/images.json`, domain);
+        await fetch(imgUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -241,7 +246,8 @@ export async function saveLooksToShopifyProduct(
       }
     `;
 
-    await fetch(`https://${domain}/admin/api/${API_VERSION}/graphql.json`, {
+    const gqlUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+    await fetch(gqlUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

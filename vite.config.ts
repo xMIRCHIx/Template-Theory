@@ -12,5 +12,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      '/shopify-admin-api': {
+        target: 'https://template-theory-2.myshopify.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/shopify-admin-api/, ''),
+      },
+    },
   },
 });
