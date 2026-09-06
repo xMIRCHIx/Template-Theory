@@ -23,7 +23,7 @@ import { motion } from 'framer-motion';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, isLoading } = useShopify();
+  const { products, isLoading, ugcList } = useShopify();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'subscribed'>('idle');
 
@@ -246,47 +246,7 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. POPULAR CATEGORIES */}
-      <section>
-        <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
-            <div>
-              <h2 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--brown)' }}>Popular Categories</h2>
-              <p style={{ fontSize: '0.95rem', color: 'var(--muted)', marginTop: '4px' }}>
-                Curated toolkits organized by your creative medium.
-              </p>
-            </div>
-            <Link
-              to="/collections"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.92rem',
-                fontWeight: 700,
-                color: 'var(--terracotta-dark)',
-              }}
-            >
-              <span>View all categories</span>
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '20px',
-            }}
-          >
-            {CATEGORIES.slice(0, 5).map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. CINEMATIC COLLECTION GRID (Multi-Row Wrapping Grid, 2 per row on mobile) */}
+      {/* 3. CINEMATIC COLLECTION GRID (Multi-Row Wrapping Grid, 2 per row on mobile) */}
       <section>
         <div className="container">
           <div
@@ -300,6 +260,23 @@ export const HomePage: React.FC = () => {
             }}
           >
             <div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'var(--cream-dark)',
+                  border: '1px solid var(--border)',
+                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  marginBottom: '10px',
+                }}
+              >
+                <Sparkles size={13} color="var(--terracotta)" />
+                <span style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--brown)', textTransform: 'uppercase' }}>
+                  Featured Toolkits
+                </span>
+              </div>
               <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.3rem)', fontWeight: 800, color: 'var(--brown)' }}>
                 Cinematic Collection
               </h2>
@@ -319,7 +296,7 @@ export const HomePage: React.FC = () => {
                 gap: '6px',
               }}
             >
-              <span>View collection</span>
+              <span>View all products</span>
               <ArrowRight size={15} />
             </Link>
           </div>
@@ -362,6 +339,246 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* 4. POPULAR CATEGORIES */}
+      <section>
+        <div className="container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+            <div>
+              <h2 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--brown)' }}>Popular Categories</h2>
+              <p style={{ fontSize: '0.95rem', color: 'var(--muted)', marginTop: '4px' }}>
+                Curated toolkits organized by your creative medium.
+              </p>
+            </div>
+            <Link
+              to="/collections"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                color: 'var(--terracotta-dark)',
+              }}
+            >
+              <span>View all categories</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '20px',
+            }}
+          >
+            {CATEGORIES.slice(0, 5).map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. COMMUNITY UGC SHOWCASE: INFINITE AUTO SIDE-SCROLLING VERTICAL MARQUEE */}
+      {ugcList && ugcList.length > 0 && (
+        <section style={{ position: 'relative', overflow: 'hidden', padding: '10px 0' }}>
+          <div className="container" style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'var(--cream-dark)',
+                    border: '1px solid var(--border)',
+                    padding: '4px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    marginBottom: '10px',
+                  }}
+                >
+                  <Sparkles size={13} color="var(--terracotta)" />
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--brown)', textTransform: 'uppercase' }}>
+                    Community Showcase
+                  </span>
+                </div>
+                <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.3rem)', fontWeight: 800, color: 'var(--brown)' }}>
+                  Made with Cinevo
+                </h2>
+                <p style={{ fontSize: '0.95rem', color: 'var(--muted)', marginTop: '4px' }}>
+                  Real edits, film grades and creations by storytellers worldwide.
+                </p>
+              </div>
+
+              <span style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>
+                Hover or touch to pause
+              </span>
+            </div>
+          </div>
+
+          {/* Continuous Full-Width Horizontal Marquee Loop */}
+          <div className="marquee-container" style={{ width: '100%', padding: '8px 0' }}>
+            <div className="marquee-track">
+              {[...ugcList, ...ugcList, ...ugcList].map((item, idx) => (
+                <div
+                  key={`${item.id}-${idx}`}
+                  className="ugc-vertical-card"
+                  style={{
+                    width: '240px',
+                    height: '380px',
+                    borderRadius: 'var(--radius-lg)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    backgroundColor: 'var(--cream-dark)',
+                    border: '1.5px solid var(--border)',
+                    boxShadow: 'var(--shadow-clay)',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    if (item.productSlug) {
+                      navigate(`/products/${item.productSlug}`);
+                    }
+                  }}
+                >
+                  {/* Background Vertical Image */}
+                  <img
+                    src={item.image}
+                    alt={item.caption || item.creatorName}
+                    loading="lazy"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      transition: 'transform 0.5s ease',
+                    }}
+                    className="ugc-vertical-img"
+                  />
+
+                  {/* Dark Gradient Overlay for readability */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(20,14,10,0.88) 100%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      padding: '14px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {/* Top Row: Handle & Category Badge */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.85)',
+                          backdropFilter: 'blur(8px)',
+                          color: 'var(--brown-dark)',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '3px 9px',
+                          borderRadius: 'var(--radius-full)',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {item.creatorHandle || '@cinevo_creator'}
+                      </span>
+
+                      {item.category && (
+                        <span
+                          style={{
+                            backgroundColor: 'var(--terracotta)',
+                            color: '#fff',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {item.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: Quote & Product Link Button */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {item.caption && (
+                        <p
+                          style={{
+                            color: '#ffffff',
+                            fontSize: '0.84rem',
+                            fontWeight: 600,
+                            lineHeight: 1.35,
+                            margin: 0,
+                            textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          "{item.caption}"
+                        </p>
+                      )}
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: 'rgba(255,255,255,0.18)',
+                          backdropFilter: 'blur(10px)',
+                          padding: '6px 10px',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid rgba(255,255,255,0.25)',
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1, paddingRight: '6px' }}>
+                          <span
+                            style={{
+                              color: '#fff',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              display: 'block',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {item.productName || 'View Asset'}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: '#ffffff',
+                            color: 'var(--brown)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ArrowRight size={13} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
 
       {/* 5. EDITORIAL SPLIT BANNERS */}
       <section style={{ position: 'relative' }}>
@@ -802,8 +1019,12 @@ export const HomePage: React.FC = () => {
           }
         }
 
-        .ugc-card:hover .ugc-img {
-          transform: scale(1.05);
+        .ugc-vertical-card:hover {
+          transform: translateY(-4px) scale(1.02);
+          box-shadow: 0 16px 36px rgba(45, 30, 20, 0.22) !important;
+        }
+        .ugc-vertical-card:hover .ugc-vertical-img {
+          transform: scale(1.06);
         }
       `}</style>
     </div>

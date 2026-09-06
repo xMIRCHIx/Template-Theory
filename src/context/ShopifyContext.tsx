@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Product, ProductCategory } from '../types';
+import { Product, ProductCategory, UGCItem } from '../types';
 import { fetchLiveShopifyProducts } from '../services/shopify';
 import {
   getAdminCustomizations,
@@ -7,6 +7,8 @@ import {
   saveSavedProductOrder,
   saveSavedCollectionOverrides,
   saveAdminCustomizations,
+  getSavedUGCItems,
+  saveSavedUGCItems,
   CustomBeforeAfterLook,
 } from '../services/adminStore';
 import {
@@ -23,12 +25,14 @@ interface ShopifyContextType {
   currencySymbol: string;
   currencyCode: string;
   isCloudSyncActive: boolean;
+  ugcList: UGCItem[];
   getProductBySlug: (slug: string) => Product | undefined;
   getProductsByCategory: (category: ProductCategory | 'all') => Product[];
   refreshProducts: () => Promise<void>;
   updateProductBeforeAfter: (slugOrId: string, looks: CustomBeforeAfterLook[]) => void;
   updateProductOrder: (orderedIdentifiers: string[]) => void;
   updateCollectionMapping: (collectionSlug: string, productIdentifiers: string[]) => void;
+  updateUGCItems: (items: UGCItem[]) => void;
   resetAllCustomizations: () => void;
   syncWithCloud: () => Promise<void>;
 }
@@ -241,11 +245,61 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveCustomizationsToCloud(allCustomizations).catch((err) => console.warn('Cloud sync error:', err));
   }, []);
 
-  const resetAllCustomizations = useCallback(() => {
-    saveAdminCustomizations({ beforeAfter: {}, productOrder: [], collectionOverrides: {} });
+  // Merge saved UGC items with auto-derived product showcase items if empty
+  const ugcList = useMemo<UGCItem[]>(() => {
+    const saved = getSavedUGCItems();
+    if (saved && saved.length > 0) {
+      return saved;
+    }
+    // Default fallback UGC items dynamically created from live products & looks
+    const derived: UGCItem[] = [];
+    products.forEach((p, pIdx) => {
+      if (p.beforeAfterList && p.beforeAfterList.length > 0) {
+        p.beforeAfterList.forEach((look, lIdx) => {
+          if (look.after) {
+            derived.push({
+              id: `ugc-${p.slug}-${lIdx}`,
+              creatorName: look.title || `${p.name} Look #${lIdx + 1}`,
+              creatorHandle: `@templatetheory_${p.category}`,
+              image: look.after,
+              productSlug: p.slug,
+              productName: p.name,
+              productPrice: p.price,
+              caption: `Graded with ${p.name} - ${look.title || `Look #${lIdx + 1}`}`,
+              category: p.category,
+            });
+          }
+        });
+      } else if (p.thumbnail) {
+        derived.push({
+          id: `ugc-${p.slug}`,
+          creatorName: p.name,
+          creatorHandle: `@templatetheory`,
+          image: p.thumbnail,
+          productSlug: p.slug,
+          productName: p.name,
+          productPrice: p.price,
+          caption: `Crafted with ${p.name}`,
+          category: p.category,
+        });
+      }
+    });
+    return derived;
+  }, [products, customizationVersion]);
+
+  const updateUGCItems = useCallback((items: UGCItem[]) => {
+    saveSavedUGCItems(items);
     setCustomizationVersion((v) => v + 1);
     // Background sync to Cloud Database
-    saveCustomizationsToCloud({ beforeAfter: {}, productOrder: [], collectionOverrides: {} }).catch((err) => console.warn('Cloud sync error:', err));
+    const allCustomizations = getAdminCustomizations();
+    saveCustomizationsToCloud(allCustomizations).catch((err) => console.warn('Cloud sync error:', err));
+  }, []);
+
+  const resetAllCustomizations = useCallback(() => {
+    saveAdminCustomizations({ beforeAfter: {}, productOrder: [], collectionOverrides: {}, ugcItems: [] });
+    setCustomizationVersion((v) => v + 1);
+    // Background sync to Cloud Database
+    saveCustomizationsToCloud({ beforeAfter: {}, productOrder: [], collectionOverrides: {}, ugcItems: [] }).catch((err) => console.warn('Cloud sync error:', err));
   }, []);
 
   return (
@@ -258,12 +312,14 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         currencySymbol,
         currencyCode,
         isCloudSyncActive,
+        ugcList,
         getProductBySlug,
         getProductsByCategory,
         refreshProducts: loadProducts,
         updateProductBeforeAfter,
         updateProductOrder,
         updateCollectionMapping,
+        updateUGCItems,
         resetAllCustomizations,
         syncWithCloud,
       }}

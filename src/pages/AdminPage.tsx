@@ -31,10 +31,13 @@ import {
   AlertCircle,
   Loader2,
   ShoppingBag,
+  GripVertical,
+  Film,
+  Star,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
-import { ProductCategory, Product } from '../types';
+import { ProductCategory, Product, UGCItem } from '../types';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import {
   getAdminPin,
@@ -59,7 +62,7 @@ import {
   saveLooksToShopifyProduct,
 } from '../services/shopifyAdmin';
 
-type AdminTab = 'beforeAfter' | 'productOrder' | 'collections' | 'settings';
+type AdminTab = 'beforeAfter' | 'productOrder' | 'ugc' | 'collections' | 'settings';
 
 interface ImageDropZoneProps {
   label: string;
@@ -324,6 +327,8 @@ export const AdminPage: React.FC = () => {
     updateProductBeforeAfter,
     updateProductOrder,
     updateCollectionMapping,
+    ugcList,
+    updateUGCItems,
     resetAllCustomizations,
     isCloudSyncActive,
     syncWithCloud,
@@ -345,15 +350,21 @@ export const AdminPage: React.FC = () => {
   const [activeLooks, setActiveLooks] = useState<CustomBeforeAfterLook[]>([]);
   const [previewLookIndex, setPreviewLookIndex] = useState<number>(0);
 
-  // --- TAB 2: Product Order State ---
+  // --- TAB 2: Product Order State & Drag Drop ---
   const [orderedProductList, setOrderedProductList] = useState<Product[]>([]);
+  const [draggedProductIndex, setDraggedProductIndex] = useState<number | null>(null);
+  const [dragOverProductIndex, setDragOverProductIndex] = useState<number | null>(null);
 
-  // --- TAB 3: Collections State ---
+  // --- TAB 3: Community UGC Marquee State ---
+  const [localUgcList, setLocalUgcList] = useState<UGCItem[]>([]);
+  const [previewUgcIndex, setPreviewUgcIndex] = useState<number>(0);
+
+  // --- TAB 4: Collections State ---
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('presets');
   const [collectionProductIds, setCollectionProductIds] = useState<string[]>([]);
   const [collectionFilterMode, setCollectionFilterMode] = useState<'all' | 'inCollection'>('all');
 
-  // --- TAB 4: Settings & Cloud DB State ---
+  // --- TAB 5: Settings & Cloud DB State ---
   const [currentPin, setCurrentPin] = useState<string>('');
   const [newPin, setNewPin] = useState<string>('');
   const [pinSuccess, setPinSuccess] = useState<string | null>(null);
@@ -421,6 +432,13 @@ export const AdminPage: React.FC = () => {
     }
     setPreviewLookIndex(0);
   }, [selectedProductSlug, products]);
+
+  // Sync local UGC list with context ugcList
+  useEffect(() => {
+    if (ugcList && ugcList.length > 0) {
+      setLocalUgcList(JSON.parse(JSON.stringify(ugcList)));
+    }
+  }, [ugcList]);
 
   // Sync collection product IDs when selected category changes
   useEffect(() => {
@@ -544,7 +562,35 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  // --- Product Ordering Actions ---
+  // --- Product Ordering Actions & Drag-and-Drop ---
+  const handleProductDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedProductIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleProductDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverProductIndex !== index) {
+      setDragOverProductIndex(index);
+    }
+  };
+
+  const handleProductDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedProductIndex === null || draggedProductIndex === targetIndex) {
+      setDraggedProductIndex(null);
+      setDragOverProductIndex(null);
+      return;
+    }
+    const list = [...orderedProductList];
+    const [draggedItem] = list.splice(draggedProductIndex, 1);
+    list.splice(targetIndex, 0, draggedItem);
+    setOrderedProductList(list);
+    setDraggedProductIndex(null);
+    setDragOverProductIndex(null);
+  };
+
   const handleMoveProduct = (index: number, direction: 'up' | 'down') => {
     const targetIdx = direction === 'up' ? index - 1 : index + 1;
     if (targetIdx < 0 || targetIdx >= orderedProductList.length) return;
@@ -569,7 +615,73 @@ export const AdminPage: React.FC = () => {
   const handleSaveProductOrder = () => {
     const slugOrder = orderedProductList.map((p) => p.slug);
     updateProductOrder(slugOrder);
-    showToast('✓ Product display order updated across Storefront!');
+    showToast('✓ Product display hierarchy saved and updated across Storefront!');
+  };
+
+  // --- Community UGC Showcase Studio Actions ---
+  const handleAddUgcItem = () => {
+    const defaultProd = products[0];
+    const newItem: UGCItem = {
+      id: `ugc-custom-${Date.now()}`,
+      creatorName: defaultProd ? `${defaultProd.name} Grade` : 'Community Look',
+      creatorHandle: '@templatetheory',
+      image: '',
+      productSlug: defaultProd?.slug || '',
+      productName: defaultProd?.name || 'Preset Asset',
+      productPrice: defaultProd?.price || 799,
+      caption: 'Graded with 1-click in Lightroom & Premiere',
+      category: defaultProd?.category || 'presets',
+    };
+    setLocalUgcList((prev) => [newItem, ...prev]);
+    setPreviewUgcIndex(0);
+    showToast('✓ Added new UGC Card! Upload a vertical photo and click Save.');
+  };
+
+  const handleRemoveUgcItem = (index: number) => {
+    if (localUgcList.length <= 1) {
+      showToast('You must keep at least 1 UGC item in the showcase.');
+      return;
+    }
+    setLocalUgcList((prev) => prev.filter((_, idx) => idx !== index));
+    if (previewUgcIndex >= index && previewUgcIndex > 0) {
+      setPreviewUgcIndex((prev) => prev - 1);
+    }
+  };
+
+  const handleUpdateUgcItem = (index: number, field: keyof UGCItem, value: any) => {
+    setLocalUgcList((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'productSlug') {
+        const prod = products.find((p) => p.slug === value || p.id === value);
+        if (prod) {
+          updated[index].productName = prod.name;
+          updated[index].productPrice = prod.price;
+          updated[index].category = prod.category;
+        }
+      }
+      return updated;
+    });
+  };
+
+  const handleMoveUgcItem = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= localUgcList.length) return;
+    const list = [...localUgcList];
+    const [moved] = list.splice(index, 1);
+    list.splice(targetIdx, 0, moved);
+    setLocalUgcList(list);
+    setPreviewUgcIndex(targetIdx);
+  };
+
+  const handleSaveUGC = () => {
+    const valid = localUgcList.filter((item) => item.image);
+    if (valid.length === 0) {
+      alert('Please upload at least 1 UGC item image before saving.');
+      return;
+    }
+    updateUGCItems(valid);
+    showToast('✓ Community UGC Showcase saved and published to Homepage!');
   };
 
   // --- Collection Manager Actions ---
@@ -1026,6 +1138,29 @@ export const AdminPage: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('ugc')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              backgroundColor: activeTab === 'ugc' ? 'var(--brown)' : 'var(--cream-light)',
+              color: activeTab === 'ugc' ? '#fff' : 'var(--brown)',
+              border: '1.5px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: activeTab === 'ugc' ? 'var(--shadow-sm)' : 'none',
+              flexShrink: 0,
+            }}
+          >
+            <Film size={16} color={activeTab === 'ugc' ? 'var(--terracotta-light)' : 'var(--terracotta)'} />
+            Community UGC Showcase
+          </button>
+
+          <button
             onClick={() => setActiveTab('collections')}
             style={{
               padding: '10px 20px',
@@ -1395,10 +1530,10 @@ export const AdminPage: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                  Product Display Hierarchy
+                  Product Display Hierarchy & Drag Order
                 </h3>
                 <p style={{ fontSize: '0.84rem', color: 'var(--muted)', margin: '4px 0 0 0' }}>
-                  Arrange which products show up first on the Homepage, Shop Catalog & Category grids.
+                  Drag & drop or use Up/Down arrows to control which products appear first on the Homepage, Shop Catalog & Category grids.
                 </p>
               </div>
 
@@ -1418,148 +1553,661 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Reorderable List */}
+            {/* Reorderable List with HTML5 Drag & Drop */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {orderedProductList.map((product, idx) => (
-                <div
-                  key={product.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--cream-light)',
-                    border: '1.5px solid var(--border)',
-                    gap: '14px',
-                  }}
-                >
-                  {/* Left: Position & Thumbnail & Title */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--brown)',
-                        color: '#fff',
-                        fontSize: '0.8rem',
-                        fontWeight: 800,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {idx + 1}
-                    </span>
+              {orderedProductList.map((product, idx) => {
+                const isDragging = draggedProductIndex === idx;
+                const isDragOver = dragOverProductIndex === idx && draggedProductIndex !== idx;
 
-                    <img
-                      src={product.thumbnail}
-                      alt=""
-                      style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '6px',
-                        objectFit: 'contain',
-                        backgroundColor: '#fff',
-                        border: '1px solid var(--border)',
-                        flexShrink: 0,
-                      }}
-                    />
-
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span
-                          style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            color: 'var(--terracotta-dark)',
-                            backgroundColor: 'var(--terracotta-light)',
-                            padding: '1px 6px',
-                            borderRadius: 'var(--radius-full)',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {product.category}
-                        </span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--brown)' }}>
-                          ₹{product.price}
-                        </span>
-                      </div>
-                      <h4
+                return (
+                  <div
+                    key={product.id}
+                    draggable
+                    onDragStart={(e) => handleProductDragStart(e, idx)}
+                    onDragOver={(e) => handleProductDragOver(e, idx)}
+                    onDrop={(e) => handleProductDrop(e, idx)}
+                    onDragEnd={() => {
+                      setDraggedProductIndex(null);
+                      setDragOverProductIndex(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isDragOver ? 'rgba(201, 130, 103, 0.1)' : isDragging ? 'var(--cream-dark)' : 'var(--cream-light)',
+                      border: isDragOver ? '2px dashed var(--terracotta)' : '1.5px solid var(--border)',
+                      gap: '14px',
+                      cursor: 'grab',
+                      opacity: isDragging ? 0.45 : 1,
+                      transition: 'all 0.18s ease',
+                      transform: isDragOver ? 'scale(1.01)' : 'none',
+                    }}
+                  >
+                    {/* Left: Drag Handle & Position & Thumbnail & Title */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                      <div
+                        title="Drag to reorder"
                         style={{
-                          fontSize: '0.92rem',
-                          fontWeight: 700,
-                          color: 'var(--brown-dark)',
-                          margin: '2px 0 0 0',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          cursor: 'grab',
+                          color: 'var(--muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px',
                         }}
                       >
-                        {product.name}
-                      </h4>
+                        <GripVertical size={20} />
+                      </div>
+
+                      <span
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--brown)',
+                          color: '#fff',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+
+                      <img
+                        src={product.thumbnail}
+                        alt=""
+                        style={{
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '6px',
+                          objectFit: 'contain',
+                          backgroundColor: '#fff',
+                          border: '1px solid var(--border)',
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              color: 'var(--terracotta-dark)',
+                              backgroundColor: 'var(--terracotta-light)',
+                              padding: '1px 6px',
+                              borderRadius: 'var(--radius-full)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {product.category}
+                          </span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--brown)' }}>
+                            ₹{product.price}
+                          </span>
+                        </div>
+                        <h4
+                          style={{
+                            fontSize: '0.92rem',
+                            fontWeight: 700,
+                            color: 'var(--brown-dark)',
+                            margin: '2px 0 0 0',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {product.name}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Right: Priority Reorder Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleMoveToExtreme(idx, 'top')}
+                        disabled={idx === 0}
+                        title="Move to Top"
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: '#fff',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                          opacity: idx === 0 ? 0.4 : 1,
+                        }}
+                      >
+                        Top
+                      </button>
+
+                      <button
+                        onClick={() => handleMoveProduct(idx, 'up')}
+                        disabled={idx === 0}
+                        title="Move Up"
+                        style={{
+                          padding: '6px',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: '#fff',
+                          border: '1px solid var(--border)',
+                          cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                          opacity: idx === 0 ? 0.4 : 1,
+                        }}
+                      >
+                        <ChevronUp size={16} />
+                      </button>
+
+                      <button
+                        onClick={() => handleMoveProduct(idx, 'down')}
+                        disabled={idx === orderedProductList.length - 1}
+                        title="Move Down"
+                        style={{
+                          padding: '6px',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: '#fff',
+                          border: '1px solid var(--border)',
+                          cursor: idx === orderedProductList.length - 1 ? 'not-allowed' : 'pointer',
+                          opacity: idx === orderedProductList.length - 1 ? 0.4 : 1,
+                        }}
+                      >
+                        <ChevronDown size={16} />
+                      </button>
                     </div>
                   </div>
-
-                  {/* Right: Priority Reorder Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <button
-                      onClick={() => handleMoveToExtreme(idx, 'top')}
-                      disabled={idx === 0}
-                      title="Move to Top"
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: '#fff',
-                        border: '1px solid var(--border)',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                        opacity: idx === 0 ? 0.4 : 1,
-                      }}
-                    >
-                      Top
-                    </button>
-
-                    <button
-                      onClick={() => handleMoveProduct(idx, 'up')}
-                      disabled={idx === 0}
-                      title="Move Up"
-                      style={{
-                        padding: '6px',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: '#fff',
-                        border: '1px solid var(--border)',
-                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                        opacity: idx === 0 ? 0.4 : 1,
-                      }}
-                    >
-                      <ChevronUp size={16} />
-                    </button>
-
-                    <button
-                      onClick={() => handleMoveProduct(idx, 'down')}
-                      disabled={idx === orderedProductList.length - 1}
-                      title="Move Down"
-                      style={{
-                        padding: '6px',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: '#fff',
-                        border: '1px solid var(--border)',
-                        cursor: idx === orderedProductList.length - 1 ? 'not-allowed' : 'pointer',
-                        opacity: idx === orderedProductList.length - 1 ? 0.4 : 1,
-                      }}
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: COMMUNITY UGC SHOWCASE STUDIO (VERTICAL REELS / UGC CARDS)         */}
+        {/* ========================================================================= */}
+        {activeTab === 'ugc' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }} className="admin-grid-2col">
+            {/* Left Column: UGC Cards Editor & Upload */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '22px',
+                  boxShadow: 'var(--shadow-clay)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Community UGC Showcase Cards
+                    </h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--muted)', margin: '4px 0 0 0' }}>
+                      Upload vertical creator photos & configure reels displayed on the Homepage continuous marquee.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleAddUgcItem}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--terracotta)',
+                      color: '#fff',
+                      border: 'none',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Plus size={16} /> Add UGC Card
+                  </button>
+                </div>
+
+                {/* List of UGC Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {localUgcList.map((item, idx) => {
+                    const isSelected = previewUgcIndex === idx;
+
+                    return (
+                      <div
+                        key={item.id || idx}
+                        style={{
+                          backgroundColor: isSelected ? 'rgba(201, 130, 103, 0.05)' : 'var(--cream-light)',
+                          border: isSelected ? '2px solid var(--terracotta)' : '1.5px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '14px',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {/* Header Row: Title & Action Controls */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                            <span
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--brown)',
+                                color: '#fff',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {idx + 1}
+                            </span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--brown)' }}>
+                              {item.creatorHandle || `Card #${idx + 1}`}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              onClick={() => setPreviewUgcIndex(idx)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--cream-dark)',
+                                color: isSelected ? '#fff' : 'var(--brown)',
+                                border: 'none',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Preview
+                            </button>
+
+                            <button
+                              onClick={() => handleMoveUgcItem(idx, 'up')}
+                              disabled={idx === 0}
+                              style={{
+                                padding: '4px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#fff',
+                                border: '1px solid var(--border)',
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                opacity: idx === 0 ? 0.4 : 1,
+                              }}
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+
+                            <button
+                              onClick={() => handleMoveUgcItem(idx, 'down')}
+                              disabled={idx === localUgcList.length - 1}
+                              style={{
+                                padding: '4px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#fff',
+                                border: '1px solid var(--border)',
+                                cursor: idx === localUgcList.length - 1 ? 'not-allowed' : 'pointer',
+                                opacity: idx === localUgcList.length - 1 ? 0.4 : 1,
+                              }}
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+
+                            {localUgcList.length > 1 && (
+                              <button
+                                onClick={() => handleRemoveUgcItem(idx)}
+                                title="Delete card"
+                                style={{
+                                  padding: '4px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                  border: 'none',
+                                  color: '#dc2626',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Image Upload + Metadata Fields */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '14px', alignItems: 'start' }}>
+                          {/* Vertical Image Dropzone */}
+                          <ImageDropZone
+                            label="📸 VERTICAL PHOTO (9:16)"
+                            value={item.image}
+                            onChange={(url) => handleUpdateUgcItem(idx, 'image', url)}
+                            onClear={() => handleUpdateUgcItem(idx, 'image', '')}
+                            placeholder="Image URL or Drop Photo"
+                          />
+
+                          {/* Metadata Fields */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '3px' }}>
+                                CREATOR HANDLE / NAME
+                              </label>
+                              <input
+                                type="text"
+                                value={item.creatorHandle}
+                                onChange={(e) => handleUpdateUgcItem(idx, 'creatorHandle', e.target.value)}
+                                placeholder="@creator_handle"
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid var(--border)',
+                                  fontSize: '0.82rem',
+                                  fontWeight: 700,
+                                  color: 'var(--brown)',
+                                  outline: 'none',
+                                  backgroundColor: '#fff',
+                                }}
+                              />
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '3px' }}>
+                                CAPTION / TESTIMONIAL QUOTE
+                              </label>
+                              <input
+                                type="text"
+                                value={item.caption}
+                                onChange={(e) => handleUpdateUgcItem(idx, 'caption', e.target.value)}
+                                placeholder="e.g. Graded with 1-click in Lightroom"
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid var(--border)',
+                                  fontSize: '0.82rem',
+                                  color: 'var(--brown)',
+                                  outline: 'none',
+                                  backgroundColor: '#fff',
+                                }}
+                              />
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '3px' }}>
+                                LINKED PRODUCT ASSET
+                              </label>
+                              <select
+                                value={item.productSlug}
+                                onChange={(e) => handleUpdateUgcItem(idx, 'productSlug', e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid var(--border)',
+                                  fontSize: '0.82rem',
+                                  color: 'var(--brown)',
+                                  fontWeight: 600,
+                                  outline: 'none',
+                                  backgroundColor: '#fff',
+                                }}
+                              >
+                                {products.map((p) => (
+                                  <option key={p.id} value={p.slug}>
+                                    {p.name} (₹{p.price} • {p.category})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSaveUGC}
+                  className="btn-primary"
+                  style={{
+                    padding: '14px',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontSize: '0.96rem',
+                    fontWeight: 800,
+                    marginTop: '20px',
+                  }}
+                >
+                  <Save size={18} /> Save & Publish UGC Showcase to Homepage
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column: Live Simulator of UGC Vertical Card */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '90px' }}>
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '20px',
+                  boxShadow: 'var(--shadow-clay)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                    Homepage Marquee Live Preview
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--terracotta-dark)', fontWeight: 700 }}>
+                    Card #{previewUgcIndex + 1}
+                  </span>
+                </div>
+
+                {/* Vertical Card Preview Render */}
+                {localUgcList[previewUgcIndex]?.image ? (
+                  <div
+                    style={{
+                      width: '240px',
+                      height: '380px',
+                      borderRadius: 'var(--radius-lg)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backgroundColor: 'var(--cream-dark)',
+                      border: '1.5px solid var(--border)',
+                      boxShadow: 'var(--shadow-clay)',
+                    }}
+                  >
+                    <img
+                      src={localUgcList[previewUgcIndex].image}
+                      alt=""
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+
+                    {/* Gradient Overlay */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(20,14,10,0.88) 100%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        padding: '14px',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {/* Top Badges */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                        <span
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.85)',
+                            backdropFilter: 'blur(8px)',
+                            color: 'var(--brown-dark)',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '3px 9px',
+                            borderRadius: 'var(--radius-full)',
+                          }}
+                        >
+                          {localUgcList[previewUgcIndex].creatorHandle || '@cinevo_creator'}
+                        </span>
+
+                        {localUgcList[previewUgcIndex].category && (
+                          <span
+                            style={{
+                              backgroundColor: 'var(--terracotta)',
+                              color: '#fff',
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {localUgcList[previewUgcIndex].category}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Bottom Details */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {localUgcList[previewUgcIndex].caption && (
+                          <p
+                            style={{
+                              color: '#ffffff',
+                              fontSize: '0.84rem',
+                              fontWeight: 600,
+                              lineHeight: 1.35,
+                              margin: 0,
+                              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                            }}
+                          >
+                            "{localUgcList[previewUgcIndex].caption}"
+                          </p>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundColor: 'rgba(255,255,255,0.18)',
+                            backdropFilter: 'blur(10px)',
+                            padding: '6px 10px',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: '#fff',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              flex: 1,
+                              paddingRight: '6px',
+                            }}
+                          >
+                            {localUgcList[previewUgcIndex].productName || 'View Asset'}
+                          </span>
+
+                          <div
+                            style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              backgroundColor: '#ffffff',
+                              color: 'var(--brown)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <ExternalLink size={12} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: '240px',
+                      height: '380px',
+                      borderRadius: 'var(--radius-lg)',
+                      backgroundColor: 'var(--cream-light)',
+                      border: '1.5px dashed var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--muted)',
+                      textAlign: 'center',
+                      padding: '20px',
+                    }}
+                  >
+                    <ImageIcon size={36} color="var(--terracotta-light)" style={{ marginBottom: '8px' }} />
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>No photo uploaded</span>
+                    <span style={{ fontSize: '0.74rem', marginTop: '4px' }}>Upload a vertical photo on the left to preview</span>
+                  </div>
+                )}
+
+                {/* Card Switcher Pills */}
+                {localUgcList.length > 1 && (
+                  <div style={{ width: '100%', marginTop: '16px' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                      SWITCH CARD TO PREVIEW:
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {localUgcList.map((card, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setPreviewUgcIndex(idx)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            backgroundColor: previewUgcIndex === idx ? 'var(--terracotta)' : 'var(--cream-light)',
+                            color: previewUgcIndex === idx ? '#fff' : 'var(--brown)',
+                            border: '1px solid var(--border)',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                          }}
+                        >
+                          #{idx + 1} {card.creatorHandle || `Card ${idx + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {/* ========================================================================= */}
         {/* TAB 3: COLLECTION MANAGER (ASSIGN & ORGANIZE COLLECTIONS)                  */}

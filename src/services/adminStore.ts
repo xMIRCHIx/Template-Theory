@@ -1,6 +1,8 @@
 // Admin Customization Persistence Layer
 // Stores custom Before/After looks, product display orders, and collection mappings in localStorage
 
+import { UGCItem } from '../types';
+
 export interface CustomBeforeAfterLook {
   id: string;
   title: string;
@@ -12,6 +14,7 @@ export interface AdminCustomizations {
   beforeAfter: Record<string, CustomBeforeAfterLook[]>; // keyed by product slug or id
   productOrder: string[]; // array of product ids / slugs in custom priority order
   collectionOverrides: Record<string, string[]>; // collection slug -> array of product slugs/ids
+  ugcItems?: UGCItem[]; // custom vertical UGC items for continuous marquee
 }
 
 const STORAGE_KEY = 'cinevo_admin_customizations_v1';
@@ -125,3 +128,15 @@ export function saveSavedCollectionOverrides(overrides: Record<string, string[]>
   custom.collectionOverrides = overrides;
   saveAdminCustomizations(custom);
 }
+
+export function getSavedUGCItems(): UGCItem[] {
+  const custom = getAdminCustomizations();
+  return custom.ugcItems || [];
+}
+
+export function saveSavedUGCItems(items: UGCItem[]): void {
+  const custom = getAdminCustomizations();
+  custom.ugcItems = items;
+  saveAdminCustomizations(custom);
+}
+
