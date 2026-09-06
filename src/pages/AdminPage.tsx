@@ -674,6 +674,30 @@ export const AdminPage: React.FC = () => {
     setPreviewUgcIndex(targetIdx);
   };
 
+  const handleMoveUgcItemToTop = (index: number) => {
+    if (index === 0) return;
+    const list = [...localUgcList];
+    const [moved] = list.splice(index, 1);
+    list.unshift(moved);
+    setLocalUgcList(list);
+    setPreviewUgcIndex(0);
+  };
+
+  const handleDuplicateUgcItem = (index: number) => {
+    const item = localUgcList[index];
+    if (!item) return;
+    const duplicated: UGCItem = {
+      ...item,
+      id: `ugc-custom-${Date.now()}`,
+      creatorHandle: item.creatorHandle ? `${item.creatorHandle}` : '@templatetheory',
+    };
+    const list = [...localUgcList];
+    list.splice(index + 1, 0, duplicated);
+    setLocalUgcList(list);
+    setPreviewUgcIndex(index + 1);
+    showToast('✓ Duplicated UGC card!');
+  };
+
   const handleSaveUGC = () => {
     const valid = localUgcList.filter((item) => item.image);
     if (valid.length === 0) {
@@ -1730,50 +1754,69 @@ export const AdminPage: React.FC = () => {
         {/* TAB 3: COMMUNITY UGC SHOWCASE STUDIO (VERTICAL REELS / UGC CARDS)         */}
         {/* ========================================================================= */}
         {activeTab === 'ugc' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }} className="admin-grid-2col">
-            {/* Left Column: UGC Cards Editor & Upload */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(320px, 1.05fr)', gap: '30px', alignItems: 'start' }} className="admin-grid-2col">
+            {/* Left Column: Spacious UGC Cards Editor */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div
                 style={{
                   backgroundColor: '#ffffff',
                   border: '1.5px solid var(--border)',
                   borderRadius: 'var(--radius-lg)',
-                  padding: '22px',
+                  padding: '26px',
                   boxShadow: 'var(--shadow-clay)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                {/* Header Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '14px', borderBottom: '1px solid var(--border-light)', paddingBottom: '18px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                      Community UGC Showcase Cards
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Community UGC Showcase Cards ({localUgcList.length})
                     </h3>
-                    <p style={{ fontSize: '0.84rem', color: 'var(--muted)', margin: '4px 0 0 0' }}>
+                    <p style={{ fontSize: '0.86rem', color: 'var(--muted)', margin: '4px 0 0 0' }}>
                       Upload vertical creator photos & configure reels displayed on the Homepage continuous marquee.
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleAddUgcItem}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 'var(--radius-full)',
-                      backgroundColor: 'var(--terracotta)',
-                      color: '#fff',
-                      border: 'none',
-                      fontSize: '0.84rem',
-                      fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Plus size={16} /> Add UGC Card
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      onClick={handleAddUgcItem}
+                      style={{
+                        padding: '9px 18px',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: 'var(--terracotta)',
+                        color: '#fff',
+                        border: 'none',
+                        fontSize: '0.86rem',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(201, 130, 103, 0.3)',
+                      }}
+                    >
+                      <Plus size={16} /> Add UGC Card
+                    </button>
+
+                    <button
+                      onClick={handleSaveUGC}
+                      className="btn-primary"
+                      style={{
+                        padding: '9px 18px',
+                        fontSize: '0.86rem',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <Save size={16} /> Save Changes
+                    </button>
+                  </div>
                 </div>
 
                 {/* List of UGC Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {localUgcList.map((item, idx) => {
                     const isSelected = previewUgcIndex === idx;
 
@@ -1781,27 +1824,28 @@ export const AdminPage: React.FC = () => {
                       <div
                         key={item.id || idx}
                         style={{
-                          backgroundColor: isSelected ? 'rgba(201, 130, 103, 0.05)' : 'var(--cream-light)',
+                          backgroundColor: isSelected ? 'rgba(201, 130, 103, 0.04)' : '#ffffff',
                           border: isSelected ? '2px solid var(--terracotta)' : '1.5px solid var(--border)',
-                          borderRadius: 'var(--radius-md)',
-                          padding: '16px',
+                          borderRadius: 'var(--radius-lg)',
+                          padding: '20px 22px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '14px',
+                          gap: '16px',
                           transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? '0 8px 24px rgba(201, 130, 103, 0.15)' : 'var(--shadow-sm)',
                         }}
                       >
                         {/* Header Row: Title & Action Controls */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
                             <span
                               style={{
-                                width: '24px',
-                                height: '24px',
+                                width: '28px',
+                                height: '28px',
                                 borderRadius: '50%',
                                 backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--brown)',
                                 color: '#fff',
-                                fontSize: '0.75rem',
+                                fontSize: '0.82rem',
                                 fontWeight: 800,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1811,33 +1855,64 @@ export const AdminPage: React.FC = () => {
                             >
                               {idx + 1}
                             </span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--brown)' }}>
-                              {item.creatorHandle || `Card #${idx + 1}`}
-                            </span>
+                            <div style={{ minWidth: 0 }}>
+                              <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--brown)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {item.creatorHandle || `Card #${idx + 1}`}
+                              </span>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--muted)', fontWeight: 600 }}>
+                                {item.productName || 'Linked Product'} • {item.category || 'General'}
+                              </span>
+                            </div>
                           </div>
 
+                          {/* Action Buttons */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <button
+                              type="button"
                               onClick={() => setPreviewUgcIndex(idx)}
                               style={{
-                                padding: '4px 10px',
+                                padding: '6px 12px',
                                 borderRadius: 'var(--radius-sm)',
-                                backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--cream-dark)',
+                                backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--cream-light)',
                                 color: isSelected ? '#fff' : 'var(--brown)',
-                                border: 'none',
-                                fontSize: '0.74rem',
+                                border: '1px solid var(--border)',
+                                fontSize: '0.78rem',
                                 fontWeight: 700,
                                 cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
                               }}
                             >
-                              Preview
+                              <Eye size={13} /> {isSelected ? 'Viewing' : 'Preview'}
                             </button>
 
                             <button
+                              type="button"
+                              onClick={() => handleMoveUgcItemToTop(idx)}
+                              disabled={idx === 0}
+                              title="Move to Top"
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#fff',
+                                border: '1px solid var(--border)',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                opacity: idx === 0 ? 0.4 : 1,
+                              }}
+                            >
+                              Top
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => handleMoveUgcItem(idx, 'up')}
                               disabled={idx === 0}
+                              title="Move Up"
                               style={{
-                                padding: '4px',
+                                padding: '6px',
                                 borderRadius: 'var(--radius-sm)',
                                 backgroundColor: '#fff',
                                 border: '1px solid var(--border)',
@@ -1845,14 +1920,16 @@ export const AdminPage: React.FC = () => {
                                 opacity: idx === 0 ? 0.4 : 1,
                               }}
                             >
-                              <ChevronUp size={14} />
+                              <ChevronUp size={15} />
                             </button>
 
                             <button
+                              type="button"
                               onClick={() => handleMoveUgcItem(idx, 'down')}
                               disabled={idx === localUgcList.length - 1}
+                              title="Move Down"
                               style={{
-                                padding: '4px',
+                                padding: '6px',
                                 borderRadius: 'var(--radius-sm)',
                                 backgroundColor: '#fff',
                                 border: '1px solid var(--border)',
@@ -1860,111 +1937,171 @@ export const AdminPage: React.FC = () => {
                                 opacity: idx === localUgcList.length - 1 ? 0.4 : 1,
                               }}
                             >
-                              <ChevronDown size={14} />
+                              <ChevronDown size={15} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDuplicateUgcItem(idx)}
+                              title="Duplicate card"
+                              style={{
+                                padding: '6px 8px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--cream-light)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--brown)',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              <Copy size={13} />
                             </button>
 
                             {localUgcList.length > 1 && (
                               <button
+                                type="button"
                                 onClick={() => handleRemoveUgcItem(idx)}
                                 title="Delete card"
                                 style={{
-                                  padding: '4px',
+                                  padding: '6px 8px',
                                   borderRadius: 'var(--radius-sm)',
                                   backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                  border: 'none',
+                                  border: '1px solid rgba(239, 68, 68, 0.2)',
                                   color: '#dc2626',
                                   cursor: 'pointer',
                                 }}
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={15} />
                               </button>
                             )}
                           </div>
                         </div>
 
-                        {/* Image Upload + Metadata Fields */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '14px', alignItems: 'start' }}>
+                        {/* Image Upload + Form Inputs */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '170px 1fr', gap: '20px', alignItems: 'start' }} className="ugc-card-grid">
                           {/* Vertical Image Dropzone */}
-                          <ImageDropZone
-                            label="📸 VERTICAL PHOTO (9:16)"
-                            value={item.image}
-                            onChange={(url) => handleUpdateUgcItem(idx, 'image', url)}
-                            onClear={() => handleUpdateUgcItem(idx, 'image', '')}
-                            placeholder="Image URL or Drop Photo"
-                          />
+                          <div>
+                            <ImageDropZone
+                              label="📸 VERTICAL PHOTO (9:16)"
+                              value={item.image}
+                              onChange={(url) => handleUpdateUgcItem(idx, 'image', url)}
+                              onClear={() => handleUpdateUgcItem(idx, 'image', '')}
+                              placeholder="Image URL or Drop Photo"
+                            />
+                          </div>
 
-                          {/* Metadata Fields */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '3px' }}>
-                                CREATOR HANDLE / NAME
-                              </label>
-                              <input
-                                type="text"
-                                value={item.creatorHandle}
-                                onChange={(e) => handleUpdateUgcItem(idx, 'creatorHandle', e.target.value)}
-                                placeholder="@creator_handle"
-                                style={{
-                                  width: '100%',
-                                  padding: '6px 10px',
-                                  borderRadius: 'var(--radius-sm)',
-                                  border: '1px solid var(--border)',
-                                  fontSize: '0.82rem',
-                                  fontWeight: 700,
-                                  color: 'var(--brown)',
-                                  outline: 'none',
-                                  backgroundColor: '#fff',
-                                }}
-                              />
+                          {/* Metadata Fields (Spacious & Cleanly Aligned) */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {/* Row 1: Creator Handle & Category Badge */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                              <div>
+                                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', display: 'block', marginBottom: '6px' }}>
+                                  CREATOR HANDLE / USERNAME
+                                </label>
+                                <input
+                                  type="text"
+                                  value={item.creatorHandle}
+                                  onChange={(e) => handleUpdateUgcItem(idx, 'creatorHandle', e.target.value)}
+                                  placeholder="@creator_handle"
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1.5px solid var(--border)',
+                                    fontSize: '0.88rem',
+                                    fontWeight: 700,
+                                    color: 'var(--brown)',
+                                    outline: 'none',
+                                    backgroundColor: '#fff',
+                                    boxSizing: 'border-box',
+                                  }}
+                                />
+                              </div>
+
+                              <div>
+                                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', display: 'block', marginBottom: '6px' }}>
+                                  CATEGORY / TOOLKIT BADGE
+                                </label>
+                                <select
+                                  value={item.category || 'presets'}
+                                  onChange={(e) => handleUpdateUgcItem(idx, 'category', e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1.5px solid var(--border)',
+                                    fontSize: '0.88rem',
+                                    color: 'var(--brown)',
+                                    fontWeight: 700,
+                                    outline: 'none',
+                                    backgroundColor: '#fff',
+                                    boxSizing: 'border-box',
+                                  }}
+                                >
+                                  <option value="presets">PRESETS (Lightroom / Mobile)</option>
+                                  <option value="luts">LUTS (Video & Color Grading)</option>
+                                  <option value="psds">PSDS (Photoshop Templates)</option>
+                                  <option value="fonts">FONTS (Typography)</option>
+                                  <option value="assets">3D ASSETS & PNGs</option>
+                                  <option value="albums">WEDDING ALBUMS</option>
+                                </select>
+                              </div>
                             </div>
 
+                            {/* Row 2: Linked Product Asset */}
                             <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '3px' }}>
-                                CAPTION / TESTIMONIAL QUOTE
-                              </label>
-                              <input
-                                type="text"
-                                value={item.caption}
-                                onChange={(e) => handleUpdateUgcItem(idx, 'caption', e.target.value)}
-                                placeholder="e.g. Graded with 1-click in Lightroom"
-                                style={{
-                                  width: '100%',
-                                  padding: '6px 10px',
-                                  borderRadius: 'var(--radius-sm)',
-                                  border: '1px solid var(--border)',
-                                  fontSize: '0.82rem',
-                                  color: 'var(--brown)',
-                                  outline: 'none',
-                                  backgroundColor: '#fff',
-                                }}
-                              />
-                            </div>
-
-                            <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '3px' }}>
-                                LINKED PRODUCT ASSET
+                              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', display: 'block', marginBottom: '6px' }}>
+                                LINKED STORE PRODUCT (CTA Link)
                               </label>
                               <select
                                 value={item.productSlug}
                                 onChange={(e) => handleUpdateUgcItem(idx, 'productSlug', e.target.value)}
                                 style={{
                                   width: '100%',
-                                  padding: '6px 10px',
+                                  padding: '10px 14px',
                                   borderRadius: 'var(--radius-sm)',
-                                  border: '1px solid var(--border)',
-                                  fontSize: '0.82rem',
+                                  border: '1.5px solid var(--border)',
+                                  fontSize: '0.88rem',
                                   color: 'var(--brown)',
                                   fontWeight: 600,
                                   outline: 'none',
                                   backgroundColor: '#fff',
+                                  boxSizing: 'border-box',
                                 }}
                               >
                                 {products.map((p) => (
                                   <option key={p.id} value={p.slug}>
-                                    {p.name} (₹{p.price} • {p.category})
+                                    {p.name} — (₹{p.price} • {p.category?.toUpperCase()})
                                   </option>
                                 ))}
                               </select>
+                            </div>
+
+                            {/* Row 3: Testimonial Quote / Caption */}
+                            <div>
+                              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--brown)', display: 'block', marginBottom: '6px' }}>
+                                TESTIMONIAL QUOTE / REEL CAPTION
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={item.caption}
+                                onChange={(e) => handleUpdateUgcItem(idx, 'caption', e.target.value)}
+                                placeholder="e.g. Crafted with 30 VINTAGE PREMIUM PRESET PACK in 1-click"
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 14px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1.5px solid var(--border)',
+                                  fontSize: '0.88rem',
+                                  color: 'var(--brown)',
+                                  outline: 'none',
+                                  backgroundColor: '#fff',
+                                  fontFamily: 'inherit',
+                                  resize: 'vertical',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
                             </div>
                           </div>
                         </div>
@@ -1973,62 +2110,94 @@ export const AdminPage: React.FC = () => {
                   })}
                 </div>
 
-                {/* Save Button */}
-                <button
-                  onClick={handleSaveUGC}
-                  className="btn-primary"
-                  style={{
-                    padding: '14px',
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '0.96rem',
-                    fontWeight: 800,
-                    marginTop: '20px',
-                  }}
-                >
-                  <Save size={18} /> Save & Publish UGC Showcase to Homepage
-                </button>
+                {/* Bottom Save Bar */}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    onClick={handleAddUgcItem}
+                    className="btn-secondary"
+                    style={{
+                      flex: 1,
+                      padding: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontSize: '0.94rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    <Plus size={18} /> Add Another UGC Reel
+                  </button>
+
+                  <button
+                    onClick={handleSaveUGC}
+                    className="btn-primary"
+                    style={{
+                      flex: 1.5,
+                      padding: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontSize: '0.96rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    <Save size={18} /> Save & Publish UGC Showcase to Homepage
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Right Column: Live Simulator of UGC Vertical Card */}
+            {/* Right Column: Live Simulator & Preview Controller */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '90px' }}>
               <div
                 style={{
                   backgroundColor: '#ffffff',
                   border: '1.5px solid var(--border)',
                   borderRadius: 'var(--radius-lg)',
-                  padding: '20px',
+                  padding: '24px',
                   boxShadow: 'var(--shadow-clay)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                 }}
               >
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                    Homepage Marquee Live Preview
-                  </h3>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--terracotta-dark)', fontWeight: 700 }}>
-                    Card #{previewUgcIndex + 1}
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Live Marquee Reel Preview
+                    </h3>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
+                      Exact appearance on customer homepage
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      backgroundColor: 'var(--terracotta-light)',
+                      color: 'var(--terracotta-dark)',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      padding: '3px 10px',
+                      borderRadius: 'var(--radius-full)',
+                    }}
+                  >
+                    Reel #{previewUgcIndex + 1} of {localUgcList.length}
                   </span>
                 </div>
 
-                {/* Vertical Card Preview Render */}
+                {/* Vertical Card Preview Render (Smartphone Reel Proportions) */}
                 {localUgcList[previewUgcIndex]?.image ? (
                   <div
                     style={{
-                      width: '240px',
-                      height: '380px',
+                      width: '260px',
+                      height: '410px',
                       borderRadius: 'var(--radius-lg)',
                       position: 'relative',
                       overflow: 'hidden',
                       backgroundColor: 'var(--cream-dark)',
-                      border: '1.5px solid var(--border)',
-                      boxShadow: 'var(--shadow-clay)',
+                      border: '2px solid var(--border)',
+                      boxShadow: '0 18px 40px -10px rgba(45, 30, 20, 0.35)',
                     }}
                   >
                     <img
@@ -2059,10 +2228,10 @@ export const AdminPage: React.FC = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                         <span
                           style={{
-                            backgroundColor: 'rgba(255,255,255,0.85)',
+                            backgroundColor: 'rgba(255,255,255,0.88)',
                             backdropFilter: 'blur(8px)',
                             color: 'var(--brown-dark)',
-                            fontSize: '0.68rem',
+                            fontSize: '0.7rem',
                             fontWeight: 800,
                             padding: '3px 9px',
                             borderRadius: 'var(--radius-full)',
@@ -2076,7 +2245,7 @@ export const AdminPage: React.FC = () => {
                             style={{
                               backgroundColor: 'var(--terracotta)',
                               color: '#fff',
-                              fontSize: '0.65rem',
+                              fontSize: '0.66rem',
                               fontWeight: 800,
                               padding: '3px 8px',
                               borderRadius: 'var(--radius-full)',
@@ -2094,7 +2263,7 @@ export const AdminPage: React.FC = () => {
                           <p
                             style={{
                               color: '#ffffff',
-                              fontSize: '0.84rem',
+                              fontSize: '0.86rem',
                               fontWeight: 600,
                               lineHeight: 1.35,
                               margin: 0,
@@ -2120,7 +2289,7 @@ export const AdminPage: React.FC = () => {
                           <span
                             style={{
                               color: '#fff',
-                              fontSize: '0.75rem',
+                              fontSize: '0.76rem',
                               fontWeight: 700,
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
@@ -2154,8 +2323,8 @@ export const AdminPage: React.FC = () => {
                 ) : (
                   <div
                     style={{
-                      width: '240px',
-                      height: '380px',
+                      width: '260px',
+                      height: '410px',
                       borderRadius: 'var(--radius-lg)',
                       backgroundColor: 'var(--cream-light)',
                       border: '1.5px dashed var(--border)',
@@ -2165,36 +2334,38 @@ export const AdminPage: React.FC = () => {
                       justifyContent: 'center',
                       color: 'var(--muted)',
                       textAlign: 'center',
-                      padding: '20px',
+                      padding: '24px',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    <ImageIcon size={36} color="var(--terracotta-light)" style={{ marginBottom: '8px' }} />
-                    <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>No photo uploaded</span>
-                    <span style={{ fontSize: '0.74rem', marginTop: '4px' }}>Upload a vertical photo on the left to preview</span>
+                    <ImageIcon size={40} color="var(--terracotta-light)" style={{ marginBottom: '10px' }} />
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--brown)' }}>No Photo Uploaded</span>
+                    <span style={{ fontSize: '0.78rem', marginTop: '6px', lineHeight: 1.4 }}>Upload a vertical photo on the left to see live preview</span>
                   </div>
                 )}
 
                 {/* Card Switcher Pills */}
                 {localUgcList.length > 1 && (
-                  <div style={{ width: '100%', marginTop: '16px' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-                      SWITCH CARD TO PREVIEW:
+                  <div style={{ width: '100%', marginTop: '20px' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)', fontWeight: 800, display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      CLICK REEL TO PREVIEW:
                     </span>
-                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {localUgcList.map((card, idx) => (
                         <button
                           key={idx}
+                          type="button"
                           onClick={() => setPreviewUgcIndex(idx)}
                           style={{
                             padding: '6px 12px',
                             borderRadius: 'var(--radius-full)',
                             fontSize: '0.76rem',
-                            fontWeight: 700,
+                            fontWeight: 800,
                             backgroundColor: previewUgcIndex === idx ? 'var(--terracotta)' : 'var(--cream-light)',
                             color: previewUgcIndex === idx ? '#fff' : 'var(--brown)',
-                            border: '1px solid var(--border)',
+                            border: previewUgcIndex === idx ? '1px solid var(--terracotta-dark)' : '1px solid var(--border)',
                             cursor: 'pointer',
-                            flexShrink: 0,
+                            transition: 'all 0.15s',
                           }}
                         >
                           #{idx + 1} {card.creatorHandle || `Card ${idx + 1}`}
@@ -3102,6 +3273,17 @@ export const AdminPage: React.FC = () => {
         )}
 
       </div>
+
+      <style>{`
+        @media (max-width: 960px) {
+          .admin-grid-2col {
+            grid-template-columns: 1fr !important;
+          }
+          .ugc-card-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

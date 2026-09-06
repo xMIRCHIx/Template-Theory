@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -11,7 +11,12 @@ import {
   CheckCircle2,
   Mail,
   Sliders,
-  ExternalLink
+  ExternalLink,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  ShoppingBag,
 } from 'lucide-react';
 import { HeroScene } from '../components/hero/HeroScene';
 import { CategoryCard } from '../components/cards/CategoryCard';
@@ -19,13 +24,44 @@ import { ProductCard } from '../components/cards/ProductCard';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import { CATEGORIES } from '../data/categories';
 import { useShopify } from '../context/ShopifyContext';
-import { motion } from 'framer-motion';
+import { useCart } from '../context/CartContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, isLoading, ugcList } = useShopify();
+  const { products, isLoading, ugcList, currencySymbol } = useShopify();
+  const { addToCart } = useCart();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'subscribed'>('idle');
+
+  // UGC Image Lightbox Modal State
+  const [selectedUgcIndex, setSelectedUgcIndex] = useState<number | null>(null);
+  const activeUgcModalItem = selectedUgcIndex !== null && ugcList && ugcList.length > 0 ? ugcList[selectedUgcIndex] : null;
+  const linkedModalProduct = activeUgcModalItem?.productSlug ? products.find((p) => p.slug === activeUgcModalItem.productSlug || p.id === activeUgcModalItem.productSlug) : null;
+
+  const handleNextUgc = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (selectedUgcIndex === null || !ugcList || ugcList.length === 0) return;
+    setSelectedUgcIndex((prev) => (prev !== null ? (prev + 1) % ugcList.length : 0));
+  }, [selectedUgcIndex, ugcList]);
+
+  const handlePrevUgc = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (selectedUgcIndex === null || !ugcList || ugcList.length === 0) return;
+    setSelectedUgcIndex((prev) => (prev !== null ? (prev - 1 + ugcList.length) % ugcList.length : 0));
+  }, [selectedUgcIndex, ugcList]);
+
+  // Handle ESC key to close modal & Arrow keys to navigate
+  useEffect(() => {
+    if (selectedUgcIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedUgcIndex(null);
+      if (e.key === 'ArrowRight') handleNextUgc();
+      if (e.key === 'ArrowLeft') handlePrevUgc();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedUgcIndex, handleNextUgc, handlePrevUgc]);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +72,6 @@ export const HomePage: React.FC = () => {
     }, 2000);
   };
 
-  const catalog = products;
-  const cinematicProducts = catalog.filter((p) => p.category === 'presets' || p.category === 'luts' || p.category === 'psds');
   const featuredBA = products.find((p) => p.beforeAfterImage?.before && p.beforeAfterImage?.after)?.beforeAfterImage;
 
   return (
@@ -332,7 +366,7 @@ export const HomePage: React.FC = () => {
                 </div>
               ))
             ) : (
-              (cinematicProducts.length > 0 ? cinematicProducts : products).map((product) => (
+              products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))
             )}
@@ -407,12 +441,12 @@ export const HomePage: React.FC = () => {
                   Made with Cinevo
                 </h2>
                 <p style={{ fontSize: '0.95rem', color: 'var(--muted)', marginTop: '4px' }}>
-                  Real edits, film grades and creations by storytellers worldwide.
+                  Real edits, film grades and creations by storytellers worldwide. Click any card to preview full creation.
                 </p>
               </div>
 
               <span style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>
-                Hover or touch to pause
+                Click photo to expand • Hover to pause
               </span>
             </div>
           </div>
@@ -420,160 +454,173 @@ export const HomePage: React.FC = () => {
           {/* Continuous Full-Width Horizontal Marquee Loop */}
           <div className="marquee-container" style={{ width: '100%', padding: '8px 0' }}>
             <div className="marquee-track">
-              {[...ugcList, ...ugcList, ...ugcList].map((item, idx) => (
-                <div
-                  key={`${item.id}-${idx}`}
-                  className="ugc-vertical-card"
-                  style={{
-                    width: '240px',
-                    height: '380px',
-                    borderRadius: 'var(--radius-lg)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    backgroundColor: 'var(--cream-dark)',
-                    border: '1.5px solid var(--border)',
-                    boxShadow: 'var(--shadow-clay)',
-                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => {
-                    if (item.productSlug) {
-                      navigate(`/products/${item.productSlug}`);
-                    }
-                  }}
-                >
-                  {/* Background Vertical Image */}
-                  <img
-                    src={item.image}
-                    alt={item.caption || item.creatorName}
-                    loading="lazy"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.5s ease',
-                    }}
-                    className="ugc-vertical-img"
-                  />
-
-                  {/* Dark Gradient Overlay for readability */}
+              {[...ugcList, ...ugcList, ...ugcList].map((item, idx) => {
+                const originalIndex = idx % ugcList.length;
+                return (
                   <div
+                    key={`${item.id}-${idx}`}
+                    className="ugc-vertical-card"
                     style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(20,14,10,0.88) 100%)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      padding: '14px',
-                      boxSizing: 'border-box',
+                      width: '240px',
+                      height: '380px',
+                      borderRadius: 'var(--radius-lg)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      backgroundColor: 'var(--cream-dark)',
+                      border: '1.5px solid var(--border)',
+                      boxShadow: 'var(--shadow-clay)',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setSelectedUgcIndex(originalIndex);
                     }}
                   >
-                    {/* Top Row: Handle & Category Badge */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <span
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.85)',
-                          backdropFilter: 'blur(8px)',
-                          color: 'var(--brown-dark)',
-                          fontSize: '0.68rem',
-                          fontWeight: 800,
-                          padding: '3px 9px',
-                          borderRadius: 'var(--radius-full)',
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        {item.creatorHandle || '@cinevo_creator'}
-                      </span>
+                    {/* Background Vertical Image */}
+                    <img
+                      src={item.image}
+                      alt={item.caption || item.creatorName}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.5s ease',
+                      }}
+                      className="ugc-vertical-img"
+                    />
 
-                      {item.category && (
+                    {/* Dark Gradient Overlay for readability */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(20,14,10,0.88) 100%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        padding: '14px',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {/* Top Row: Handle & Category Badge */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                         <span
                           style={{
-                            backgroundColor: 'var(--terracotta)',
-                            color: '#fff',
-                            fontSize: '0.65rem',
+                            backgroundColor: 'rgba(255,255,255,0.85)',
+                            backdropFilter: 'blur(8px)',
+                            color: 'var(--brown-dark)',
+                            fontSize: '0.68rem',
                             fontWeight: 800,
-                            padding: '3px 8px',
+                            padding: '3px 9px',
                             borderRadius: 'var(--radius-full)',
-                            textTransform: 'uppercase',
+                            letterSpacing: '0.02em',
                           }}
                         >
-                          {item.category}
+                          {item.creatorHandle || '@cinevo_creator'}
                         </span>
-                      )}
-                    </div>
 
-                    {/* Bottom Row: Quote & Product Link Button */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {item.caption && (
-                        <p
-                          style={{
-                            color: '#ffffff',
-                            fontSize: '0.84rem',
-                            fontWeight: 600,
-                            lineHeight: 1.35,
-                            margin: 0,
-                            textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          "{item.caption}"
-                        </p>
-                      )}
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          backgroundColor: 'rgba(255,255,255,0.18)',
-                          backdropFilter: 'blur(10px)',
-                          padding: '6px 10px',
-                          borderRadius: 'var(--radius-md)',
-                          border: '1px solid rgba(255,255,255,0.25)',
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1, paddingRight: '6px' }}>
+                        {item.category && (
                           <span
                             style={{
+                              backgroundColor: 'var(--terracotta)',
                               color: '#fff',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              display: 'block',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              textTransform: 'uppercase',
                             }}
                           >
-                            {item.productName || 'View Asset'}
+                            {item.category}
                           </span>
-                        </div>
+                        )}
+                      </div>
+
+                      {/* Bottom Row: Quote & Product Link Button */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {item.caption && (
+                          <p
+                            style={{
+                              color: '#ffffff',
+                              fontSize: '0.84rem',
+                              fontWeight: 600,
+                              lineHeight: 1.35,
+                              margin: 0,
+                              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            "{item.caption}"
+                          </p>
+                        )}
 
                         <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.productSlug) {
+                              navigate(`/product/${item.productSlug}`);
+                            } else {
+                              setSelectedUgcIndex(originalIndex);
+                            }
+                          }}
                           style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            backgroundColor: '#ffffff',
-                            color: 'var(--brown)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
+                            justifyContent: 'space-between',
+                            backgroundColor: 'rgba(255,255,255,0.18)',
+                            backdropFilter: 'blur(10px)',
+                            padding: '6px 10px',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                            transition: 'background-color 0.2s',
                           }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.18)')}
                         >
-                          <ArrowRight size={13} />
+                          <div style={{ minWidth: 0, flex: 1, paddingRight: '6px' }}>
+                            <span
+                              style={{
+                                color: '#fff',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                display: 'block',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {item.productName || 'View Asset'}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: '#ffffff',
+                              color: 'var(--brown)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <ArrowRight size={13} />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -948,7 +995,375 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* UGC FULL-SIZE LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {activeUgcModalItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 99999,
+              backgroundColor: 'rgba(18, 12, 9, 0.88)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'clamp(12px, 3vw, 28px)',
+              boxSizing: 'border-box',
+            }}
+            onClick={() => setSelectedUgcIndex(null)}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedUgcIndex(null)}
+              aria-label="Close Preview"
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 100000,
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+            >
+              <X size={22} />
+            </button>
 
+            {/* Left Nav Arrow */}
+            {ugcList && ugcList.length > 1 && (
+              <button
+                onClick={handlePrevUgc}
+                aria-label="Previous Look"
+                className="ugc-nav-btn"
+                style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 100000,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+              >
+                <ChevronLeft size={26} />
+              </button>
+            )}
+
+            {/* Right Nav Arrow */}
+            {ugcList && ugcList.length > 1 && (
+              <button
+                onClick={handleNextUgc}
+                aria-label="Next Look"
+                className="ugc-nav-btn"
+                style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 100000,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+              >
+                <ChevronRight size={26} />
+              </button>
+            )}
+
+            {/* Modal Dialog Card */}
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: 'var(--cream-light)',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.65)',
+                maxWidth: '860px',
+                width: '100%',
+                maxHeight: '88vh',
+                display: 'grid',
+                gridTemplateColumns: '1.15fr 1fr',
+                overflow: 'hidden',
+                position: 'relative',
+              }}
+              className="ugc-modal-grid"
+            >
+              {/* Left Column: Full-Height Vertical Image Viewer */}
+              <div
+                style={{
+                  backgroundColor: '#120f0d',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minHeight: '380px',
+                }}
+              >
+                {/* Ambient Blurred Glow */}
+                <img
+                  src={activeUgcModalItem.image}
+                  alt=""
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: '-20%',
+                    width: '140%',
+                    height: '140%',
+                    objectFit: 'cover',
+                    filter: 'blur(30px)',
+                    opacity: 0.35,
+                    pointerEvents: 'none',
+                  }}
+                />
+
+                {/* Sharp Foreground Image */}
+                <img
+                  src={activeUgcModalItem.image}
+                  alt={activeUgcModalItem.caption || activeUgcModalItem.creatorName}
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxHeight: '88vh',
+                    objectFit: 'contain',
+                    display: 'block',
+                    zIndex: 1,
+                  }}
+                />
+
+                {/* Category Badge overlay on image */}
+                {activeUgcModalItem.category && (
+                  <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10 }}>
+                    <span
+                      style={{
+                        backgroundColor: 'var(--terracotta)',
+                        color: '#fff',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {activeUgcModalItem.category}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Information, Creator Info & Linked Product Details */}
+              <div
+                style={{
+                  padding: 'clamp(20px, 4vw, 32px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '20px',
+                  overflowY: 'auto',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <div>
+                  {/* Creator Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                    <div
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--clay-light)',
+                        border: '1.5px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--brown)',
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                      }}
+                    >
+                      {activeUgcModalItem.creatorHandle?.charAt(1)?.toUpperCase() || 'C'}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                        {activeUgcModalItem.creatorHandle || '@templatetheory'}
+                      </h3>
+                      <span style={{ fontSize: '0.76rem', color: 'var(--muted)', fontWeight: 600 }}>
+                        Verified Creator • Cinevo Community
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Caption / Testimonial Quote */}
+                  {activeUgcModalItem.caption && (
+                    <div
+                      style={{
+                        backgroundColor: 'var(--cream-light)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        marginBottom: '20px',
+                      }}
+                    >
+                      <p style={{ fontSize: '0.94rem', color: 'var(--brown)', margin: 0, lineHeight: 1.55, fontStyle: 'italic', fontWeight: 600 }}>
+                        "{activeUgcModalItem.caption}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Look Details Summary */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={14} color="var(--terracotta)" />
+                      <span>Color graded & curated with official Cinevo digital toolkits.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} color="var(--olive)" />
+                      <span>Instant digital download with one-click installation guide.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Linked Product Banner */}
+                {linkedModalProduct ? (
+                  <div
+                    style={{
+                      backgroundColor: 'var(--cream-light)',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <img
+                        src={linkedModalProduct.thumbnail}
+                        alt={linkedModalProduct.name}
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: 'var(--radius-md)',
+                          objectFit: 'contain',
+                          backgroundColor: 'var(--cream-dark)',
+                          border: '1px solid var(--border)',
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--terracotta-dark)', textTransform: 'uppercase' }}>
+                          Used in this creation:
+                        </span>
+                        <h4
+                          style={{
+                            fontSize: '0.92rem',
+                            fontWeight: 800,
+                            color: 'var(--brown)',
+                            margin: '2px 0 0 0',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {linkedModalProduct.name}
+                        </h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--brown)' }}>
+                            {currencySymbol}{linkedModalProduct.price}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <Star size={11} fill="var(--gold)" color="var(--gold)" />
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brown)' }}>
+                              {linkedModalProduct.rating}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addToCart(linkedModalProduct);
+                          setSelectedUgcIndex(null);
+                        }}
+                        className="btn-secondary"
+                        style={{ padding: '9px 12px', fontSize: '0.84rem', justifyContent: 'center' }}
+                      >
+                        <ShoppingBag size={14} /> Add to Cart
+                      </button>
+
+                      <Link
+                        to={`/product/${linkedModalProduct.slug}`}
+                        className="btn-primary"
+                        style={{ padding: '9px 14px', fontSize: '0.84rem', justifyContent: 'center' }}
+                        onClick={() => setSelectedUgcIndex(null)}
+                      >
+                        <span>Explore Asset</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <Link
+                    to="/shop"
+                    className="btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
+                    onClick={() => setSelectedUgcIndex(null)}
+                  >
+                    <span>Browse All Toolkits</span>
+                    <ArrowRight size={16} />
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .home-products-grid {
