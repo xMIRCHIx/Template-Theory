@@ -149,7 +149,6 @@ function inferCategory(node: any): ProductCategory {
   return 'assets';
 }
 
-// Automatically parse Before & After pairs from Shopify Metafield or Media Alt tags
 function extractBeforeAfterFromShopify(node: any): {
   beforeAfterImage?: { before: string; after: string };
   beforeAfterList?: Array<{ id: string; title: string; before: string; after: string }>;
@@ -159,10 +158,10 @@ function extractBeforeAfterFromShopify(node: any): {
     try {
       const parsed = JSON.parse(node.metafield.value);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const valid = parsed.filter((look: any) => look.before && look.after);
+        const valid = parsed.filter((look: any) => look && (look.before || look.after));
         if (valid.length > 0) {
           return {
-            beforeAfterImage: { before: valid[0].before, after: valid[0].after },
+            beforeAfterImage: { before: valid[0].before || '', after: valid[0].after || '' },
             beforeAfterList: valid,
           };
         }
@@ -170,45 +169,6 @@ function extractBeforeAfterFromShopify(node: any): {
     } catch (e) {
       // ignore
     }
-  }
-
-  // 2. Otherwise, check if Shopify Media has Alt tags (before/after)
-  const imageNodes = (node.images?.edges || []).map((e: any) => ({
-    url: e.node.url,
-    alt: (e.node.altText || '').trim(),
-  }));
-
-  const beforeItems: Array<{ url: string; label: string }> = [];
-  const afterItems: Array<{ url: string; label: string }> = [];
-
-  imageNodes.forEach((img: any) => {
-    const altLower = img.alt.toLowerCase();
-    if (altLower.startsWith('before') || altLower.includes('[before]')) {
-      const label = img.alt.replace(/^(before|\[before\])\s*:?\s*/i, '').trim() || `Look ${beforeItems.length + 1}`;
-      beforeItems.push({ url: img.url, label });
-    } else if (altLower.startsWith('after') || altLower.includes('[after]')) {
-      const label = img.alt.replace(/^(after|\[after\])\s*:?\s*/i, '').trim() || `Look ${afterItems.length + 1}`;
-      afterItems.push({ url: img.url, label });
-    }
-  });
-
-  // If before/after Alt tags were specified in Shopify
-  if (beforeItems.length > 0 && afterItems.length > 0) {
-    const pairs: Array<{ id: string; title: string; before: string; after: string }> = [];
-    const count = Math.min(beforeItems.length, afterItems.length);
-    for (let i = 0; i < count; i++) {
-      pairs.push({
-        id: `ba-shopify-${i + 1}`,
-        title: afterItems[i].label || beforeItems[i].label || `Look ${i + 1}`,
-        before: beforeItems[i].url,
-        after: afterItems[i].url,
-      });
-    }
-
-    return {
-      beforeAfterImage: { before: pairs[0].before, after: pairs[0].after },
-      beforeAfterList: pairs.length > 1 ? pairs : undefined,
-    };
   }
 
   return {};
@@ -275,15 +235,35 @@ export function mapShopifyProductToAppProduct(node: any): Product {
   };
 }
 
+import { fetchAllProductMetafieldsFromShopify } from './shopifyAdmin';
+
 // Fetch live products
 export async function fetchLiveShopifyProducts(): Promise<Product[]> {
   try {
-    const data = await shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY });
+    const [data, liveMetafields] = await Promise.all([
+      shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY }),
+      fetchAllProductMetafieldsFromShopify().catch(() => ({} as Record<string, any>)),
+    ]);
+
     const productEdges = data?.products?.edges || [];
     if (productEdges.length === 0) {
       return FALLBACK_PRODUCTS;
     }
-    return productEdges.map((edge: any) => mapShopifyProductToAppProduct(edge.node));
+
+    const metaMap: Record<string, any> = liveMetafields || {};
+
+    return productEdges.map((edge: any) => {
+      const product = mapShopifyProductToAppProduct(edge.node);
+      const customLooks = metaMap[edge.node?.handle] || metaMap[edge.node?.id];
+      if (customLooks && Array.isArray(customLooks) && customLooks.length > 0) {
+        const valid = customLooks.filter((l: any) => l && (l.before || l.after));
+        if (valid.length > 0) {
+          product.beforeAfterList = valid;
+          product.beforeAfterImage = { before: valid[0].before || '', after: valid[0].after || '' };
+        }
+      }
+      return product;
+    });
   } catch (err) {
     console.warn('Falling back to local product data due to Shopify error:', err);
     return FALLBACK_PRODUCTS;
