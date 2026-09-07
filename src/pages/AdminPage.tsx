@@ -79,10 +79,19 @@ interface ImageDropZoneProps {
   placeholder?: string;
 }
 
-// Fast client-side image downscaler to prevent memory bloat and fit neatly into cloud metafields
-async function compressImageFile(file: File, maxDimension = 750, quality = 0.72): Promise<string> {
+// Fast client-side image processor that preserves crisp Ultra-HD quality and natural aspect ratios
+async function compressImageFile(file: File, maxDimension = 2560, quality = 0.94): Promise<string> {
   return new Promise((resolve) => {
     if (file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // If already under 400KB, read directly to avoid any re-compression loss
+    if (file.size < 400 * 1024) {
       const reader = new FileReader();
       reader.onload = (e) => resolve((e.target?.result as string) || '');
       reader.onerror = () => resolve('');
@@ -94,7 +103,13 @@ async function compressImageFile(file: File, maxDimension = 750, quality = 0.72)
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-      let { width, height } = img;
+      let { naturalWidth: width, naturalHeight: height } = img;
+      if (!width || !height) {
+        width = img.width;
+        height = img.height;
+      }
+
+      // If dimensions are within bounds, keep exact original resolution
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
           height = Math.round((height * maxDimension) / width);
@@ -108,14 +123,29 @@ async function compressImageFile(file: File, maxDimension = 750, quality = 0.72)
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: true });
       if (!ctx) {
         const reader = new FileReader();
         reader.onload = (e) => resolve((e.target?.result as string) || '');
         reader.readAsDataURL(file);
         return;
       }
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, width, height);
+
+      // Try high-fidelity WebP first, fallback to high quality JPEG
+      try {
+        const webpData = canvas.toDataURL('image/webp', quality);
+        if (webpData.startsWith('data:image/webp')) {
+          resolve(webpData);
+          return;
+        }
+      } catch (e) {
+        // fallback
+      }
+
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
       resolve(dataUrl);
     };
@@ -163,8 +193,8 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
     }
 
     try {
-      // 2. Client-side downscaling prevents huge uncompressed memory bloat & browser lag
-      const compressedDataUrl = await compressImageFile(file, 900, 0.76);
+      // 2. Client-side high-fidelity processor (maintains 2560px max width & 0.94 quality)
+      const compressedDataUrl = await compressImageFile(file, 2560, 0.94);
       if (compressedDataUrl) {
         onChange(compressedDataUrl);
       }
@@ -1656,7 +1686,7 @@ export const AdminPage: React.FC = () => {
                     afterImage={currentHomePreviewLook.after}
                     beforeLabel="BEFORE"
                     afterLabel="AFTER"
-                    aspectRatio="16 / 9"
+                    aspectRatio="auto"
                   />
                 ) : (
                   <div
@@ -1965,12 +1995,12 @@ export const AdminPage: React.FC = () => {
                     afterImage={currentPreviewLook.after}
                     beforeLabel="BEFORE"
                     afterLabel="AFTER"
-                    aspectRatio="1 / 1"
+                    aspectRatio="auto"
                   />
                 ) : (
                   <div
                     style={{
-                      aspectRatio: '1 / 1',
+                      aspectRatio: '16 / 9',
                       borderRadius: 'var(--radius-lg)',
                       backgroundColor: 'var(--cream-light)',
                       border: '1.5px dashed var(--border)',

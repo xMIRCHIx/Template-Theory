@@ -701,7 +701,7 @@ export const ProductDetailPage: React.FC = () => {
                       afterImage={currentBAPair.after}
                       beforeLabel="BEFORE"
                       afterLabel="AFTER"
-                      aspectRatio="1 / 1"
+                      aspectRatio="auto"
                       fitMode="cover"
                       fallbackImage={product.thumbnail}
                       style={{

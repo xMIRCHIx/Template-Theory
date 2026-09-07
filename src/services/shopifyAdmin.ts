@@ -312,22 +312,27 @@ export async function fetchAllProductMetafieldsFromShopify(): Promise<Record<str
 const SHOP_OWNER_GID = 'gid://shopify/Shop/88097947925';
 
 // Helper to preserve Ultra HD crystal-clear clarity (1800px, 0.90 quality) while ensuring safe cloud storage
-async function optimizeImageForCloud(src: string, maxDimension = 1800, quality = 0.90): Promise<string> {
+async function optimizeImageForCloud(src: string, maxDimension = 2400, quality = 0.94): Promise<string> {
   if (!src || !src.startsWith('data:image')) {
     return src;
   }
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return src;
   }
-  // If already reasonably sized (< 200KB), return as-is without recompressing
-  if (src.length < 200000) {
+  // If already reasonably sized (< 450KB), return as-is without recompressing
+  if (src.length < 450000) {
     return src;
   }
   return new Promise((resolve) => {
     try {
       const img = new Image();
       img.onload = () => {
-        let { width, height } = img;
+        let { naturalWidth: width, naturalHeight: height } = img;
+        if (!width || !height) {
+          width = img.width;
+          height = img.height;
+        }
+
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
             height = Math.round((height * maxDimension) / width);
@@ -340,7 +345,7 @@ async function optimizeImageForCloud(src: string, maxDimension = 1800, quality =
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d', { alpha: false });
+        const ctx = canvas.getContext('2d', { alpha: true });
         if (!ctx) {
           resolve(src);
           return;
