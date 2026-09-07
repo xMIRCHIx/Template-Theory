@@ -130,25 +130,55 @@ export async function saveLooksToShopifyProduct(
   looks: CustomBeforeAfterLook[]
 ): Promise<{ success: boolean; error?: string; imagesUploaded?: number }> {
   const { domain, adminToken } = getShopifyAdminCredentials();
-  const graphqlId = product.id.startsWith('gid://') ? product.id : `gid://shopify/Product/${product.id}`;
+  let graphqlId = product.id.startsWith('gid://') ? product.id : `gid://shopify/Product/${product.id}`;
 
   try {
+    // 1. Auto-optimize images so payload never exceeds Shopify limit
+    const optimizedLooks = await Promise.all(
+      looks.map(async (look) => ({
+        ...look,
+        before: await optimizeImageForCloud(look.before, 650, 0.65),
+        after: await optimizeImageForCloud(look.after, 650, 0.65),
+      }))
+    );
+
+    // If ID is not a valid Shopify GID, look it up by handle
+    if (!product.id.startsWith('gid://shopify/Product/')) {
+      try {
+        const query = `
+          query GetProductByHandle($handle: String!) {
+            productByHandle(handle: $handle) {
+              id
+            }
+          }
+        `;
+        const lookupUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+        const lHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (adminToken) lHeaders['X-Shopify-Access-Token'] = adminToken;
+        const lRes = await fetch(lookupUrl, {
+          method: 'POST',
+          headers: lHeaders,
+          body: JSON.stringify({ query, variables: { handle: product.slug } }),
+        });
+        if (lRes.ok) {
+          const lData = await lRes.json();
+          if (lData?.data?.productByHandle?.id) {
+            graphqlId = lData.data.productByHandle.id;
+          }
+        }
+      } catch (e) {
+        // keep fallback graphqlId
+      }
+    }
+
     // Save JSON schema into Shopify Product Metafield `custom.before_after_looks`
     const metafieldMutation = `
-      mutation UpdateProductMetafield($input: ProductInput!) {
-        productUpdate(input: $input) {
-          product {
+      mutation SetProductMetafield($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
             id
-            metafields(first: 5) {
-              edges {
-                node {
-                  id
-                  namespace
-                  key
-                  value
-                }
-              }
-            }
+            namespace
+            key
           }
           userErrors {
             field
@@ -157,6 +187,18 @@ export async function saveLooksToShopifyProduct(
         }
       }
     `;
+
+    const variables = {
+      metafields: [
+        {
+          ownerId: graphqlId,
+          namespace: 'custom',
+          key: 'before_after_looks',
+          type: 'json',
+          value: JSON.stringify(optimizedLooks),
+        },
+      ],
+    };
 
     const gqlUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
     const headers: Record<string, string> = {
@@ -171,19 +213,7 @@ export async function saveLooksToShopifyProduct(
       headers,
       body: JSON.stringify({
         query: metafieldMutation,
-        variables: {
-          input: {
-            id: graphqlId,
-            metafields: [
-              {
-                namespace: 'custom',
-                key: 'before_after_looks',
-                type: 'json',
-                value: JSON.stringify(looks),
-              },
-            ],
-          },
-        },
+        variables,
       }),
     });
 
@@ -193,7 +223,7 @@ export async function saveLooksToShopifyProduct(
     }
 
     const data = await res.json();
-    const userErrors = data?.data?.productUpdate?.userErrors || [];
+    const userErrors = data?.data?.metafieldsSet?.userErrors || [];
     if (userErrors.length > 0) {
       return {
         success: false,
@@ -203,7 +233,7 @@ export async function saveLooksToShopifyProduct(
 
     return {
       success: true,
-      imagesUploaded: looks.length,
+      imagesUploaded: optimizedLooks.length,
     };
   } catch (err: any) {
     console.warn('Error saving to Shopify Admin API:', err);
