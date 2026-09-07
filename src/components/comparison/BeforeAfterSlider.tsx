@@ -22,7 +22,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   afterLabel = 'AFTER',
   aspectRatio = '16 / 9',
   fallbackImage = DEFAULT_FALLBACK,
-  fitMode = 'contain',
+  fitMode = 'cover',
   style: customStyle,
   className,
 }) => {

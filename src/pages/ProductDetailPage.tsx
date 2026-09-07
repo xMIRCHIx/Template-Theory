@@ -702,34 +702,16 @@ export const ProductDetailPage: React.FC = () => {
                       beforeLabel="BEFORE"
                       afterLabel="AFTER"
                       aspectRatio="1 / 1"
+                      fitMode="cover"
                       fallbackImage={product.thumbnail}
+                      style={{
+                        border: 'none',
+                        borderRadius: 0,
+                        boxShadow: 'none',
+                        width: '100%',
+                        height: '100%',
+                      }}
                     />
-                    {beforeAfterPairs.length > 1 && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '12px',
-                          left: '12px',
-                          zIndex: 20,
-                          backgroundColor: 'rgba(33, 25, 19, 0.82)',
-                          backdropFilter: 'blur(8px)',
-                          WebkitBackdropFilter: 'blur(8px)',
-                          color: '#ffffff',
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: 'var(--radius-full)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        <Sparkles size={12} color="var(--terracotta-light)" />
-                        <span>{currentBAPair?.title || `Look #${activeBAIndex + 1}`}</span>
-                      </div>
-                    )}
                   </div>
                 ) : activeTab === 'typeTester' ? (
                   <div style={{ padding: '36px 30px', backgroundColor: 'var(--white)', aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
