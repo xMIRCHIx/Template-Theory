@@ -492,6 +492,90 @@ export const AdminPage: React.FC = () => {
   };
 
   // --- HOMEPAGE SHOWCASE ACTIONS ---
+  const [draggedHomeLookIndex, setDraggedHomeLookIndex] = useState<number | null>(null);
+  const [dragOverHomeLookIndex, setDragOverHomeLookIndex] = useState<number | null>(null);
+
+  const [draggedLookIndex, setDraggedLookIndex] = useState<number | null>(null);
+  const [dragOverLookIndex, setDragOverLookIndex] = useState<number | null>(null);
+
+  const handleMoveHomeLook = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= homeLooksList.length) return;
+    const list = [...homeLooksList];
+    const [moved] = list.splice(index, 1);
+    list.splice(targetIdx, 0, moved);
+    setHomeLooksList(list);
+    setPreviewHomeLookIndex(targetIdx);
+  };
+
+  const handleHomeLookDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedHomeLookIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleHomeLookDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverHomeLookIndex !== index) {
+      setDragOverHomeLookIndex(index);
+    }
+  };
+
+  const handleHomeLookDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedHomeLookIndex === null || draggedHomeLookIndex === targetIndex) {
+      setDraggedHomeLookIndex(null);
+      setDragOverHomeLookIndex(null);
+      return;
+    }
+    const list = [...homeLooksList];
+    const [draggedItem] = list.splice(draggedHomeLookIndex, 1);
+    list.splice(targetIndex, 0, draggedItem);
+    setHomeLooksList(list);
+    setPreviewHomeLookIndex(targetIndex);
+    setDraggedHomeLookIndex(null);
+    setDragOverHomeLookIndex(null);
+  };
+
+  const handleMoveLook = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= activeLooks.length) return;
+    const list = [...activeLooks];
+    const [moved] = list.splice(index, 1);
+    list.splice(targetIdx, 0, moved);
+    setActiveLooks(list);
+    setPreviewLookIndex(targetIdx);
+  };
+
+  const handleLookDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedLookIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleLookDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverLookIndex !== index) {
+      setDragOverLookIndex(index);
+    }
+  };
+
+  const handleLookDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedLookIndex === null || draggedLookIndex === targetIndex) {
+      setDraggedLookIndex(null);
+      setDragOverLookIndex(null);
+      return;
+    }
+    const list = [...activeLooks];
+    const [draggedItem] = list.splice(draggedLookIndex, 1);
+    list.splice(targetIndex, 0, draggedItem);
+    setActiveLooks(list);
+    setPreviewLookIndex(targetIndex);
+    setDraggedLookIndex(null);
+    setDragOverLookIndex(null);
+  };
+
   const handleAddHomeLook = () => {
     const newIdx = homeLooksList.length + 1;
     setHomeLooksList((prev) => [
@@ -1455,20 +1539,90 @@ export const AdminPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {homeLooksList.map((look, idx) => {
                     const isSelected = previewHomeLookIndex === idx;
+                    const isDragOverThis = dragOverHomeLookIndex === idx;
+                    const isDraggingThis = draggedHomeLookIndex === idx;
+
                     return (
                       <div
                         key={look.id || idx}
+                        draggable
+                        onDragStart={(e) => handleHomeLookDragStart(e, idx)}
+                        onDragOver={(e) => handleHomeLookDragOver(e, idx)}
+                        onDrop={(e) => handleHomeLookDrop(e, idx)}
+                        onDragEnd={() => {
+                          setDraggedHomeLookIndex(null);
+                          setDragOverHomeLookIndex(null);
+                        }}
                         style={{
-                          border: isSelected ? '2px solid var(--terracotta)' : '1.5px solid var(--border)',
+                          border: isDragOverThis
+                            ? '2px dashed var(--terracotta)'
+                            : isSelected
+                            ? '2px solid var(--terracotta)'
+                            : '1.5px solid var(--border)',
                           borderRadius: 'var(--radius-md)',
                           padding: '16px',
-                          backgroundColor: isSelected ? 'var(--cream-light)' : '#ffffff',
+                          backgroundColor: isDragOverThis
+                            ? 'rgba(201, 130, 103, 0.12)'
+                            : isSelected
+                            ? 'var(--cream-light)'
+                            : '#ffffff',
+                          opacity: isDraggingThis ? 0.45 : 1,
                           transition: 'all 0.2s ease',
                         }}
                       >
                         {/* Look Top Bar */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, marginRight: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, marginRight: '10px' }}>
+                            {/* Drag Handle & Up/Down Arrows */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <div
+                                style={{ cursor: 'grab', color: 'var(--muted)', display: 'flex', alignItems: 'center', padding: '2px' }}
+                                title="Drag to reorder look"
+                              >
+                                <GripVertical size={16} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveHomeLook(idx, 'up')}
+                                  disabled={idx === 0}
+                                  title="Move Look Up"
+                                  style={{
+                                    padding: '0 2px',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === 0 ? 0.25 : 0.85,
+                                    color: 'var(--brown)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  <ChevronUp size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveHomeLook(idx, 'down')}
+                                  disabled={idx === homeLooksList.length - 1}
+                                  title="Move Look Down"
+                                  style={{
+                                    padding: '0 2px',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: idx === homeLooksList.length - 1 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === homeLooksList.length - 1 ? 0.25 : 0.85,
+                                    color: 'var(--brown)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  <ChevronDown size={13} />
+                                </button>
+                              </div>
+                            </div>
+
                             <span
                               style={{
                                 backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--brown)',
@@ -1477,6 +1631,7 @@ export const AdminPage: React.FC = () => {
                                 fontWeight: 800,
                                 padding: '2px 8px',
                                 borderRadius: 'var(--radius-full)',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               Look #{idx + 1}
@@ -1770,20 +1925,90 @@ export const AdminPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {activeLooks.map((look, idx) => {
                     const isSelected = previewLookIndex === idx;
+                    const isDragOverThis = dragOverLookIndex === idx;
+                    const isDraggingThis = draggedLookIndex === idx;
+
                     return (
                       <div
                         key={look.id || idx}
+                        draggable
+                        onDragStart={(e) => handleLookDragStart(e, idx)}
+                        onDragOver={(e) => handleLookDragOver(e, idx)}
+                        onDrop={(e) => handleLookDrop(e, idx)}
+                        onDragEnd={() => {
+                          setDraggedLookIndex(null);
+                          setDragOverLookIndex(null);
+                        }}
                         style={{
-                          border: isSelected ? '2px solid var(--terracotta)' : '1.5px solid var(--border)',
+                          border: isDragOverThis
+                            ? '2px dashed var(--terracotta)'
+                            : isSelected
+                            ? '2px solid var(--terracotta)'
+                            : '1.5px solid var(--border)',
                           borderRadius: 'var(--radius-md)',
                           padding: '16px',
-                          backgroundColor: isSelected ? 'var(--cream-light)' : '#ffffff',
+                          backgroundColor: isDragOverThis
+                            ? 'rgba(201, 130, 103, 0.12)'
+                            : isSelected
+                            ? 'var(--cream-light)'
+                            : '#ffffff',
+                          opacity: isDraggingThis ? 0.45 : 1,
                           transition: 'all 0.2s ease',
                         }}
                       >
                         {/* Look Top Bar */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, marginRight: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, marginRight: '10px' }}>
+                            {/* Drag Handle & Up/Down Arrows */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <div
+                                style={{ cursor: 'grab', color: 'var(--muted)', display: 'flex', alignItems: 'center', padding: '2px' }}
+                                title="Drag to reorder look"
+                              >
+                                <GripVertical size={16} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveLook(idx, 'up')}
+                                  disabled={idx === 0}
+                                  title="Move Look Up"
+                                  style={{
+                                    padding: '0 2px',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === 0 ? 0.25 : 0.85,
+                                    color: 'var(--brown)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  <ChevronUp size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveLook(idx, 'down')}
+                                  disabled={idx === activeLooks.length - 1}
+                                  title="Move Look Down"
+                                  style={{
+                                    padding: '0 2px',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: idx === activeLooks.length - 1 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === activeLooks.length - 1 ? 0.25 : 0.85,
+                                    color: 'var(--brown)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  <ChevronDown size={13} />
+                                </button>
+                              </div>
+                            </div>
+
                             <span
                               style={{
                                 backgroundColor: isSelected ? 'var(--terracotta)' : 'var(--brown)',
@@ -1792,6 +2017,7 @@ export const AdminPage: React.FC = () => {
                                 fontWeight: 800,
                                 padding: '2px 8px',
                                 borderRadius: 'var(--radius-full)',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               Look #{idx + 1}
