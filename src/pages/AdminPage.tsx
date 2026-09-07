@@ -45,6 +45,7 @@ import {
   getAdminCustomizations,
   saveAdminCustomizations,
   getSavedHomepageSettings,
+  saveSavedHomepageSettings,
   CustomBeforeAfterLook,
   HomepageSettings,
 } from '../services/adminStore';
@@ -339,20 +340,16 @@ export const AdminPage: React.FC = () => {
   const [previewHomeLookIndex, setPreviewHomeLookIndex] = useState<number>(0);
   const [isSavingHome, setIsSavingHome] = useState<boolean>(false);
 
-  // Sync Homepage state with Context on initial load if empty
-  const hasInitializedHomeRef = useRef(false);
+  // Sync Homepage state with Context whenever homepageSettings updates from Supabase
   useEffect(() => {
-    if (hasInitializedHomeRef.current) return;
-    const saved = getSavedHomepageSettings();
-    if (saved) {
-      if (saved.heading) setHomeHeading(saved.heading);
-      if (saved.subheading) setHomeSubheading(saved.subheading);
-      if (saved.looks && saved.looks.length > 0) {
-        setHomeLooksList(JSON.parse(JSON.stringify(saved.looks)));
+    if (homepageSettings) {
+      if (homepageSettings.heading) setHomeHeading(homepageSettings.heading);
+      if (homepageSettings.subheading) setHomeSubheading(homepageSettings.subheading);
+      if (Array.isArray(homepageSettings.looks) && homepageSettings.looks.length > 0) {
+        setHomeLooksList(JSON.parse(JSON.stringify(homepageSettings.looks)));
       }
-      hasInitializedHomeRef.current = true;
     }
-  }, []);
+  }, [homepageSettings]);
 
   // --- TAB 2: Product Before/After (PDP) State ---
   const [selectedProductSlug, setSelectedProductSlug] = useState<string>('');
@@ -610,7 +607,7 @@ export const AdminPage: React.FC = () => {
 
   const handleSaveHomepageShowcase = async () => {
     setIsSavingHome(true);
-    showToast('⏳ Saving Homepage "See the Difference" showcase to Shopify Cloud...');
+    showToast('⏳ Saving Homepage showcase to Supabase Cloud Database...');
 
     const validLooks = homeLooksList.filter((l) => Boolean(l && (l.before || l.after)));
     const looksToSave = validLooks.length > 0 ? validLooks : homeLooksList;
@@ -622,21 +619,23 @@ export const AdminPage: React.FC = () => {
     };
 
     // 1. Update local reactive state & IndexedDB
+    saveSavedHomepageSettings(newSettings);
     updateHomepageSettings(newSettings);
 
-    // 2. Upload globally to Shopify Cloud Database (accessible worldwide by all visitors!)
-    const shopifyCloudRes = await saveHomepageSettingsToShopify(newSettings);
-
-    // 3. Also upload to Supabase cloud if configured
+    // 2. Upload directly to Supabase Cloud Database
     const currentCustomizations = getAdminCustomizations();
-    const cloudRes = await saveCustomizationsToCloud(currentCustomizations).catch(() => ({ success: false }));
+    currentCustomizations.homepageSettings = newSettings;
+    const cloudRes = await saveCustomizationsToCloud(currentCustomizations);
+
+    // 3. Non-blocking push to Shopify if token available
+    saveHomepageSettingsToShopify(newSettings).catch(() => {});
 
     setIsSavingHome(false);
 
-    if (shopifyCloudRes.success || cloudRes.success) {
-      showToast('✓ Saved globally to Cloud Database! Live across all visitors.');
+    if (cloudRes.success) {
+      showToast('✓ Successfully Saved Homepage to Supabase Cloud Database! Live across all visitors.');
     } else {
-      showToast('✓ Saved locally!');
+      showToast(cloudRes.error ? `⚠️ Supabase Error: ${cloudRes.error}` : '✓ Saved Homepage showcase locally in browser storage!');
     }
     await refreshProducts();
   };
