@@ -8,6 +8,9 @@ export interface SupabaseCredentials {
   anonKey: string;
 }
 
+const DEFAULT_SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ifdsvmiwvwwklvnsnjao.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmZHN2bWl3dnd3a2x2bnNuamFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3ODIyMDAsImV4cCI6MjEwNDM1ODIwMH0.Vx3w6rQ29hjVQb_BArZruBj2kmiBcRfNFAmPKP1Ujbs';
+
 // 1. Get Active Credentials (from Env or Local Settings)
 export function getSupabaseCredentials(): SupabaseCredentials {
   try {
@@ -22,12 +25,9 @@ export function getSupabaseCredentials(): SupabaseCredentials {
     // ignore
   }
 
-  const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-  const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
-
   return {
-    url: envUrl,
-    anonKey: envKey,
+    url: DEFAULT_SUPABASE_URL,
+    anonKey: DEFAULT_SUPABASE_ANON_KEY,
   };
 }
 
