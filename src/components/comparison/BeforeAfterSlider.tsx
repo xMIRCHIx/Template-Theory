@@ -120,7 +120,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           }}
         />
 
-        {/* Sharp Main After Photo (Contained uncropped) */}
+        {/* Sharp Main After Photo */}
         <img
           src={activeAfter}
           alt={afterLabel}
@@ -134,6 +134,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             display: 'block',
             pointerEvents: 'none',
             zIndex: 1,
+            imageRendering: 'auto',
           }}
         />
       </div>
@@ -173,7 +174,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           }}
         />
 
-        {/* Sharp Main Before Photo (Contained uncropped) */}
+        {/* Sharp Main Before Photo */}
         <img
           src={activeBefore}
           alt={beforeLabel}
@@ -187,6 +188,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             display: 'block',
             pointerEvents: 'none',
             zIndex: 1,
+            imageRendering: 'auto',
           }}
         />
       </div>

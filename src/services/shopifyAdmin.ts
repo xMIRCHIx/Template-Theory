@@ -133,12 +133,12 @@ export async function saveLooksToShopifyProduct(
   let graphqlId = product.id.startsWith('gid://') ? product.id : `gid://shopify/Product/${product.id}`;
 
   try {
-    // 1. Auto-optimize images so payload never exceeds Shopify limit
+    // 1. Auto-optimize images in Ultra HD (1800px, 90% quality)
     const optimizedLooks = await Promise.all(
       looks.map(async (look) => ({
         ...look,
-        before: await optimizeImageForCloud(look.before, 650, 0.65),
-        after: await optimizeImageForCloud(look.after, 650, 0.65),
+        before: await optimizeImageForCloud(look.before, 1800, 0.90),
+        after: await optimizeImageForCloud(look.after, 1800, 0.90),
       }))
     );
 
@@ -311,16 +311,16 @@ export async function fetchAllProductMetafieldsFromShopify(): Promise<Record<str
 
 const SHOP_OWNER_GID = 'gid://shopify/Shop/88097947925';
 
-// Helper to auto-downscale data URLs so they never hit Shopify's metafield payload limit
-async function optimizeImageForCloud(src: string, maxDimension = 650, quality = 0.65): Promise<string> {
+// Helper to preserve Ultra HD crystal-clear clarity (1800px, 0.90 quality) while ensuring safe cloud storage
+async function optimizeImageForCloud(src: string, maxDimension = 1800, quality = 0.90): Promise<string> {
   if (!src || !src.startsWith('data:image')) {
     return src;
   }
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return src;
   }
-  // If already lightweight (< 50KB), return as-is
-  if (src.length < 50000) {
+  // If already reasonably sized (< 200KB), return as-is without recompressing
+  if (src.length < 200000) {
     return src;
   }
   return new Promise((resolve) => {
@@ -340,12 +340,24 @@ async function optimizeImageForCloud(src: string, maxDimension = 650, quality = 
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) {
           resolve(src);
           return;
         }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
+
+        // Try high quality WebP first, fallback to JPEG
+        try {
+          const webpData = canvas.toDataURL('image/webp', quality);
+          if (webpData.startsWith('data:image/webp')) {
+            resolve(webpData);
+            return;
+          }
+        } catch (e) {}
+
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = () => resolve(src);
@@ -363,12 +375,12 @@ export async function saveHomepageSettingsToShopify(
   const { domain, adminToken } = getShopifyAdminCredentials();
 
   try {
-    // 1. Auto-optimize images so JSON string never exceeds Shopify limit
+    // 1. Auto-optimize images in Ultra HD so JSON string is crisp and fits Shopify limits
     const optimizedLooks = await Promise.all(
       settings.looks.map(async (look) => ({
         ...look,
-        before: await optimizeImageForCloud(look.before, 650, 0.65),
-        after: await optimizeImageForCloud(look.after, 650, 0.65),
+        before: await optimizeImageForCloud(look.before, 1800, 0.90),
+        after: await optimizeImageForCloud(look.after, 1800, 0.90),
       }))
     );
 
@@ -445,7 +457,7 @@ export async function saveUGCToShopify(
     const optimizedItems = await Promise.all(
       items.map(async (item) => ({
         ...item,
-        image: await optimizeImageForCloud(item.image, 600, 0.68),
+        image: await optimizeImageForCloud(item.image, 1200, 0.88),
       }))
     );
 
