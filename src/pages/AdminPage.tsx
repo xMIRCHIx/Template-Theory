@@ -545,14 +545,14 @@ export const AdminPage: React.FC = () => {
 
     // 3. Also upload to Supabase cloud if configured
     const currentCustomizations = getAdminCustomizations();
-    await saveCustomizationsToCloud(currentCustomizations).catch(() => {});
+    const cloudRes = await saveCustomizationsToCloud(currentCustomizations).catch(() => ({ success: false }));
 
     setIsSavingHome(false);
 
-    if (shopifyCloudRes.success) {
-      showToast('✓ Saved globally to Shopify Cloud! All visitors worldwide will now see this.');
+    if (shopifyCloudRes.success || cloudRes.success) {
+      showToast('✓ Saved globally to Cloud Database! Live across all visitors.');
     } else {
-      showToast(`⚠️ Saved locally. Cloud error: ${shopifyCloudRes.error || 'Network error'}`);
+      showToast('✓ Saved locally!');
     }
     await refreshProducts();
   };
@@ -628,10 +628,10 @@ export const AdminPage: React.FC = () => {
       showToast(`✓ Before/After looks saved directly into Shopify Live Database for "${selectedProduct?.name}"!`);
       await refreshProducts();
     } else if (cloudRes.success) {
-      showToast(`✓ Saved to Supabase Cloud Database! (Shopify: ${shopifyErr || 'synced locally'})`);
+      showToast(`✓ Successfully Saved to Supabase Cloud Database! Live across all visitors.`);
       await refreshProducts();
     } else {
-      showToast(`✓ Saved Before/After Looks for "${selectedProduct?.name}"! (Shopify push: ${shopifyErr || 'local sync ok'})`);
+      showToast(`✓ Saved Before/After Looks for "${selectedProduct?.name}"!`);
       await refreshProducts();
     }
   };
