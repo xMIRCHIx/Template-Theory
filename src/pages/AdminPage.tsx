@@ -606,9 +606,9 @@ export const AdminPage: React.FC = () => {
       updateProductBeforeAfter(selectedProduct.name, looksToSave);
     }
 
-    // 2. Upload directly into Shopify's live Database & Metafields!
+    // 2. Upload directly into Cloud Database & Metafields!
     setIsSavingToShopify(true);
-    showToast(`⏳ Saving Before/After looks directly to Shopify Database for "${selectedProduct?.name || selectedProductSlug}"...`);
+    showToast(`⏳ Saving Before/After looks to Cloud Database for "${selectedProduct?.name || selectedProductSlug}"...`);
 
     let shopifyOk = false;
     let shopifyErr = '';
