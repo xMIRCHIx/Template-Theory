@@ -14,6 +14,21 @@ export interface BeforeAfterItem {
   aspectRatio?: string;
 }
 
+export interface ProductMediaItem {
+  id?: string;
+  type: 'image' | 'video' | 'external_video';
+  url: string;
+  previewUrl?: string;
+  alt?: string;
+  sources?: {
+    url: string;
+    mimeType: string;
+    format: string;
+    width?: number;
+    height?: number;
+  }[];
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -28,6 +43,7 @@ export interface Product {
   description: string;
   thumbnail: string;
   gallery: string[];
+  mediaGallery?: ProductMediaItem[];
   tags: string[];
   included: string[];
   format: string[];

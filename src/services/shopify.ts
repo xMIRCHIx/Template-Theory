@@ -1,4 +1,4 @@
-import { Product, ProductCategory } from '../types';
+import { Product, ProductCategory, ProductMediaItem } from '../types';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 
 const SHOPIFY_DOMAIN = (import.meta as any).env?.VITE_SHOPIFY_STORE_DOMAIN || 'template-theory-2.myshopify.com';
@@ -75,6 +75,38 @@ export const GET_ALL_PRODUCTS_QUERY = `
               node {
                 url
                 altText
+              }
+            }
+          }
+          media(first: 35) {
+            edges {
+              node {
+                mediaContentType
+                alt
+                previewImage {
+                  url
+                }
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                  }
+                }
+                ... on Video {
+                  id
+                  sources {
+                    url
+                    mimeType
+                    format
+                    height
+                    width
+                  }
+                }
+                ... on ExternalVideo {
+                  id
+                  embedUrl
+                  host
+                }
               }
             }
           }
@@ -191,8 +223,52 @@ function extractBeforeAfterFromShopify(node: any): {
 
 // Convert Shopify GraphQL Product Node to our app's Product type
 export function mapShopifyProductToAppProduct(node: any): Product {
-  const images = (node.images?.edges || []).map((e: any) => e.node.url);
-  const featured = node.featuredImage?.url || images[0] || '';
+  const mediaEdges = node.media?.edges || [];
+  let mediaGallery: ProductMediaItem[] = [];
+
+  if (mediaEdges.length > 0) {
+    mediaGallery = mediaEdges.map((edge: any) => {
+      const m = edge.node;
+      if (m.mediaContentType === 'VIDEO') {
+        const bestMp4 = (m.sources || []).find((s: any) => s.format === 'mp4' && s.height >= 720)?.url
+          || (m.sources || []).find((s: any) => s.format === 'mp4')?.url
+          || m.sources?.[0]?.url || '';
+        return {
+          id: m.id,
+          type: 'video',
+          url: bestMp4,
+          previewUrl: m.previewImage?.url || '',
+          alt: m.alt || node.title || 'Product Video',
+          sources: m.sources,
+        };
+      }
+      if (m.mediaContentType === 'EXTERNAL_VIDEO') {
+        return {
+          id: m.id,
+          type: 'external_video',
+          url: m.embedUrl || '',
+          previewUrl: m.previewImage?.url || '',
+          alt: m.alt || node.title || 'Product Video',
+        };
+      }
+      return {
+        type: 'image',
+        url: m.image?.url || m.previewImage?.url || '',
+        previewUrl: m.previewImage?.url || m.image?.url || '',
+        alt: m.alt || m.image?.altText || node.title || 'Product Image',
+      };
+    });
+  }
+
+  const legacyImages = (node.images?.edges || []).map((e: any) => e.node.url);
+  const galleryUrls = mediaGallery.length > 0
+    ? mediaGallery.map((m) => m.url || m.previewUrl || '')
+    : legacyImages;
+
+  const featured = node.featuredImage?.url
+    || mediaGallery.find((m) => m.type === 'image')?.url
+    || galleryUrls[0]
+    || '';
   
   const firstVariant = node.variants?.edges?.[0]?.node;
   const price = parseFloat(firstVariant?.price?.amount || node.priceRange?.minVariantPrice?.amount || '0');
@@ -225,7 +301,8 @@ export function mapShopifyProductToAppProduct(node: any): Product {
     shortDescription: node.description ? node.description.slice(0, 160) + '...' : 'Premium creator tools for your workflow.',
     description: node.description || 'High quality digital products handcrafted for content creators and designers.',
     thumbnail: featured,
-    gallery: images.length > 0 ? images : [featured],
+    gallery: galleryUrls.length > 0 ? galleryUrls : (legacyImages.length > 0 ? legacyImages : [featured]),
+    mediaGallery: mediaGallery.length > 0 ? mediaGallery : undefined,
     tags: tags.length > 0 ? tags : [category, 'creative', 'tools'],
     included: [
       'Instant Digital Download',

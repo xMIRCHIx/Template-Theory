@@ -21,10 +21,13 @@ import {
   Maximize2,
   X,
   Share2,
-  Check
+  Check,
+  Play,
+  Video,
 } from 'lucide-react';
 import { PRODUCTS } from '../data/products';
 import { FAQS_DATA } from '../data/faqs';
+import { ProductMediaItem } from '../types';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useShopify } from '../context/ShopifyContext';
@@ -101,22 +104,41 @@ export const ProductDetailPage: React.FC = () => {
     }
   }, [product?.slug, hasBeforeAfter]);
 
+  const mediaList = useMemo<ProductMediaItem[]>(() => {
+    if (!product) return [];
+    if (product.mediaGallery && product.mediaGallery.length > 0) {
+      return product.mediaGallery;
+    }
+    if (product.gallery && product.gallery.length > 0) {
+      return product.gallery.map((url) => {
+        const isVid = typeof url === 'string' && (url.includes('.mp4') || url.includes('/videos/'));
+        return {
+          type: isVid ? 'video' : 'image',
+          url,
+          previewUrl: isVid ? product.thumbnail : url,
+          alt: product.name,
+        };
+      });
+    }
+    return product.thumbnail ? [{ type: 'image', url: product.thumbnail, previewUrl: product.thumbnail, alt: product.name }] : [];
+  }, [product]);
+
   // Gallery swipe navigation
   const handlePrevImage = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) e.stopPropagation();
-    if (!product?.gallery || product.gallery.length <= 1) return;
-    setActiveImageIndex((prev) => (prev - 1 + product.gallery.length) % product.gallery.length);
+    if (mediaList.length <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
   };
 
   const handleNextImage = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) e.stopPropagation();
-    if (!product?.gallery || product.gallery.length <= 1) return;
-    setActiveImageIndex((prev) => (prev + 1) % product.gallery.length);
+    if (mediaList.length <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % mediaList.length);
   };
 
   // Main Gallery Touch Drag
   const onTouchStart = (e: React.TouchEvent) => {
-    if (!product?.gallery || product.gallery.length <= 1) return;
+    if (mediaList.length <= 1) return;
     setTouchStartX(e.targetTouches[0].clientX);
     setTouchEndX(null);
     setIsDragging(true);
@@ -128,7 +150,7 @@ export const ProductDetailPage: React.FC = () => {
     const currentX = e.targetTouches[0].clientX;
     const delta = currentX - touchStartX;
     // Apply resistance at edges
-    if ((activeImageIndex === 0 && delta > 0) || (activeImageIndex === (product?.gallery?.length || 1) - 1 && delta < 0)) {
+    if ((activeImageIndex === 0 && delta > 0) || (activeImageIndex === mediaList.length - 1 && delta < 0)) {
       setDragOffset(delta * 0.35);
     } else {
       setDragOffset(delta);
@@ -140,7 +162,7 @@ export const ProductDetailPage: React.FC = () => {
     if (!isDragging) return;
     setIsDragging(false);
     const minSwipe = 40;
-    if (dragOffset < -minSwipe && activeImageIndex < (product?.gallery?.length || 1) - 1) {
+    if (dragOffset < -minSwipe && activeImageIndex < mediaList.length - 1) {
       setActiveImageIndex((prev) => prev + 1);
     } else if (dragOffset > minSwipe && activeImageIndex > 0) {
       setActiveImageIndex((prev) => prev - 1);
@@ -152,7 +174,7 @@ export const ProductDetailPage: React.FC = () => {
 
   // Lightbox Touch Handlers
   const onLightboxTouchStart = (e: React.TouchEvent) => {
-    if (lightboxZoom || !product?.gallery || product.gallery.length <= 1) return;
+    if (lightboxZoom || mediaList.length <= 1) return;
     setLightboxTouchStartX(e.targetTouches[0].clientX);
     setIsLightboxDragging(true);
     setLightboxDragOffset(0);
@@ -162,7 +184,7 @@ export const ProductDetailPage: React.FC = () => {
     if (!isLightboxDragging || lightboxTouchStartX === null || lightboxZoom) return;
     const currentX = e.targetTouches[0].clientX;
     const delta = currentX - lightboxTouchStartX;
-    if ((activeImageIndex === 0 && delta > 0) || (activeImageIndex === (product?.gallery?.length || 1) - 1 && delta < 0)) {
+    if ((activeImageIndex === 0 && delta > 0) || (activeImageIndex === mediaList.length - 1 && delta < 0)) {
       setLightboxDragOffset(delta * 0.35);
     } else {
       setLightboxDragOffset(delta);
@@ -173,7 +195,7 @@ export const ProductDetailPage: React.FC = () => {
     if (!isLightboxDragging) return;
     setIsLightboxDragging(false);
     const minSwipe = 45;
-    if (lightboxDragOffset < -minSwipe && activeImageIndex < (product?.gallery?.length || 1) - 1) {
+    if (lightboxDragOffset < -minSwipe && activeImageIndex < mediaList.length - 1) {
       setActiveImageIndex((prev) => prev + 1);
     } else if (lightboxDragOffset > minSwipe && activeImageIndex > 0) {
       setActiveImageIndex((prev) => prev - 1);
@@ -215,7 +237,7 @@ export const ProductDetailPage: React.FC = () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isLightboxOpen, product?.gallery]);
+  }, [isLightboxOpen, mediaList]);
 
   // Auto-scroll Lightbox thumbnails to active index
   useEffect(() => {
@@ -332,7 +354,7 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const galleryList = (product.gallery && product.gallery.length > 0) ? product.gallery : [product.thumbnail];
+  const galleryList = mediaList;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px', paddingTop: '20px' }}>
@@ -381,7 +403,7 @@ export const ProductDetailPage: React.FC = () => {
                   {product.category}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.65)' }}>
-                  • Image {activeImageIndex + 1} of {galleryList.length}
+                  • Media {activeImageIndex + 1} of {mediaList.length}
                 </span>
               </div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -474,7 +496,7 @@ export const ProductDetailPage: React.FC = () => {
                 willChange: 'transform',
               }}
             >
-              {galleryList.map((imgUrl, idx) => (
+              {mediaList.map((mediaItem, idx) => (
                 <div
                   key={idx}
                   style={{
@@ -485,40 +507,93 @@ export const ProductDetailPage: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    cursor: lightboxZoom ? 'zoom-out' : 'zoom-in',
+                    cursor: mediaItem.type === 'image' ? (lightboxZoom ? 'zoom-out' : 'zoom-in') : 'default',
                     padding: '0 8px',
                     boxSizing: 'border-box',
                   }}
                   onClick={(e) => {
-                    e.stopPropagation();
-                    setLightboxZoom((prev) => !prev);
+                    if (mediaItem.type === 'image') {
+                      e.stopPropagation();
+                      setLightboxZoom((prev) => !prev);
+                    }
                   }}
                 >
-                  <img
-                    src={imgUrl}
-                    alt={`${product.name} ${idx + 1}`}
-                    draggable={false}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: lightboxZoom ? '92vh' : '70vh',
-                      objectFit: 'contain',
-                      borderRadius: '14px',
-                      boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
-                      transform: lightboxZoom ? 'scale(1.75)' : 'scale(1)',
-                      transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                      pointerEvents: 'auto',
-                    }}
-                  />
+                  {mediaItem.type === 'video' ? (
+                    <div
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: lightboxZoom ? '92vh' : '72vh',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+                        backgroundColor: '#000000',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <video
+                        key={mediaItem.url}
+                        src={mediaItem.url}
+                        poster={mediaItem.previewUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: lightboxZoom ? '92vh' : '72vh',
+                          objectFit: 'contain',
+                          borderRadius: '14px',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                  ) : mediaItem.type === 'external_video' ? (
+                    <div
+                      style={{
+                        width: '85vw',
+                        maxWidth: '900px',
+                        aspectRatio: '16 / 9',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <iframe
+                        src={mediaItem.url}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="autoplay; encrypted-media; fullscreen"
+                      />
+                    </div>
+                  ) : (
+                    <img
+                      src={mediaItem.url}
+                      alt={`${product.name} ${idx + 1}`}
+                      draggable={false}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: lightboxZoom ? '92vh' : '70vh',
+                        objectFit: 'contain',
+                        borderRadius: '14px',
+                        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+                        transform: lightboxZoom ? 'scale(1.75)' : 'scale(1)',
+                        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        pointerEvents: 'auto',
+                      }}
+                    />
+                  )}
                 </div>
               ))}
             </div>
 
             {/* Lightbox Side Navigation Arrows */}
-            {galleryList.length > 1 && (
+            {mediaList.length > 1 && (
               <>
                 <button
                   onClick={handlePrevImage}
-                  aria-label="Previous image"
+                  aria-label="Previous media"
                   style={{
                     position: 'absolute',
                     left: '12px',
@@ -554,7 +629,7 @@ export const ProductDetailPage: React.FC = () => {
 
                 <button
                   onClick={handleNextImage}
-                  aria-label="Next image"
+                  aria-label="Next media"
                   style={{
                     position: 'absolute',
                     right: '12px',
@@ -592,7 +667,7 @@ export const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Bottom Thumbnails Strip in Lightbox (Full 1st Image visibility with flex-start & auto-centering) */}
-          {galleryList.length > 1 && (
+          {mediaList.length > 1 && (
             <div
               style={{
                 width: '100%',
@@ -618,8 +693,9 @@ export const ProductDetailPage: React.FC = () => {
                   WebkitOverflowScrolling: 'touch',
                 }}
               >
-                {galleryList.map((imgUrl, idx) => {
+                {mediaList.map((mediaItem, idx) => {
                   const isActive = activeImageIndex === idx;
+                  const isVid = mediaItem.type === 'video' || mediaItem.type === 'external_video';
                   return (
                     <button
                       key={idx}
@@ -627,7 +703,7 @@ export const ProductDetailPage: React.FC = () => {
                         setActiveImageIndex(idx);
                         setLightboxZoom(false);
                       }}
-                      aria-label={`View image ${idx + 1}`}
+                      aria-label={`View media ${idx + 1}`}
                       style={{
                         width: '56px',
                         height: '56px',
@@ -642,10 +718,11 @@ export const ProductDetailPage: React.FC = () => {
                         transform: isActive ? 'scale(1.08)' : 'scale(1)',
                         transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
                         boxSizing: 'border-box',
+                        position: 'relative',
                       }}
                     >
                       <img
-                        src={imgUrl}
+                        src={mediaItem.previewUrl || mediaItem.url}
                         alt=""
                         style={{
                           width: '100%',
@@ -655,6 +732,34 @@ export const ProductDetailPage: React.FC = () => {
                           display: 'block',
                         }}
                       />
+                      {isVid && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(0, 0, 0, 0.32)',
+                            borderRadius: '6px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--terracotta)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                            }}
+                          >
+                            <Play size={10} fill="#ffffff" color="#ffffff" style={{ marginLeft: '1px' }} />
+                          </div>
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -812,10 +917,14 @@ export const ProductDetailPage: React.FC = () => {
                         willChange: 'transform',
                       }}
                     >
-                      {galleryList.map((imgUrl, idx) => (
+                      {galleryList.map((mediaItem, idx) => (
                         <div
                           key={idx}
-                          onClick={() => openLightbox(idx)}
+                          onClick={() => {
+                            if (mediaItem.type === 'image') {
+                              openLightbox(idx);
+                            }
+                          }}
                           style={{
                             minWidth: '100%',
                             width: '100%',
@@ -823,32 +932,80 @@ export const ProductDetailPage: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '12px',
+                            padding: mediaItem.type === 'video' ? '0' : '12px',
                             boxSizing: 'border-box',
-                            cursor: 'zoom-in',
+                            cursor: mediaItem.type === 'image' ? 'zoom-in' : 'default',
                             flexShrink: 0,
+                            position: 'relative',
+                            backgroundColor: mediaItem.type === 'video' ? '#0b0907' : 'transparent',
                           }}
                         >
-                          <img
-                            src={imgUrl}
-                            alt={`${product.name} ${idx + 1}`}
-                            className="gallery-active-img"
-                            draggable={false}
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = product.thumbnail;
-                            }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              maxWidth: '100%',
-                              maxHeight: '100%',
-                              objectFit: 'contain',
-                              objectPosition: 'center',
-                              display: 'block',
-                              filter: 'drop-shadow(0 8px 20px rgba(96, 68, 46, 0.12))',
-                              pointerEvents: 'none',
-                            }}
-                          />
+                          {mediaItem.type === 'video' ? (
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative',
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <video
+                                key={mediaItem.url}
+                                src={mediaItem.url}
+                                poster={mediaItem.previewUrl}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  maxHeight: '100%',
+                                  maxWidth: '100%',
+                                  objectFit: 'contain',
+                                  display: 'block',
+                                }}
+                              />
+                            </div>
+                          ) : mediaItem.type === 'external_video' ? (
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                position: 'relative',
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <iframe
+                                src={mediaItem.url}
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                allow="autoplay; encrypted-media; fullscreen"
+                              />
+                            </div>
+                          ) : (
+                            <img
+                              src={mediaItem.url}
+                              alt={`${product.name} ${idx + 1}`}
+                              className="gallery-active-img"
+                              draggable={false}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = product.thumbnail;
+                              }}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                objectFit: 'contain',
+                                objectPosition: 'center',
+                                display: 'block',
+                                filter: 'drop-shadow(0 8px 20px rgba(96, 68, 46, 0.12))',
+                                pointerEvents: 'none',
+                              }}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -995,7 +1152,9 @@ export const ProductDetailPage: React.FC = () => {
                         boxShadow: activeTab === 'preview' ? 'var(--shadow-sm)' : 'none',
                       }}
                     >
-                      📸 Gallery Photos
+                      {product.mediaGallery?.some((m) => m.type === 'video' || m.type === 'external_video')
+                        ? '📸 Photos & Videos'
+                        : '📸 Gallery Photos'}
                     </button>
 
                     <button
@@ -1076,11 +1235,11 @@ export const ProductDetailPage: React.FC = () => {
                   }}
                   className="gallery-thumbs-row"
                 >
-                  {galleryList.map((imgUrl, idx) => (
+                  {galleryList.map((mediaItem, idx) => (
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      aria-label={`View image ${idx + 1}`}
+                      aria-label={`View media ${idx + 1}`}
                       style={{
                         width: '56px',
                         height: '56px',
@@ -1098,10 +1257,11 @@ export const ProductDetailPage: React.FC = () => {
                         transform: activeImageIndex === idx ? 'scale(1.04)' : 'scale(1)',
                         transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                         boxSizing: 'border-box',
+                        position: 'relative',
                       }}
                     >
                       <img
-                        src={imgUrl}
+                        src={mediaItem.previewUrl || mediaItem.url}
                         alt=""
                         style={{
                           width: '100%',
@@ -1111,6 +1271,29 @@ export const ProductDetailPage: React.FC = () => {
                           display: 'block',
                         }}
                       />
+                      {(mediaItem.type === 'video' || mediaItem.type === 'external_video') && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(28, 20, 14, 0.78)',
+                            backdropFilter: 'blur(4px)',
+                            border: '1px solid rgba(255, 255, 255, 0.7)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.4)',
+                          }}
+                        >
+                          <Play size={10} fill="#ffffff" strokeWidth={0} />
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
