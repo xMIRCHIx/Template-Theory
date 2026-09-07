@@ -79,83 +79,13 @@ interface ImageDropZoneProps {
   placeholder?: string;
 }
 
-// Fast client-side image processor that preserves crisp Ultra-HD quality and natural aspect ratios
-async function compressImageFile(file: File, maxDimension = 2560, quality = 0.94): Promise<string> {
+// Direct 100% uncompressed original file reader (No downscaling, zero compression loss)
+async function readImageFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve) => {
-    if (file.type === 'image/svg+xml') {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) || '');
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    // If already under 400KB, read directly to avoid any re-compression loss
-    if (file.size < 400 * 1024) {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) || '');
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      let { naturalWidth: width, naturalHeight: height } = img;
-      if (!width || !height) {
-        width = img.width;
-        height = img.height;
-      }
-
-      // If dimensions are within bounds, keep exact original resolution
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
-        } else {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d', { alpha: true });
-      if (!ctx) {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve((e.target?.result as string) || '');
-        reader.readAsDataURL(file);
-        return;
-      }
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // Try high-fidelity WebP first, fallback to high quality JPEG
-      try {
-        const webpData = canvas.toDataURL('image/webp', quality);
-        if (webpData.startsWith('data:image/webp')) {
-          resolve(webpData);
-          return;
-        }
-      } catch (e) {
-        // fallback
-      }
-
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      resolve(dataUrl);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) || '');
-      reader.readAsDataURL(file);
-    };
-    img.src = objectUrl;
+    const reader = new FileReader();
+    reader.onload = (e) => resolve((e.target?.result as string) || '');
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
   });
 }
 
@@ -193,13 +123,13 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
     }
 
     try {
-      // 2. Client-side high-fidelity processor (maintains 2560px max width & 0.94 quality)
-      const compressedDataUrl = await compressImageFile(file, 2560, 0.94);
-      if (compressedDataUrl) {
-        onChange(compressedDataUrl);
+      // 2. Read 100% untouched original file without any downscaling or compression
+      const originalDataUrl = await readImageFileAsDataUrl(file);
+      if (originalDataUrl) {
+        onChange(originalDataUrl);
       }
     } catch (err) {
-      console.warn('Compression fallback:', err);
+      console.warn('File read error:', err);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
