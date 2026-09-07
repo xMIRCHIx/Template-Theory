@@ -1530,8 +1530,13 @@ export const ProductDetailPage: React.FC = () => {
                   afterImage={currentBAPair?.after || ''}
                   beforeLabel="ORIGINAL RAW"
                   afterLabel="PRO GRADED"
-                  aspectRatio="16 / 9"
+                  aspectRatio="auto"
                   fallbackImage={product.thumbnail}
+                  style={{
+                    border: 'none',
+                    borderRadius: 0,
+                    boxShadow: 'none',
+                  }}
                 />
               </div>
             </div>

@@ -940,7 +940,7 @@ export const HomePage: React.FC = () => {
                 afterImage={currentHomeLook.after}
                 beforeLabel="BEFORE"
                 afterLabel="AFTER"
-                aspectRatio="16 / 9"
+                aspectRatio="auto"
               />
 
               {/* Look Tag Badge on top-left of the slider */}

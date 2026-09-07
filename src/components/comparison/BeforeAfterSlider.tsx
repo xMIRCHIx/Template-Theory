@@ -20,7 +20,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   afterImage,
   beforeLabel = 'BEFORE',
   afterLabel = 'AFTER',
-  aspectRatio = '16 / 9',
+  aspectRatio = 'auto',
   fallbackImage = DEFAULT_FALLBACK,
   fitMode = 'cover',
   style: customStyle,
@@ -30,6 +30,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [beforeError, setBeforeError] = useState(false);
   const [afterError, setAfterError] = useState(false);
+  const [naturalAspect, setNaturalAspect] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Reset errors when image props change
@@ -40,6 +41,24 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
   const activeBefore = beforeError ? (fallbackImage || afterImage) : (beforeImage || fallbackImage);
   const activeAfter = afterError ? (fallbackImage || beforeImage) : (afterImage || fallbackImage);
+
+  // Automatically detect the image's original dimensions so no cropping occurs
+  useEffect(() => {
+    const src = activeAfter || activeBefore;
+    if (!src) return;
+
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setNaturalAspect(`${img.naturalWidth} / ${img.naturalHeight}`);
+      }
+    };
+    img.src = src;
+  }, [activeAfter, activeBefore]);
+
+  const resolvedAspect = (aspectRatio === 'auto' || !aspectRatio)
+    ? (naturalAspect || '16 / 9')
+    : aspectRatio;
 
   const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -77,8 +96,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        aspectRatio,
-        maxHeight: 'min(75vh, 600px)',
+        aspectRatio: resolvedAspect,
+        maxHeight: 'min(82vh, 720px)',
         borderRadius: 'var(--radius-xl)',
         overflow: 'hidden',
         userSelect: 'none',
@@ -86,6 +105,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         boxShadow: 'var(--shadow-clay)',
         touchAction: 'pan-y', // Natural vertical page scrolling on mobile
         backgroundColor: '#120f0d',
+        transition: 'aspect-ratio 0.25s ease',
         ...customStyle,
       }}
     >
