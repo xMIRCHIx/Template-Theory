@@ -340,14 +340,14 @@ export const AdminPage: React.FC = () => {
   const [previewHomeLookIndex, setPreviewHomeLookIndex] = useState<number>(0);
   const [isSavingHome, setIsSavingHome] = useState<boolean>(false);
 
-  // Sync Homepage state with Context whenever homepageSettings updates from Supabase
+  // Sync Homepage state with Context on initial load / cloud load
+  const hasInitializedHomeRef = useRef(false);
   useEffect(() => {
-    if (homepageSettings) {
+    if (!hasInitializedHomeRef.current && homepageSettings && Array.isArray(homepageSettings.looks) && homepageSettings.looks.length > 0) {
       if (homepageSettings.heading) setHomeHeading(homepageSettings.heading);
       if (homepageSettings.subheading) setHomeSubheading(homepageSettings.subheading);
-      if (Array.isArray(homepageSettings.looks) && homepageSettings.looks.length > 0) {
-        setHomeLooksList(JSON.parse(JSON.stringify(homepageSettings.looks)));
-      }
+      setHomeLooksList(JSON.parse(JSON.stringify(homepageSettings.looks)));
+      hasInitializedHomeRef.current = true;
     }
   }, [homepageSettings]);
 
@@ -637,7 +637,6 @@ export const AdminPage: React.FC = () => {
     } else {
       showToast(cloudRes.error ? `⚠️ Supabase Error: ${cloudRes.error}` : '✓ Saved Homepage showcase locally in browser storage!');
     }
-    await refreshProducts();
   };
 
   // --- PRODUCT BEFORE/AFTER (PDP) ACTIONS ---
@@ -997,6 +996,13 @@ export const AdminPage: React.FC = () => {
     setIsPullingCloud(false);
     if (cloudData) {
       saveAdminCustomizations(cloudData);
+      if (cloudData.homepageSettings) {
+        if (cloudData.homepageSettings.heading) setHomeHeading(cloudData.homepageSettings.heading);
+        if (cloudData.homepageSettings.subheading) setHomeSubheading(cloudData.homepageSettings.subheading);
+        if (Array.isArray(cloudData.homepageSettings.looks) && cloudData.homepageSettings.looks.length > 0) {
+          setHomeLooksList(JSON.parse(JSON.stringify(cloudData.homepageSettings.looks)));
+        }
+      }
       await refreshProducts();
       showToast('✓ Downloaded latest customizations from Supabase Cloud Database!');
     } else {
