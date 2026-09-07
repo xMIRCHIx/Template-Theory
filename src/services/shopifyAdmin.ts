@@ -5,15 +5,7 @@ const STORAGE_KEY_ADMIN_TOKEN = 'cinevo_shopify_admin_token';
 const DEFAULT_DOMAIN = (import.meta as any).env?.VITE_SHOPIFY_STORE_DOMAIN || 'template-theory-2.myshopify.com';
 const API_VERSION = (import.meta as any).env?.VITE_SHOPIFY_API_VERSION || '2024-07';
 
-function getFallbackToken(): string {
-  try {
-    return atob('c2hwYXRfYmExZDk4NGI0NmNkMzU1NGEzMGFjYjAwOTgzYWY0NGQ=');
-  } catch (e) {
-    return '';
-  }
-}
-
-const DEFAULT_ADMIN_TOKEN = (import.meta as any).env?.VITE_SHOPIFY_ADMIN_TOKEN || getFallbackToken();
+const DEFAULT_ADMIN_TOKEN = (import.meta as any).env?.VITE_SHOPIFY_ADMIN_TOKEN || '';
 
 export interface ShopifyAdminCredentials {
   domain: string;

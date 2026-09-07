@@ -17,6 +17,11 @@ export default defineConfig({
         target: 'https://template-theory-2.myshopify.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/shopify-admin-api/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            delete proxyRes.headers['www-authenticate'];
+          });
+        },
       },
     },
   },
