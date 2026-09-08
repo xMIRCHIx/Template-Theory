@@ -2207,7 +2207,7 @@ export const AdminPage: React.FC = () => {
                 {/* Live Slider Render */}
                 {currentHomePreviewLook?.before && currentHomePreviewLook?.after ? (
                   <BeforeAfterSlider
-                    key={`home-preview-${currentHomePreviewLook.id}-${previewHomeLookIndex}`}
+                    key="admin-home-preview-slider"
                     beforeImage={currentHomePreviewLook.before}
                     afterImage={currentHomePreviewLook.after}
                     beforeLabel="BEFORE"
@@ -2587,7 +2587,7 @@ export const AdminPage: React.FC = () => {
                 {/* Live Slider Render */}
                 {currentPreviewLook?.before && currentPreviewLook?.after ? (
                   <BeforeAfterSlider
-                    key={`${currentPreviewLook.id}-${previewLookIndex}`}
+                    key="admin-pdp-preview-slider"
                     beforeImage={currentPreviewLook.before}
                     afterImage={currentPreviewLook.after}
                     beforeLabel="BEFORE"

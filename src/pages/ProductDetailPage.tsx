@@ -104,6 +104,23 @@ export const ProductDetailPage: React.FC = () => {
     }
   }, [product?.slug, hasBeforeAfter]);
 
+  // Preload all look images in the background so switching between Look #1, #2, #8 is 100% instant (0ms delay)
+  useEffect(() => {
+    if (!beforeAfterPairs || beforeAfterPairs.length === 0) return;
+    beforeAfterPairs.forEach((pair) => {
+      if (pair.before) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = pair.before;
+      }
+      if (pair.after) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = pair.after;
+      }
+    });
+  }, [beforeAfterPairs]);
+
   const mediaList = useMemo<ProductMediaItem[]>(() => {
     if (!product) return [];
     if (product.mediaGallery && product.mediaGallery.length > 0) {
@@ -801,7 +818,7 @@ export const ProductDetailPage: React.FC = () => {
                 {activeTab === 'beforeAfter' && currentBAPair ? (
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     <BeforeAfterSlider
-                      key={currentBAPair.id || activeBAIndex}
+                      key="pdp-hero-slider"
                       beforeImage={currentBAPair.before}
                       afterImage={currentBAPair.after}
                       beforeLabel="BEFORE"
@@ -1708,7 +1725,7 @@ export const ProductDetailPage: React.FC = () => {
                 }}
               >
                 <BeforeAfterSlider
-                  key={`pdp-showcase-${currentBAPair?.id || activeBAIndex}`}
+                  key="pdp-showcase-slider"
                   beforeImage={currentBAPair?.before || ''}
                   afterImage={currentBAPair?.after || ''}
                   beforeLabel="ORIGINAL RAW"

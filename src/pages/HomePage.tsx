@@ -62,6 +62,23 @@ export const HomePage: React.FC = () => {
     ? (homeLooks[activeHomeLookIndex] || homeLooks[0])
     : null;
 
+  // Preload homepage look images in background so switching is instant
+  useEffect(() => {
+    if (!homeLooks || homeLooks.length === 0) return;
+    homeLooks.forEach((look) => {
+      if (look.before) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = look.before;
+      }
+      if (look.after) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = look.after;
+      }
+    });
+  }, [homeLooks]);
+
   const displayedHomeProducts = useMemo(() => {
     if (homeCategory === 'all') return products;
     return products.filter((p) => {
@@ -1006,7 +1023,7 @@ export const HomePage: React.FC = () => {
               }}
             >
               <BeforeAfterSlider
-                key={currentHomeLook.id || activeHomeLookIndex}
+                key="home-showcase-slider"
                 beforeImage={currentHomeLook.before}
                 afterImage={currentHomeLook.after}
                 beforeLabel="BEFORE"

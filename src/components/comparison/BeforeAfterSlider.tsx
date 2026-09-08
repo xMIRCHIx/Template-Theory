@@ -32,12 +32,22 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [afterError, setAfterError] = useState(false);
   const [naturalAspect, setNaturalAspect] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   // Reset errors when image props change
   useEffect(() => {
     setBeforeError(false);
     setAfterError(false);
   }, [beforeImage, afterImage]);
+
+  // Clean up any pending RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   const activeBefore = beforeError ? (fallbackImage || afterImage) : (beforeImage || fallbackImage);
   const activeAfter = afterError ? (fallbackImage || beforeImage) : (afterImage || fallbackImage);
@@ -48,6 +58,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     if (!src) return;
 
     const img = new Image();
+    img.decoding = 'async';
     img.onload = () => {
       if (img.naturalWidth && img.naturalHeight) {
         setNaturalAspect(`${img.naturalWidth} / ${img.naturalHeight}`);
@@ -62,9 +73,16 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
   const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const pos = ((clientX - rect.left) / rect.width) * 100;
-    setSliderPos(Math.max(0, Math.min(100, pos)));
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    rafRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pos = ((clientX - rect.left) / rect.width) * 100;
+      setSliderPos(Math.max(0, Math.min(100, pos)));
+      rafRef.current = null;
+    });
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -106,9 +124,43 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         touchAction: 'pan-y', // Natural vertical page scrolling on mobile
         backgroundColor: '#120f0d',
         transition: 'aspect-ratio 0.25s ease',
+        transform: 'translateZ(0)', // Force GPU layer
         ...customStyle,
       }}
     >
+      {/* ========================================================================= */}
+      {/* 0. SOFT AMBIENT BACKDROP (Single GPU-Accelerated Layer)                    */}
+      {/* ========================================================================= */}
+      {activeAfter && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: '-10%',
+            width: '120%',
+            height: '120%',
+            overflow: 'hidden',
+            pointerEvents: 'none',
+            zIndex: 0,
+            transform: 'translateZ(0)',
+          }}
+        >
+          <img
+            src={activeAfter}
+            alt=""
+            decoding="async"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'blur(22px) brightness(0.6)',
+              opacity: 0.35,
+              transform: 'scale(1.1)',
+            }}
+          />
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 1. BACKGROUND: AFTER IMAGE                                                */}
       {/* ========================================================================= */}
@@ -120,30 +172,15 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           width: '100%',
           height: '100%',
           overflow: 'hidden',
-          backgroundColor: '#120f0d',
+          backgroundColor: 'transparent',
+          zIndex: 1,
         }}
       >
-        {/* Soft Ambient Backdrop */}
-        <img
-          src={activeAfter}
-          alt=""
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: '-10%',
-            width: '120%',
-            height: '120%',
-            objectFit: 'cover',
-            filter: 'blur(24px)',
-            opacity: 0.3,
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Sharp Main After Photo */}
         <img
           src={activeAfter}
           alt={afterLabel}
+          loading="eager"
+          decoding="async"
           onError={() => setAfterError(true)}
           style={{
             position: 'relative',
@@ -155,12 +192,13 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             pointerEvents: 'none',
             zIndex: 1,
             imageRendering: 'auto',
+            transform: 'translateZ(0)',
           }}
         />
       </div>
 
       {/* ========================================================================== */}
-      {/* 2. FOREGROUND: BEFORE IMAGE (Clipped Layer)                                 */}
+      {/* 2. FOREGROUND: BEFORE IMAGE (Clipped GPU Layer)                            */}
       {/* ========================================================================== */}
       <div
         style={{
@@ -173,31 +211,17 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           WebkitClipPath: `inset(0 ${100 - sliderPos}% 0 0)`,
           pointerEvents: 'none',
           overflow: 'hidden',
-          backgroundColor: '#120f0d',
+          backgroundColor: 'transparent',
           zIndex: 2,
+          willChange: 'clip-path',
+          transform: 'translateZ(0)',
         }}
       >
-        {/* Soft Ambient Backdrop */}
-        <img
-          src={activeBefore}
-          alt=""
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: '-10%',
-            width: '120%',
-            height: '120%',
-            objectFit: 'cover',
-            filter: 'blur(24px)',
-            opacity: 0.3,
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Sharp Main Before Photo */}
         <img
           src={activeBefore}
           alt={beforeLabel}
+          loading="eager"
+          decoding="async"
           onError={() => setBeforeError(true)}
           style={{
             position: 'relative',
@@ -209,6 +233,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             pointerEvents: 'none',
             zIndex: 1,
             imageRendering: 'auto',
+            transform: 'translateZ(0)',
           }}
         />
       </div>
