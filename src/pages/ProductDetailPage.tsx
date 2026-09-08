@@ -807,7 +807,7 @@ export const ProductDetailPage: React.FC = () => {
                       beforeLabel="BEFORE"
                       afterLabel="AFTER"
                       aspectRatio="auto"
-                      fitMode="cover"
+                      fitMode="contain"
                       fallbackImage={product.thumbnail}
                       style={{
                         border: 'none',

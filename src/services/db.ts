@@ -199,6 +199,112 @@ export async function uploadImageToSupabaseStorage(file: File): Promise<{ url?: 
   return { url: res.url, error: res.error };
 }
 
+// Upload Base64 Data URL directly to Supabase Storage Bucket
+export async function uploadBase64ToSupabaseStorage(base64DataUrl: string, folder = 'looks'): Promise<string> {
+  if (!base64DataUrl || !base64DataUrl.startsWith('data:image/')) {
+    return base64DataUrl; // Already a CDN URL or empty
+  }
+
+  const client = getSupabaseClient();
+  if (!client) return base64DataUrl;
+
+  try {
+    const res = await fetch(base64DataUrl);
+    const blob = await res.blob();
+    const mime = base64DataUrl.substring(base64DataUrl.indexOf(':') + 1, base64DataUrl.indexOf(';'));
+    const ext = mime.split('/')[1] || 'jpg';
+    const fileName = `img_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error: uploadError } = await client.storage
+      .from('product-media')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: mime,
+      });
+
+    if (uploadError) {
+      console.warn('Base64 migration upload error:', uploadError.message);
+      return base64DataUrl; // Keep data URL if upload fails so nothing is lost
+    }
+
+    const { data: publicUrlData } = client.storage
+      .from('product-media')
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl || base64DataUrl;
+  } catch (err) {
+    console.warn('Base64 upload failed:', err);
+    return base64DataUrl;
+  }
+}
+
+// 1-Click Migration: Converts all existing Base64 images in customizations to permanent Supabase Storage Bucket URLs
+export async function migrateCustomizationsBase64ToBucket(custom: AdminCustomizations): Promise<{ migratedCount: number; updatedCustomizations: AdminCustomizations }> {
+  let count = 0;
+  const clone: AdminCustomizations = JSON.parse(JSON.stringify(custom));
+
+  // 1. Migrate Homepage Looks
+  if (clone.homepageSettings?.looks) {
+    for (const look of clone.homepageSettings.looks) {
+      if (look.before?.startsWith('data:image/')) {
+        const newUrl = await uploadBase64ToSupabaseStorage(look.before, 'looks');
+        if (newUrl !== look.before) {
+          look.before = newUrl;
+          count++;
+        }
+      }
+      if (look.after?.startsWith('data:image/')) {
+        const newUrl = await uploadBase64ToSupabaseStorage(look.after, 'looks');
+        if (newUrl !== look.after) {
+          look.after = newUrl;
+          count++;
+        }
+      }
+    }
+  }
+
+  // 2. Migrate Product Before/After Looks
+  if (clone.beforeAfter) {
+    for (const [prodKey, looks] of Object.entries(clone.beforeAfter)) {
+      if (Array.isArray(looks)) {
+        for (const look of looks) {
+          if (look.before?.startsWith('data:image/')) {
+            const newUrl = await uploadBase64ToSupabaseStorage(look.before, 'looks');
+            if (newUrl !== look.before) {
+              look.before = newUrl;
+              count++;
+            }
+          }
+          if (look.after?.startsWith('data:image/')) {
+            const newUrl = await uploadBase64ToSupabaseStorage(look.after, 'looks');
+            if (newUrl !== look.after) {
+              look.after = newUrl;
+              count++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Migrate UGC Items Images / Posters
+  if (clone.ugcItems && Array.isArray(clone.ugcItems)) {
+    for (const item of clone.ugcItems) {
+      if (item.image?.startsWith('data:image/')) {
+        const newUrl = await uploadBase64ToSupabaseStorage(item.image, 'ugc');
+        if (newUrl !== item.image) {
+          item.image = newUrl;
+          count++;
+        }
+      }
+    }
+  }
+
+  return { migratedCount: count, updatedCustomizations: clone };
+}
+
 // 8. Video Link Helpers (YouTube Shorts, YouTube, Instagram Reels)
 export function getYouTubeVideoId(url?: string): string | null {
   if (!url) return null;

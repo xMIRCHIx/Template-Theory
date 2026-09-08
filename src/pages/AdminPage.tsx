@@ -74,6 +74,7 @@ import {
   saveCustomizationsToCloud,
   uploadImageToSupabaseStorage,
   uploadMediaToSupabaseStorage,
+  migrateCustomizationsBase64ToBucket,
   getYouTubeVideoId,
   getYouTubeEmbedUrl,
   getYouTubeThumbnailUrl,
