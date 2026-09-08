@@ -119,10 +119,6 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     <div
       ref={containerRef}
       className={className}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
       style={{
         position: 'relative',
         width: '100%',
@@ -137,7 +133,6 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         backgroundColor: '#120f0d',
         transition: 'aspect-ratio 0.25s ease',
         transform: 'translateZ(0)', // Force GPU layer
-        cursor: isDragging ? 'ew-resize' : 'default',
         ...customStyle,
       }}
     >
