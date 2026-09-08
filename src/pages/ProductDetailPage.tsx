@@ -111,24 +111,6 @@ export const ProductDetailPage: React.FC = () => {
     setActiveBAIndex(idx);
   }, [activeBAIndex]);
 
-  // Touch swipe support for PDP Before/After showcase section
-  const [showcaseTouchStart, setShowcaseTouchStart] = useState<number | null>(null);
-  const handleShowcaseTouchStart = (e: React.TouchEvent) => {
-    if (beforeAfterPairs.length <= 1) return;
-    setShowcaseTouchStart(e.targetTouches[0].clientX);
-  };
-  const handleShowcaseTouchEnd = (e: React.TouchEvent) => {
-    if (showcaseTouchStart === null || beforeAfterPairs.length <= 1) return;
-    const endX = e.changedTouches[0].clientX;
-    const delta = endX - showcaseTouchStart;
-    if (delta < -40) {
-      handleNextLook();
-    } else if (delta > 40) {
-      handlePrevLook();
-    }
-    setShowcaseTouchStart(null);
-  };
-
   // Hold-and-Slide Interactive Scrubber Track State
   const [isScrubbing, setIsScrubbing] = useState(false);
   const scrubberTrackRef = useRef<HTMLDivElement | null>(null);
@@ -1790,8 +1772,6 @@ export const ProductDetailPage: React.FC = () => {
 
               {/* Big Slider Frame */}
               <div
-                onTouchStart={handleShowcaseTouchStart}
-                onTouchEnd={handleShowcaseTouchEnd}
                 style={{
                   width: '100%',
                   borderRadius: 'var(--radius-lg)',

@@ -89,21 +89,29 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     e.stopPropagation();
     setIsDragging(true);
     handleMove(e.clientX);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (isDragging) {
+      e.stopPropagation();
       handleMove(e.clientX);
     }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
+    if (isDragging) {
+      e.stopPropagation();
+      setIsDragging(false);
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -111,6 +119,10 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     <div
       ref={containerRef}
       className={className}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       style={{
         position: 'relative',
         width: '100%',
@@ -125,6 +137,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         backgroundColor: '#120f0d',
         transition: 'aspect-ratio 0.25s ease',
         transform: 'translateZ(0)', // Force GPU layer
+        cursor: isDragging ? 'ew-resize' : 'default',
         ...customStyle,
       }}
     >

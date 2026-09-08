@@ -100,24 +100,6 @@ export const HomePage: React.FC = () => {
     setActiveHomeLookIndex(idx);
   }, [activeHomeLookIndex]);
 
-  // Touch swipe support for Homepage showcase slider
-  const [homeTouchStart, setHomeTouchStart] = useState<number | null>(null);
-  const handleHomeTouchStart = (e: React.TouchEvent) => {
-    if (homeLooks.length <= 1) return;
-    setHomeTouchStart(e.targetTouches[0].clientX);
-  };
-  const handleHomeTouchEnd = (e: React.TouchEvent) => {
-    if (homeTouchStart === null || homeLooks.length <= 1) return;
-    const endX = e.changedTouches[0].clientX;
-    const delta = endX - homeTouchStart;
-    if (delta < -40) {
-      handleNextHomeLook();
-    } else if (delta > 40) {
-      handlePrevHomeLook();
-    }
-    setHomeTouchStart(null);
-  };
-
   // Hold-and-Slide Interactive Scrubber Track State on Homepage
   const [isHomeScrubbing, setIsHomeScrubbing] = useState(false);
   const homeScrubberTrackRef = useRef<HTMLDivElement | null>(null);
@@ -1088,8 +1070,6 @@ export const HomePage: React.FC = () => {
             )}
 
             <div
-              onTouchStart={handleHomeTouchStart}
-              onTouchEnd={handleHomeTouchEnd}
               style={{
                 maxWidth: '960px',
                 margin: '0 auto',
