@@ -78,12 +78,17 @@ export interface CategoryInfo {
   filterTags: string[];
 }
 
+export type UGCMediaType = 'image' | 'video' | 'youtube' | 'instagram';
+
 export interface UGCItem {
   id: string;
   creatorName: string;
   creatorHandle: string;
   creatorAvatar?: string;
-  image: string;
+  image: string; // vertical image URL or video poster thumbnail
+  mediaType?: UGCMediaType;
+  videoUrl?: string; // direct MP4 URL, YouTube link, or Instagram Reel link
+  aspectRatio?: string; // e.g. '9:16'
   productSlug: string;
   productName: string;
   productPrice: number;

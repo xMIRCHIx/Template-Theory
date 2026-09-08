@@ -34,11 +34,28 @@ import {
   GripVertical,
   Film,
   Star,
+  Play,
+  Video,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
-import { ProductCategory, Product, UGCItem } from '../types';
+import { ProductCategory, Product, UGCItem, UGCMediaType } from '../types';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
+
+const YoutubeIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+    <polygon points="10 15 15 12 10 9 10 15" fill={color} />
+  </svg>
+);
+
+const InstagramIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 import {
   getAdminPin,
   setAdminPin,
@@ -56,6 +73,11 @@ import {
   fetchCustomizationsFromCloud,
   saveCustomizationsToCloud,
   uploadImageToSupabaseStorage,
+  uploadMediaToSupabaseStorage,
+  getYouTubeVideoId,
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnailUrl,
+  getInstagramPostId,
   SUPABASE_SQL_SETUP,
 } from '../services/db';
 import {
@@ -282,6 +304,385 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
           backgroundColor: '#fff',
         }}
       />
+    </div>
+  );
+};
+
+// Specialized UGC Media Picker supporting Vertical Photos, Videos (Supabase upload), YouTube Shorts, and Instagram Reels
+const UGCMediaPicker: React.FC<{
+  item: UGCItem;
+  onChange: (updates: Partial<UGCItem>) => void;
+}> = ({ item, onChange }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const posterInputRef = useRef<HTMLInputElement | null>(null);
+
+  const currentType: UGCMediaType = item.mediaType || (item.videoUrl ? 'video' : 'image');
+
+  const handleMediaUpload = async (files: FileList | null, target: 'image' | 'video' | 'poster') => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    setIsUploading(true);
+    setUploadProgress(`Uploading ${file.name}...`);
+
+    try {
+      const res = await uploadMediaToSupabaseStorage(file);
+      if (res.url) {
+        if (target === 'image') {
+          onChange({ image: res.url, mediaType: 'image' });
+        } else if (target === 'video') {
+          onChange({ videoUrl: res.url, mediaType: 'video' });
+        } else if (target === 'poster') {
+          onChange({ image: res.url });
+        }
+      } else if (res.error) {
+        alert(`Upload error: ${res.error}`);
+      }
+    } catch (err: any) {
+      console.warn('Upload error:', err);
+      alert(`Upload failed: ${err.message || err}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (videoInputRef.current) videoInputRef.current.value = '';
+      if (posterInputRef.current) posterInputRef.current.value = '';
+    }
+  };
+
+  const handleYouTubeUrlChange = (val: string) => {
+    const videoId = getYouTubeVideoId(val);
+    const autoPoster = videoId && !item.image ? getYouTubeThumbnailUrl(val) : item.image;
+    onChange({
+      videoUrl: val,
+      mediaType: 'youtube',
+      image: autoPoster || item.image,
+    });
+  };
+
+  const handleInstagramUrlChange = (val: string) => {
+    onChange({
+      videoUrl: val,
+      mediaType: 'instagram',
+    });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* Format Selector Tabs */}
+      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => onChange({ mediaType: 'image' })}
+          style={{
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            backgroundColor: currentType === 'image' ? 'var(--brown)' : 'var(--cream-light)',
+            color: currentType === 'image' ? '#fff' : 'var(--brown)',
+            border: currentType === 'image' ? '1px solid var(--brown)' : '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <ImageIcon size={12} /> Photo
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChange({ mediaType: 'video' })}
+          style={{
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            backgroundColor: currentType === 'video' ? 'var(--terracotta)' : 'var(--cream-light)',
+            color: currentType === 'video' ? '#fff' : 'var(--brown)',
+            border: currentType === 'video' ? '1px solid var(--terracotta)' : '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Video size={12} /> Video (MP4)
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChange({ mediaType: 'youtube' })}
+          style={{
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            backgroundColor: currentType === 'youtube' ? '#dc2626' : 'var(--cream-light)',
+            color: currentType === 'youtube' ? '#fff' : 'var(--brown)',
+            border: currentType === 'youtube' ? '1px solid #dc2626' : '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <YoutubeIcon size={12} /> YouTube
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChange({ mediaType: 'instagram' })}
+          style={{
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            backgroundColor: currentType === 'instagram' ? '#c026d3' : 'var(--cream-light)',
+            color: currentType === 'instagram' ? '#fff' : 'var(--brown)',
+            border: currentType === 'instagram' ? '1px solid #c026d3' : '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <InstagramIcon size={12} /> Instagram
+        </button>
+      </div>
+
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png, image/jpeg, image/webp, image/jpg"
+        style={{ display: 'none' }}
+        onChange={(e) => handleMediaUpload(e.target.files, 'image')}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/mp4, video/webm, video/quicktime, video/*"
+        style={{ display: 'none' }}
+        onChange={(e) => handleMediaUpload(e.target.files, 'video')}
+      />
+      <input
+        ref={posterInputRef}
+        type="file"
+        accept="image/png, image/jpeg, image/webp, image/jpg"
+        style={{ display: 'none' }}
+        onChange={(e) => handleMediaUpload(e.target.files, 'poster')}
+      />
+
+      {/* Upload status indicator */}
+      {isUploading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--terracotta)', fontWeight: 700 }}>
+          <Loader2 size={13} className="spin" />
+          <span>{uploadProgress || 'Uploading to Supabase Storage...'}</span>
+        </div>
+      )}
+
+      {/* 1. PHOTO FORMAT */}
+      {currentType === 'image' && (
+        <div>
+          <ImageDropZone
+            label="📸 VERTICAL PHOTO (9:16)"
+            value={item.image}
+            onChange={(url) => onChange({ image: url, mediaType: 'image' })}
+            onClear={() => onChange({ image: '' })}
+            placeholder="Photo URL or Browse File"
+          />
+        </div>
+      )}
+
+      {/* 2. DIRECT VIDEO FORMAT */}
+      {currentType === 'video' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--brown)' }}>
+                🎬 VERTICAL VIDEO (MP4 / MOV)
+              </span>
+              {item.videoUrl && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ videoUrl: '' })}
+                  style={{ fontSize: '0.7rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Clear Video
+                </button>
+              )}
+            </div>
+
+            <div
+              onClick={() => videoInputRef.current?.click()}
+              style={{
+                width: '100%',
+                height: item.videoUrl ? '160px' : '90px',
+                borderRadius: 'var(--radius-md)',
+                border: '2px dashed var(--terracotta)',
+                backgroundColor: 'rgba(201, 130, 103, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                position: 'relative',
+                boxSizing: 'border-box',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {item.videoUrl ? (
+                <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#000' }}>
+                  <video
+                    src={item.videoUrl}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    muted
+                    playsInline
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      gap: '4px',
+                    }}
+                  >
+                    <Upload size={18} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>Click to Replace Video</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '8px', textAlign: 'center' }}>
+                  <Upload size={18} color="var(--terracotta)" />
+                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--brown)' }}>
+                    Click to Upload Video to Supabase
+                  </span>
+                  <span style={{ fontSize: '0.66rem', color: 'var(--muted)' }}>
+                    Supports MP4, MOV, WebM
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <input
+              type="text"
+              value={item.videoUrl || ''}
+              onChange={(e) => onChange({ videoUrl: e.target.value, mediaType: 'video' })}
+              placeholder="Or paste Direct Video URL (https://...mp4)"
+              style={{
+                width: '100%',
+                padding: '7px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                fontSize: '0.75rem',
+                color: 'var(--brown)',
+                outline: 'none',
+                boxSizing: 'border-box',
+                backgroundColor: '#fff',
+                marginTop: '6px',
+              }}
+            />
+          </div>
+
+          {/* Optional Poster Thumbnail */}
+          <div>
+            <ImageDropZone
+              label="🖼️ VIDEO POSTER THUMBNAIL (OPTIONAL)"
+              value={item.image}
+              onChange={(url) => onChange({ image: url })}
+              onClear={() => onChange({ image: '' })}
+              placeholder="Poster Image URL or Drop File"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 3. YOUTUBE FORMAT */}
+      {currentType === 'youtube' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div>
+            <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+              <YoutubeIcon size={13} color="#dc2626" /> YOUTUBE SHORTS / VIDEO LINK
+            </label>
+            <input
+              type="text"
+              value={item.videoUrl || ''}
+              onChange={(e) => handleYouTubeUrlChange(e.target.value)}
+              placeholder="e.g. https://youtube.com/shorts/..."
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1.5px solid #dc2626',
+                fontSize: '0.78rem',
+                color: 'var(--brown)',
+                outline: 'none',
+                boxSizing: 'border-box',
+                backgroundColor: '#fff',
+              }}
+            />
+          </div>
+
+          <ImageDropZone
+            label="🖼️ YOUTUBE POSTER / CARD IMAGE"
+            value={item.image}
+            onChange={(url) => onChange({ image: url })}
+            onClear={() => onChange({ image: '' })}
+            placeholder="Auto-derived or paste custom image"
+          />
+        </div>
+      )}
+
+      {/* 4. INSTAGRAM REEL FORMAT */}
+      {currentType === 'instagram' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div>
+            <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#c026d3', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+              <InstagramIcon size={13} color="#c026d3" /> INSTAGRAM REEL / POST LINK
+            </label>
+            <input
+              type="text"
+              value={item.videoUrl || ''}
+              onChange={(e) => handleInstagramUrlChange(e.target.value)}
+              placeholder="e.g. https://instagram.com/reel/..."
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1.5px solid #c026d3',
+                fontSize: '0.78rem',
+                color: 'var(--brown)',
+                outline: 'none',
+                boxSizing: 'border-box',
+                backgroundColor: '#fff',
+              }}
+            />
+          </div>
+
+          <ImageDropZone
+            label="🖼️ INSTAGRAM POSTER / THUMBNAIL (9:16)"
+            value={item.image}
+            onChange={(url) => onChange({ image: url })}
+            onClear={() => onChange({ image: '' })}
+            placeholder="Drop screenshot or poster image"
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -856,14 +1257,28 @@ export const AdminPage: React.FC = () => {
   };
 
   const handleSaveUGC = async () => {
-    const valid = localUgcList.filter((item) => item.image);
+    const valid = localUgcList.filter((item) => item.image || item.videoUrl);
     if (valid.length === 0) {
-      alert('Please upload at least 1 UGC item image before saving.');
+      alert('Please upload at least 1 UGC item image or video before saving.');
       return;
     }
+    showToast('⏳ Saving Community UGC Showcase to Supabase Cloud Database...');
+
+    // 1. Update React context & local cache
     updateUGCItems(valid);
+
+    // 2. Explicitly persist to Supabase Cloud Database
+    const allCustomizations = getAdminCustomizations();
+    allCustomizations.ugcItems = valid;
+    saveAdminCustomizations(allCustomizations);
+    const cloudRes = await saveCustomizationsToCloud(allCustomizations);
     await saveUGCToShopify(valid).catch(() => {});
-    showToast('✓ Community UGC Showcase saved globally and published to Homepage!');
+
+    if (cloudRes.success) {
+      showToast('✓ Community UGC Showcase saved to Supabase Cloud Database! Live across all visitors.');
+    } else {
+      showToast(cloudRes.error ? `⚠️ Supabase Sync: ${cloudRes.error}` : '✓ Community UGC Showcase saved globally!');
+    }
   };
 
   // --- Collection Manager Actions ---
@@ -2626,16 +3041,17 @@ export const AdminPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Image Upload + Form Inputs */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '170px 1fr', gap: '20px', alignItems: 'start' }} className="ugc-card-grid">
-                          {/* Vertical Image Dropzone */}
+                        {/* Media Upload (Photo/Video/YouTube/Instagram) + Form Inputs */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '20px', alignItems: 'start' }} className="ugc-card-grid">
+                          {/* UGC Media Picker (Photo/Video/YouTube/Instagram) */}
                           <div>
-                            <ImageDropZone
-                              label="📸 VERTICAL PHOTO (9:16)"
-                              value={item.image}
-                              onChange={(url) => handleUpdateUgcItem(idx, 'image', url)}
-                              onClear={() => handleUpdateUgcItem(idx, 'image', '')}
-                              placeholder="Image URL or Drop Photo"
+                            <UGCMediaPicker
+                              item={item}
+                              onChange={(updates) => {
+                                setLocalUgcList((prev) =>
+                                  prev.map((it, i) => (i === idx ? { ...it, ...updates } : it))
+                                );
+                              }}
                             />
                           </div>
 
@@ -2835,7 +3251,7 @@ export const AdminPage: React.FC = () => {
                 </div>
 
                 {/* Vertical Card Preview Render (Smartphone Reel Proportions) */}
-                {localUgcList[previewUgcIndex]?.image ? (
+                {localUgcList[previewUgcIndex] && (localUgcList[previewUgcIndex].image || localUgcList[previewUgcIndex].videoUrl) ? (
                   <div
                     style={{
                       width: '260px',
@@ -2848,16 +3264,38 @@ export const AdminPage: React.FC = () => {
                       boxShadow: '0 18px 40px -10px rgba(45, 30, 20, 0.35)',
                     }}
                   >
-                    <img
-                      src={localUgcList[previewUgcIndex].image}
-                      alt=""
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
+                    {localUgcList[previewUgcIndex].mediaType === 'video' && localUgcList[previewUgcIndex].videoUrl ? (
+                      <video
+                        key={localUgcList[previewUgcIndex].videoUrl}
+                        src={localUgcList[previewUgcIndex].videoUrl}
+                        poster={localUgcList[previewUgcIndex].image}
+                        controls
+                        playsInline
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    ) : localUgcList[previewUgcIndex].mediaType === 'youtube' && getYouTubeEmbedUrl(localUgcList[previewUgcIndex].videoUrl) ? (
+                      <iframe
+                        src={getYouTubeEmbedUrl(localUgcList[previewUgcIndex].videoUrl)!}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="autoplay; encrypted-media; fullscreen"
+                      />
+                    ) : (
+                      <img
+                        src={localUgcList[previewUgcIndex].image || (localUgcList[previewUgcIndex].mediaType === 'youtube' ? getYouTubeThumbnailUrl(localUgcList[previewUgcIndex].videoUrl) || '' : '')}
+                        alt=""
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    )}
 
                     {/* Gradient Overlay */}
                     <div
@@ -2870,6 +3308,7 @@ export const AdminPage: React.FC = () => {
                         justifyContent: 'space-between',
                         padding: '14px',
                         boxSizing: 'border-box',
+                        pointerEvents: (localUgcList[previewUgcIndex].mediaType === 'video' || localUgcList[previewUgcIndex].mediaType === 'youtube') ? 'none' : 'auto',
                       }}
                     >
                       {/* Top Badges */}
@@ -2883,8 +3322,14 @@ export const AdminPage: React.FC = () => {
                             fontWeight: 800,
                             padding: '3px 9px',
                             borderRadius: 'var(--radius-full)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                           }}
                         >
+                          {localUgcList[previewUgcIndex].mediaType === 'video' && <Video size={11} color="var(--terracotta)" />}
+                          {localUgcList[previewUgcIndex].mediaType === 'youtube' && <YoutubeIcon size={11} color="#dc2626" />}
+                          {localUgcList[previewUgcIndex].mediaType === 'instagram' && <InstagramIcon size={11} color="#c026d3" />}
                           {localUgcList[previewUgcIndex].creatorHandle || '@cinevo_creator'}
                         </span>
 

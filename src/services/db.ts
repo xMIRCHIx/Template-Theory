@@ -155,37 +155,74 @@ export async function saveCustomizationsToCloud(customizations: AdminCustomizati
   }
 }
 
-// 7. Upload Image to Supabase Storage Bucket
-export async function uploadImageToSupabaseStorage(file: File): Promise<{ url?: string; error?: string }> {
+// 7. Upload Image or Video Media to Supabase Storage Bucket
+export async function uploadMediaToSupabaseStorage(file: File): Promise<{ url?: string; mediaType: 'image' | 'video'; error?: string }> {
   const client = getSupabaseClient();
+  const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|m4v|ogg)$/i);
+  const mediaType: 'image' | 'video' = isVideo ? 'video' : 'image';
+
   if (!client) {
-    return { error: 'Supabase is not configured' };
+    return { error: 'Supabase is not configured', mediaType };
   }
 
   try {
-    const fileExt = file.name.split('.').pop() || 'jpg';
-    const fileName = `ba_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-    const filePath = `looks/${fileName}`;
+    const fileExt = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
+    const folder = isVideo ? 'ugc_videos' : 'looks';
+    const fileName = `${mediaType}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
 
     const { error: uploadError } = await client.storage
       .from('product-media')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: true,
+        contentType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
       });
 
     if (uploadError) {
-      return { error: uploadError.message };
+      return { error: uploadError.message, mediaType };
     }
 
     const { data: publicUrlData } = client.storage
       .from('product-media')
       .getPublicUrl(filePath);
 
-    return { url: publicUrlData.publicUrl };
+    return { url: publicUrlData.publicUrl, mediaType };
   } catch (err: any) {
-    return { error: err.message || 'Failed to upload image to Supabase storage' };
+    return { error: err.message || 'Failed to upload media to Supabase storage', mediaType };
   }
+}
+
+// Backward compatibility alias for uploadImageToSupabaseStorage
+export async function uploadImageToSupabaseStorage(file: File): Promise<{ url?: string; error?: string }> {
+  const res = await uploadMediaToSupabaseStorage(file);
+  return { url: res.url, error: res.error };
+}
+
+// 8. Video Link Helpers (YouTube Shorts, YouTube, Instagram Reels)
+export function getYouTubeVideoId(url?: string): string | null {
+  if (!url) return null;
+  const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|watch\?.+&v=))([\w-]{11})/;
+  const match = url.match(regExp);
+  return match && match[1] ? match[1] : null;
+}
+
+export function getYouTubeEmbedUrl(url?: string): string | null {
+  const videoId = getYouTubeVideoId(url);
+  if (!videoId) return null;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
+}
+
+export function getYouTubeThumbnailUrl(url?: string): string | null {
+  const videoId = getYouTubeVideoId(url);
+  if (!videoId) return null;
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+export function getInstagramPostId(url?: string): string | null {
+  if (!url) return null;
+  const match = url.match(/instagram\.com\/(?:p|reel|reels)\/([A-Za-z0-9_-]+)/);
+  return match && match[1] ? match[1] : null;
 }
 
 // 8. SQL Setup Helper Script for Supabase SQL Editor

@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Star,
   ShoppingBag,
+  Play,
+  Video,
 } from 'lucide-react';
 import { HeroScene } from '../components/hero/HeroScene';
 import { CategoryCard } from '../components/cards/CategoryCard';
@@ -26,6 +28,22 @@ import { CATEGORIES } from '../data/categories';
 import { useShopify } from '../context/ShopifyContext';
 import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getYouTubeEmbedUrl, getYouTubeThumbnailUrl, getInstagramPostId } from '../services/db';
+
+const YoutubeIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+    <polygon points="10 15 15 12 10 9 10 15" fill={color} />
+  </svg>
+);
+
+const InstagramIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -594,21 +612,67 @@ export const HomePage: React.FC = () => {
                       setSelectedUgcIndex(originalIndex);
                     }}
                   >
-                    {/* Background Vertical Image */}
-                    <img
-                      src={item.image}
-                      alt={item.caption || item.creatorName}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'transform 0.5s ease',
-                      }}
-                      className="ugc-vertical-img"
-                    />
+                    {/* Background Vertical Media (Video / Photo / YouTube / Instagram) */}
+                    {item.mediaType === 'video' && item.videoUrl ? (
+                      <video
+                        src={item.videoUrl}
+                        poster={item.image}
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                        className="ugc-vertical-img"
+                      />
+                    ) : (
+                      <img
+                        src={item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : '')}
+                        alt={item.caption || item.creatorName}
+                        loading="lazy"
+                        decoding="async"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.5s ease',
+                        }}
+                        className="ugc-vertical-img"
+                      />
+                    )}
+
+                    {/* Floating Center Play Badge for Videos / Reels */}
+                    {(item.mediaType === 'video' || item.mediaType === 'youtube' || item.mediaType === 'instagram' || item.videoUrl) && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(28, 20, 15, 0.75)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          border: '1.5px solid rgba(255, 255, 255, 0.85)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+                          zIndex: 3,
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <Play size={16} fill="#ffffff" strokeWidth={0} style={{ marginLeft: '2px' }} />
+                      </div>
+                    )}
 
                     {/* Dark Gradient Overlay for readability */}
                     <div
@@ -621,9 +685,10 @@ export const HomePage: React.FC = () => {
                         justifyContent: 'space-between',
                         padding: '14px',
                         boxSizing: 'border-box',
+                        zIndex: 4,
                       }}
                     >
-                      {/* Top Row: Handle & Category Badge */}
+                      {/* Top Row: Handle & Category / Format Badge */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                         <span
                           style={{
@@ -635,8 +700,14 @@ export const HomePage: React.FC = () => {
                             borderRadius: 'var(--radius-full)',
                             letterSpacing: '0.02em',
                             boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                           }}
                         >
+                          {item.mediaType === 'video' && <Video size={10} color="var(--terracotta)" />}
+                          {item.mediaType === 'youtube' && <YoutubeIcon size={10} color="#dc2626" />}
+                          {item.mediaType === 'instagram' && <InstagramIcon size={10} color="#c026d3" />}
                           {item.creatorHandle || '@templatetheory'}
                         </span>
 
@@ -1332,7 +1403,7 @@ export const HomePage: React.FC = () => {
               }}
               className="ugc-modal-grid"
             >
-              {/* Left Column: Full-Height Vertical Image Viewer */}
+              {/* Left Column: Full-Height Vertical Media Viewer (Video Player / Photo / Embed) */}
               <div
                 style={{
                   backgroundColor: '#120f0d',
@@ -1346,7 +1417,7 @@ export const HomePage: React.FC = () => {
               >
                 {/* Ambient Blurred Glow */}
                 <img
-                  src={activeUgcModalItem.image}
+                  src={activeUgcModalItem.image || (activeUgcModalItem.mediaType === 'youtube' ? getYouTubeThumbnailUrl(activeUgcModalItem.videoUrl) || '' : '')}
                   alt=""
                   aria-hidden="true"
                   style={{
@@ -1361,23 +1432,99 @@ export const HomePage: React.FC = () => {
                   }}
                 />
 
-                {/* Sharp Foreground Image */}
-                <img
-                  src={activeUgcModalItem.image}
-                  alt={activeUgcModalItem.caption || activeUgcModalItem.creatorName}
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    maxHeight: '88vh',
-                    objectFit: 'contain',
-                    display: 'block',
-                    zIndex: 1,
-                  }}
-                />
+                {/* Media Renderer */}
+                {activeUgcModalItem.mediaType === 'video' && activeUgcModalItem.videoUrl ? (
+                  <video
+                    key={activeUgcModalItem.videoUrl}
+                    src={activeUgcModalItem.videoUrl}
+                    poster={activeUgcModalItem.image}
+                    controls
+                    autoPlay
+                    playsInline
+                    loop
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      maxHeight: '88vh',
+                      objectFit: 'contain',
+                      display: 'block',
+                      zIndex: 2,
+                    }}
+                  />
+                ) : activeUgcModalItem.mediaType === 'youtube' && getYouTubeEmbedUrl(activeUgcModalItem.videoUrl) ? (
+                  <div style={{ position: 'relative', zIndex: 2, width: '100%', height: '100%', minHeight: '420px', maxHeight: '88vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <iframe
+                      src={getYouTubeEmbedUrl(activeUgcModalItem.videoUrl)!}
+                      style={{ width: '100%', height: '100%', minHeight: '420px', maxHeight: '85vh', border: 'none', borderRadius: 'var(--radius-md)' }}
+                      allow="autoplay; encrypted-media; fullscreen"
+                    />
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative', zIndex: 2, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <img
+                      src={activeUgcModalItem.image || (activeUgcModalItem.mediaType === 'youtube' ? getYouTubeThumbnailUrl(activeUgcModalItem.videoUrl) || '' : '')}
+                      alt={activeUgcModalItem.caption || activeUgcModalItem.creatorName}
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        maxHeight: '88vh',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
+                    />
+                    {activeUgcModalItem.mediaType === 'instagram' && activeUgcModalItem.videoUrl && (
+                      <a
+                        href={activeUgcModalItem.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          position: 'absolute',
+                          bottom: '24px',
+                          backgroundColor: 'rgba(192, 38, 211, 0.95)',
+                          color: '#fff',
+                          fontSize: '0.84rem',
+                          fontWeight: 700,
+                          padding: '8px 18px',
+                          borderRadius: 'var(--radius-full)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textDecoration: 'none',
+                          boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
+                        }}
+                      >
+                        <InstagramIcon size={15} color="#fff" /> Watch Reel on Instagram <ExternalLink size={13} />
+                      </a>
+                    )}
+                  </div>
+                )}
 
-                {/* Category Badge overlay on image */}
-                {activeUgcModalItem.category && (
-                  <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10 }}>
+                {/* Category & Format Badge overlay on media */}
+                <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {activeUgcModalItem.mediaType && (
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        color: '#fff',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '4px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        backdropFilter: 'blur(6px)',
+                      }}
+                    >
+                      {activeUgcModalItem.mediaType === 'video' && <Video size={11} color="var(--terracotta-light)" />}
+                      {activeUgcModalItem.mediaType === 'youtube' && <YoutubeIcon size={11} color="#dc2626" />}
+                      {activeUgcModalItem.mediaType === 'instagram' && <InstagramIcon size={11} color="#c026d3" />}
+                      {activeUgcModalItem.mediaType}
+                    </span>
+                  )}
+                  {activeUgcModalItem.category && (
                     <span
                       style={{
                         backgroundColor: 'var(--terracotta)',
@@ -1392,8 +1539,8 @@ export const HomePage: React.FC = () => {
                     >
                       {activeUgcModalItem.category}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Right Column: Information, Creator Info & Linked Product Details */}
