@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -34,6 +34,7 @@ import { useShopify } from '../context/ShopifyContext';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import { ProductCard } from '../components/cards/ProductCard';
 import { MobileStickyBuyBar } from '../components/pdp/MobileStickyBuyBar';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -89,6 +90,27 @@ export const ProductDetailPage: React.FC = () => {
   const mainThumbsRowRef = useRef<HTMLDivElement | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
 
+  // Directional slide state for smooth animated look transitions
+  const [slideDirection, setSlideDirection] = useState<number>(1); // 1 for next, -1 for prev
+
+  const handleNextLook = useCallback(() => {
+    if (beforeAfterPairs.length <= 1) return;
+    setSlideDirection(1);
+    setActiveBAIndex((prev) => (prev + 1) % beforeAfterPairs.length);
+  }, [beforeAfterPairs.length]);
+
+  const handlePrevLook = useCallback(() => {
+    if (beforeAfterPairs.length <= 1) return;
+    setSlideDirection(-1);
+    setActiveBAIndex((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
+  }, [beforeAfterPairs.length]);
+
+  const handleSelectLook = useCallback((idx: number) => {
+    if (idx === activeBAIndex) return;
+    setSlideDirection(idx > activeBAIndex ? 1 : -1);
+    setActiveBAIndex(idx);
+  }, [activeBAIndex]);
+
   // Touch swipe support for PDP Before/After showcase section
   const [showcaseTouchStart, setShowcaseTouchStart] = useState<number | null>(null);
   const handleShowcaseTouchStart = (e: React.TouchEvent) => {
@@ -99,14 +121,54 @@ export const ProductDetailPage: React.FC = () => {
     if (showcaseTouchStart === null || beforeAfterPairs.length <= 1) return;
     const endX = e.changedTouches[0].clientX;
     const delta = endX - showcaseTouchStart;
-    if (delta < -45) {
-      // Swipe Left -> Next Look
-      setActiveBAIndex((prev) => (prev + 1) % beforeAfterPairs.length);
-    } else if (delta > 45) {
-      // Swipe Right -> Prev Look
-      setActiveBAIndex((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
+    if (delta < -40) {
+      handleNextLook();
+    } else if (delta > 40) {
+      handlePrevLook();
     }
     setShowcaseTouchStart(null);
+  };
+
+  // Hold-and-Slide Interactive Scrubber Track State
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const scrubberTrackRef = useRef<HTMLDivElement | null>(null);
+
+  const performScrub = useCallback((clientX: number) => {
+    if (!scrubberTrackRef.current || beforeAfterPairs.length <= 1) return;
+    const rect = scrubberTrackRef.current.getBoundingClientRect();
+    const progress = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const targetIndex = Math.min(beforeAfterPairs.length - 1, Math.floor(progress * beforeAfterPairs.length));
+    handleSelectLook(targetIndex);
+  }, [beforeAfterPairs.length, handleSelectLook]);
+
+  const handleScrubberMouseDown = (e: React.MouseEvent) => {
+    setIsScrubbing(true);
+    performScrub(e.clientX);
+  };
+
+  const handleScrubberMouseMove = (e: React.MouseEvent) => {
+    if (isScrubbing) {
+      performScrub(e.clientX);
+    }
+  };
+
+  const handleScrubberMouseUp = () => {
+    setIsScrubbing(false);
+  };
+
+  const handleScrubberTouchStart = (e: React.TouchEvent) => {
+    setIsScrubbing(true);
+    performScrub(e.targetTouches[0].clientX);
+  };
+
+  const handleScrubberTouchMove = (e: React.TouchEvent) => {
+    if (isScrubbing) {
+      performScrub(e.targetTouches[0].clientX);
+    }
+  };
+
+  const handleScrubberTouchEnd = () => {
+    setIsScrubbing(false);
   };
 
   useEffect(() => {
@@ -1672,36 +1734,59 @@ export const ProductDetailPage: React.FC = () => {
               className="pdp-ba-showcase-card"
             >
               {/* Header Strip */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <span
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span
+                        style={{
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          color: 'var(--terracotta-dark)',
+                          backgroundColor: 'var(--terracotta-light)',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        Interactive Comparison
+                      </span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--muted)', fontWeight: 600 }}>
+                        • {beforeAfterPairs.length} Variation {beforeAfterPairs.length === 1 ? 'Look' : 'Looks'}
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Live Transformation Looks
+                    </h3>
+                    <p style={{ fontSize: '0.92rem', color: 'var(--muted)', marginTop: '4px', maxWidth: '600px' }}>
+                      Drag the slider back and forth to inspect shadow recovery, color calibration & skin-tone rendering.
+                    </p>
+                  </div>
+
+                  {/* Active Look Name & Counter Pill on Top (Outside Image Frame) */}
+                  {currentBAPair && (
+                    <div
                       style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        color: 'var(--terracotta-dark)',
-                        backgroundColor: 'var(--terracotta-light)',
-                        padding: '2px 8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        backgroundColor: 'var(--cream-light)',
+                        border: '1.5px solid var(--border)',
                         borderRadius: 'var(--radius-full)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
+                        padding: '8px 16px',
+                        boxShadow: 'var(--shadow-clay)',
                       }}
                     >
-                      Interactive Comparison
-                    </span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--muted)', fontWeight: 600 }}>
-                      • {beforeAfterPairs.length} Variation {beforeAfterPairs.length === 1 ? 'Look' : 'Looks'}
-                    </span>
-                  </div>
-                  <h3 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                    Live Transformation Looks
-                  </h3>
-                  <p style={{ fontSize: '0.92rem', color: 'var(--muted)', marginTop: '4px', maxWidth: '600px' }}>
-                    Drag the slider back and forth to inspect shadow recovery, color calibration & skin-tone rendering.
-                  </p>
+                      <Sparkles size={14} color="var(--terracotta)" />
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--brown)' }}>
+                        {currentBAPair.title || `Look #${activeBAIndex + 1}`}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted)', paddingLeft: '8px', borderLeft: '1.5px solid var(--border)' }}>
+                        {activeBAIndex + 1} / {beforeAfterPairs.length}
+                      </span>
+                    </div>
+                  )}
                 </div>
-
-              </div>
 
               {/* Big Slider Frame */}
               <div
@@ -1718,20 +1803,32 @@ export const ProductDetailPage: React.FC = () => {
                   touchAction: 'pan-y',
                 }}
               >
-                <BeforeAfterSlider
-                  key="pdp-showcase-slider"
-                  beforeImage={currentBAPair?.before || ''}
-                  afterImage={currentBAPair?.after || ''}
-                  beforeLabel="ORIGINAL RAW"
-                  afterLabel="PRO GRADED"
-                  aspectRatio="auto"
-                  fallbackImage={product.thumbnail}
-                  style={{
-                    border: 'none',
-                    borderRadius: 0,
-                    boxShadow: 'none',
-                  }}
-                />
+                <AnimatePresence mode="wait" custom={slideDirection}>
+                  <motion.div
+                    key={`pdp-look-slide-${activeBAIndex}`}
+                    custom={slideDirection}
+                    initial={{ opacity: 0, x: slideDirection > 0 ? 55 : -55 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: slideDirection > 0 ? -55 : 55 }}
+                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <BeforeAfterSlider
+                      key={`pdp-showcase-slider-${activeBAIndex}`}
+                      beforeImage={currentBAPair?.before || ''}
+                      afterImage={currentBAPair?.after || ''}
+                      beforeLabel="ORIGINAL RAW"
+                      afterLabel="PRO GRADED"
+                      aspectRatio="auto"
+                      fallbackImage={product.thumbnail}
+                      style={{
+                        border: 'none',
+                        borderRadius: 0,
+                        boxShadow: 'none',
+                      }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
 
                 {/* Translucent Left Arrow Button */}
                 {beforeAfterPairs.length > 1 && (
@@ -1739,7 +1836,7 @@ export const ProductDetailPage: React.FC = () => {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveBAIndex((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
+                      handlePrevLook();
                     }}
                     aria-label="Previous Look"
                     style={{
@@ -1782,7 +1879,7 @@ export const ProductDetailPage: React.FC = () => {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveBAIndex((prev) => (prev + 1) % beforeAfterPairs.length);
+                      handleNextLook();
                     }}
                     aria-label="Next Look"
                     style={{
@@ -1818,70 +1915,65 @@ export const ProductDetailPage: React.FC = () => {
                     <ChevronRight size={22} strokeWidth={2.5} />
                   </button>
                 )}
-
-                {/* Active Look Title / Counter overlay at bottom center */}
-                {currentBAPair && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: 'rgba(24, 19, 16, 0.72)',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      color: '#ffffff',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      padding: '4px 12px',
-                      borderRadius: 'var(--radius-full)',
-                      letterSpacing: '0.04em',
-                      zIndex: 12,
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      pointerEvents: 'none',
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                    }}
-                  >
-                    {currentBAPair.title || `Look #${activeBAIndex + 1}`} ({activeBAIndex + 1} / {beforeAfterPairs.length})
-                  </div>
-                )}
               </div>
 
-              {/* Dot Pagination Below Slider */}
+              {/* Interactive Instagram / iOS Hold-to-Scrub Dot Track */}
               {beforeAfterPairs.length > 1 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '7px',
-                    marginTop: '16px',
-                    padding: '4px 0',
-                  }}
-                >
-                  {beforeAfterPairs.map((pair, idx) => {
-                    const isActive = activeBAIndex === idx;
-                    return (
-                      <button
-                        key={pair.id || idx}
-                        onClick={() => setActiveBAIndex(idx)}
-                        aria-label={`Go to ${pair.title || `Look ${idx + 1}`}`}
-                        title={pair.title || `Look #${idx + 1}`}
-                        style={{
-                          width: isActive ? '24px' : '8px',
-                          height: '8px',
-                          borderRadius: '4px',
-                          backgroundColor: isActive ? 'var(--brown)' : 'var(--cream-dark)',
-                          border: isActive ? '1px solid var(--brown)' : '1px solid var(--border)',
-                          cursor: 'pointer',
-                          padding: 0,
-                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                          boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.25)' : 'none',
-                        }}
-                      />
-                    );
-                  })}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '18px', gap: '6px' }}>
+                  <div
+                    ref={scrubberTrackRef}
+                    onMouseDown={handleScrubberMouseDown}
+                    onMouseMove={handleScrubberMouseMove}
+                    onMouseUp={handleScrubberMouseUp}
+                    onMouseLeave={handleScrubberMouseUp}
+                    onTouchStart={handleScrubberTouchStart}
+                    onTouchMove={handleScrubberTouchMove}
+                    onTouchEnd={handleScrubberTouchEnd}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: isScrubbing ? '8px 18px' : '6px 14px',
+                      backgroundColor: isScrubbing ? 'var(--cream)' : 'var(--cream-light)',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: 'var(--radius-full)',
+                      boxShadow: isScrubbing ? '0 6px 20px rgba(96, 68, 46, 0.22)' : 'var(--shadow-sm)',
+                      cursor: isScrubbing ? 'ew-resize' : 'pointer',
+                      userSelect: 'none',
+                      touchAction: 'none',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transform: isScrubbing ? 'scale(1.08)' : 'scale(1)',
+                    }}
+                    title="Slide or tap to scrub looks"
+                  >
+                    {beforeAfterPairs.map((pair, idx) => {
+                      const isActive = activeBAIndex === idx;
+                      return (
+                        <div
+                          key={pair.id || idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectLook(idx);
+                          }}
+                          style={{
+                            width: isActive ? (isScrubbing ? '32px' : '26px') : (isScrubbing ? '10px' : '7px'),
+                            height: isScrubbing ? '9px' : '7px',
+                            borderRadius: '5px',
+                            backgroundColor: isActive ? 'var(--brown)' : 'var(--border)',
+                            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                            boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.3)' : 'none',
+                            flexShrink: 0,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Subtle scrub helper hint */}
+                  <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
+                    {isScrubbing ? `Scrubbing: Look ${activeBAIndex + 1} of ${beforeAfterPairs.length}` : 'Slide dots to scrub looks'}
+                  </span>
                 </div>
               )}
             </div>

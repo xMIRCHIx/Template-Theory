@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -79,6 +79,27 @@ export const HomePage: React.FC = () => {
     });
   }, [homeLooks]);
 
+  // Directional slide state for smooth animated look transitions on Homepage
+  const [homeSlideDirection, setHomeSlideDirection] = useState<number>(1);
+
+  const handleNextHomeLook = useCallback(() => {
+    if (homeLooks.length <= 1) return;
+    setHomeSlideDirection(1);
+    setActiveHomeLookIndex((prev) => (prev + 1) % homeLooks.length);
+  }, [homeLooks.length]);
+
+  const handlePrevHomeLook = useCallback(() => {
+    if (homeLooks.length <= 1) return;
+    setHomeSlideDirection(-1);
+    setActiveHomeLookIndex((prev) => (prev - 1 + homeLooks.length) % homeLooks.length);
+  }, [homeLooks.length]);
+
+  const handleSelectHomeLook = useCallback((idx: number) => {
+    if (idx === activeHomeLookIndex) return;
+    setHomeSlideDirection(idx > activeHomeLookIndex ? 1 : -1);
+    setActiveHomeLookIndex(idx);
+  }, [activeHomeLookIndex]);
+
   // Touch swipe support for Homepage showcase slider
   const [homeTouchStart, setHomeTouchStart] = useState<number | null>(null);
   const handleHomeTouchStart = (e: React.TouchEvent) => {
@@ -89,12 +110,45 @@ export const HomePage: React.FC = () => {
     if (homeTouchStart === null || homeLooks.length <= 1) return;
     const endX = e.changedTouches[0].clientX;
     const delta = endX - homeTouchStart;
-    if (delta < -45) {
-      setActiveHomeLookIndex((prev) => (prev + 1) % homeLooks.length);
-    } else if (delta > 45) {
-      setActiveHomeLookIndex((prev) => (prev - 1 + homeLooks.length) % homeLooks.length);
+    if (delta < -40) {
+      handleNextHomeLook();
+    } else if (delta > 40) {
+      handlePrevHomeLook();
     }
     setHomeTouchStart(null);
+  };
+
+  // Hold-and-Slide Interactive Scrubber Track State on Homepage
+  const [isHomeScrubbing, setIsHomeScrubbing] = useState(false);
+  const homeScrubberTrackRef = useRef<HTMLDivElement | null>(null);
+
+  const performHomeScrub = useCallback((clientX: number) => {
+    if (!homeScrubberTrackRef.current || homeLooks.length <= 1) return;
+    const rect = homeScrubberTrackRef.current.getBoundingClientRect();
+    const progress = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const targetIndex = Math.min(homeLooks.length - 1, Math.floor(progress * homeLooks.length));
+    handleSelectHomeLook(targetIndex);
+  }, [homeLooks.length, handleSelectHomeLook]);
+
+  const handleHomeScrubberMouseDown = (e: React.MouseEvent) => {
+    setIsHomeScrubbing(true);
+    performHomeScrub(e.clientX);
+  };
+  const handleHomeScrubberMouseMove = (e: React.MouseEvent) => {
+    if (isHomeScrubbing) performHomeScrub(e.clientX);
+  };
+  const handleHomeScrubberMouseUp = () => {
+    setIsHomeScrubbing(false);
+  };
+  const handleHomeScrubberTouchStart = (e: React.TouchEvent) => {
+    setIsHomeScrubbing(true);
+    performHomeScrub(e.targetTouches[0].clientX);
+  };
+  const handleHomeScrubberTouchMove = (e: React.TouchEvent) => {
+    if (isHomeScrubbing) performHomeScrub(e.targetTouches[0].clientX);
+  };
+  const handleHomeScrubberTouchEnd = () => {
+    setIsHomeScrubbing(false);
   };
 
   const displayedHomeProducts = useMemo(() => {
@@ -1041,16 +1095,30 @@ export const HomePage: React.FC = () => {
                 margin: '0 auto',
                 position: 'relative',
                 touchAction: 'pan-y',
+                borderRadius: 'var(--radius-xl)',
+                overflow: 'hidden',
               }}
             >
-              <BeforeAfterSlider
-                key="home-showcase-slider"
-                beforeImage={currentHomeLook.before}
-                afterImage={currentHomeLook.after}
-                beforeLabel="BEFORE"
-                afterLabel="AFTER"
-                aspectRatio="auto"
-              />
+              <AnimatePresence mode="wait" custom={homeSlideDirection}>
+                <motion.div
+                  key={`home-look-slide-${activeHomeLookIndex}`}
+                  custom={homeSlideDirection}
+                  initial={{ opacity: 0, x: homeSlideDirection > 0 ? 55 : -55 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: homeSlideDirection > 0 ? -55 : 55 }}
+                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <BeforeAfterSlider
+                    key={`home-showcase-slider-${activeHomeLookIndex}`}
+                    beforeImage={currentHomeLook.before}
+                    afterImage={currentHomeLook.after}
+                    beforeLabel="BEFORE"
+                    afterLabel="AFTER"
+                    aspectRatio="auto"
+                  />
+                </motion.div>
+              </AnimatePresence>
 
               {/* Translucent Left Arrow Button */}
               {homeLooks.length > 1 && (
@@ -1058,7 +1126,7 @@ export const HomePage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveHomeLookIndex((prev) => (prev - 1 + homeLooks.length) % homeLooks.length);
+                    handlePrevHomeLook();
                   }}
                   aria-label="Previous Look"
                   style={{
@@ -1101,7 +1169,7 @@ export const HomePage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveHomeLookIndex((prev) => (prev + 1) % homeLooks.length);
+                    handleNextHomeLook();
                   }}
                   aria-label="Next Look"
                   style={{
@@ -1167,40 +1235,63 @@ export const HomePage: React.FC = () => {
               )}
             </div>
 
-            {/* Dot Pagination Below Homepage Slider */}
+            {/* Interactive Instagram / iOS Hold-to-Scrub Dot Track on Homepage */}
             {homeLooks.length > 1 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '7px',
-                  marginTop: '16px',
-                  padding: '4px 0',
-                }}
-              >
-                {homeLooks.map((look, idx) => {
-                  const isActive = activeHomeLookIndex === idx;
-                  return (
-                    <button
-                      key={look.id || idx}
-                      onClick={() => setActiveHomeLookIndex(idx)}
-                      aria-label={`Go to ${look.title || `Look ${idx + 1}`}`}
-                      title={look.title || `Look #${idx + 1}`}
-                      style={{
-                        width: isActive ? '24px' : '8px',
-                        height: '8px',
-                        borderRadius: '4px',
-                        backgroundColor: isActive ? 'var(--brown)' : 'var(--cream-dark)',
-                        border: isActive ? '1px solid var(--brown)' : '1px solid var(--border)',
-                        cursor: 'pointer',
-                        padding: 0,
-                        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                        boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.25)' : 'none',
-                      }}
-                    />
-                  );
-                })}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '18px', gap: '6px' }}>
+                <div
+                  ref={homeScrubberTrackRef}
+                  onMouseDown={handleHomeScrubberMouseDown}
+                  onMouseMove={handleHomeScrubberMouseMove}
+                  onMouseUp={handleHomeScrubberMouseUp}
+                  onMouseLeave={handleHomeScrubberMouseUp}
+                  onTouchStart={handleHomeScrubberTouchStart}
+                  onTouchMove={handleHomeScrubberTouchMove}
+                  onTouchEnd={handleHomeScrubberTouchEnd}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: isHomeScrubbing ? '8px 18px' : '6px 14px',
+                    backgroundColor: isHomeScrubbing ? 'var(--cream)' : 'var(--cream-light)',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-full)',
+                    boxShadow: isHomeScrubbing ? '0 6px 20px rgba(96, 68, 46, 0.22)' : 'var(--shadow-sm)',
+                    cursor: isHomeScrubbing ? 'ew-resize' : 'pointer',
+                    userSelect: 'none',
+                    touchAction: 'none',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transform: isHomeScrubbing ? 'scale(1.08)' : 'scale(1)',
+                  }}
+                  title="Slide or tap to scrub looks"
+                >
+                  {homeLooks.map((look, idx) => {
+                    const isActive = activeHomeLookIndex === idx;
+                    return (
+                      <div
+                        key={look.id || idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectHomeLook(idx);
+                        }}
+                        style={{
+                          width: isActive ? (isHomeScrubbing ? '32px' : '26px') : (isHomeScrubbing ? '10px' : '7px'),
+                          height: isHomeScrubbing ? '9px' : '7px',
+                          borderRadius: '5px',
+                          backgroundColor: isActive ? 'var(--brown)' : 'var(--border)',
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                          boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.3)' : 'none',
+                          flexShrink: 0,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Subtle scrub helper hint */}
+                <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
+                  {isHomeScrubbing ? `Scrubbing: Look ${activeHomeLookIndex + 1} of ${homeLooks.length}` : 'Slide dots to scrub looks'}
+                </span>
               </div>
             )}
           </div>
