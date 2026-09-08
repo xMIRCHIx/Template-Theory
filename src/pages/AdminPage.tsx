@@ -338,12 +338,32 @@ const UGCMediaPicker: React.FC<{
         } else if (target === 'poster') {
           onChange({ image: res.url });
         }
-      } else if (res.error) {
-        alert(`Upload error: ${res.error}`);
+        return;
+      }
+      
+      // Fallback: If Supabase bucket is not created, read file as Data URL (for images/posters)
+      if (target === 'image' || target === 'poster') {
+        const dataUrl = await readImageFileAsDataUrl(file);
+        if (dataUrl) {
+          if (target === 'image') onChange({ image: dataUrl, mediaType: 'image' });
+          else onChange({ image: dataUrl });
+          return;
+        }
+      }
+      
+      if (res.error) {
+        alert(`Supabase Storage note: ${res.error}. If bucket is not created, you can paste a direct video link or create the 'product-media' bucket in Supabase.`);
       }
     } catch (err: any) {
       console.warn('Upload error:', err);
-      alert(`Upload failed: ${err.message || err}`);
+      // Fallback for image
+      if (target === 'image' || target === 'poster') {
+        const dataUrl = await readImageFileAsDataUrl(file);
+        if (dataUrl) {
+          if (target === 'image') onChange({ image: dataUrl, mediaType: 'image' });
+          else onChange({ image: dataUrl });
+        }
+      }
     } finally {
       setIsUploading(false);
       setUploadProgress(null);
