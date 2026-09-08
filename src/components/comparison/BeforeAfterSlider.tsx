@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ChevronsLeftRight, Sparkles } from 'lucide-react';
+import { optimizeImageUrl } from '../../utils/imageOptimizer';
 
 interface BeforeAfterSliderProps {
   beforeImage: string;
@@ -49,8 +50,12 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     };
   }, []);
 
-  const activeBefore = beforeError ? (fallbackImage || afterImage) : (beforeImage || fallbackImage);
-  const activeAfter = afterError ? (fallbackImage || beforeImage) : (afterImage || fallbackImage);
+  const rawBefore = beforeError ? (fallbackImage || afterImage) : (beforeImage || fallbackImage);
+  const rawAfter = afterError ? (fallbackImage || beforeImage) : (afterImage || fallbackImage);
+
+  const activeBefore = optimizeImageUrl(rawBefore, 1400);
+  const activeAfter = optimizeImageUrl(rawAfter, 1400);
+  const backdropAfter = optimizeImageUrl(rawAfter, 200); // lightweight 200px thumb for Gaussian blur layer
 
   // Automatically detect the image's original dimensions so no cropping occurs
   useEffect(() => {
@@ -154,8 +159,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           }}
         >
           <img
-            src={activeAfter}
+            src={backdropAfter}
             alt=""
+            loading="lazy"
             decoding="async"
             style={{
               width: '100%',

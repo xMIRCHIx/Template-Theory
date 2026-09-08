@@ -235,6 +235,7 @@ export const HeroScene: React.FC = () => {
           <img
             src="/assets/clay/shadow.png"
             alt=""
+            decoding="async"
             style={{
               width: '100%',
               height: '100%',
@@ -261,6 +262,7 @@ export const HeroScene: React.FC = () => {
           <img
             src="/assets/clay/BG ELEMENT.png"
             alt=""
+            decoding="async"
             style={{
               width: '100%',
               height: '100%',
@@ -287,6 +289,7 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/bg circle.png"
               alt=""
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -312,6 +315,7 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/leaf.png"
               alt=""
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -337,6 +341,7 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/LUTS.png"
               alt="LUTs Collection"
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -362,6 +367,7 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/PSDS.png"
               alt="PSD Templates"
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -387,6 +393,8 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/CUBE.png"
               alt="Cube Asset"
+              loading="eager"
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -412,6 +420,7 @@ export const HeroScene: React.FC = () => {
           <img
             src="/assets/clay/TOOL.png"
             alt=""
+            decoding="async"
             style={{
               width: '100%',
               objectFit: 'contain',
@@ -436,6 +445,7 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/orange circle.png"
               alt=""
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -461,6 +471,8 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/PRESET.png"
               alt="Lightroom Presets"
+              loading="eager"
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -486,6 +498,7 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/ALBMUN PSD.png"
               alt="Photo Albums"
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',
@@ -511,6 +524,8 @@ export const HeroScene: React.FC = () => {
             <img
               src="/assets/clay/CAMERA.png"
               alt="Camera Asset"
+              loading="eager"
+              decoding="async"
               style={{
                 width: '100%',
                 objectFit: 'contain',

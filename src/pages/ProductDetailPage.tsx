@@ -35,6 +35,7 @@ import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import { ProductCard } from '../components/cards/ProductCard';
 import { MobileStickyBuyBar } from '../components/pdp/MobileStickyBuyBar';
 import { motion, AnimatePresence } from 'framer-motion';
+import { optimizeImageUrl } from '../utils/imageOptimizer';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -175,12 +176,12 @@ export const ProductDetailPage: React.FC = () => {
       if (pair.before) {
         const img = new Image();
         img.decoding = 'async';
-        img.src = pair.before;
+        img.src = optimizeImageUrl(pair.before, 1200);
       }
       if (pair.after) {
         const img = new Image();
         img.decoding = 'async';
-        img.src = pair.after;
+        img.src = optimizeImageUrl(pair.after, 1200);
       }
     });
   }, [beforeAfterPairs]);
@@ -650,9 +651,10 @@ export const ProductDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <img
-                      src={mediaItem.url}
+                      src={optimizeImageUrl(mediaItem.url, 1400)}
                       alt={`${product.name} ${idx + 1}`}
                       draggable={false}
+                      decoding="async"
                       style={{
                         maxWidth: '100%',
                         maxHeight: lightboxZoom ? '92vh' : '70vh',
@@ -752,11 +754,13 @@ export const ProductDetailPage: React.FC = () => {
             <div
               style={{
                 width: '100%',
-                maxWidth: '720px',
+                maxWidth: '900px',
                 display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
+                padding: '4px 0',
+                boxSizing: 'border-box',
                 zIndex: 10000,
-                padding: '4px 0 8px 0',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -764,47 +768,44 @@ export const ProductDetailPage: React.FC = () => {
                 ref={lightboxThumbsRowRef}
                 style={{
                   display: 'flex',
-                  gap: '10px',
                   alignItems: 'center',
                   justifyContent: 'flex-start',
+                  gap: '8px',
                   overflowX: 'auto',
-                  padding: '6px 16px',
                   maxWidth: '100%',
-                  boxSizing: 'border-box',
+                  padding: '6px 4px',
                   WebkitOverflowScrolling: 'touch',
                 }}
+                className="lightbox-thumbs-scroll"
               >
                 {mediaList.map((mediaItem, idx) => {
-                  const isActive = activeImageIndex === idx;
                   const isVid = mediaItem.type === 'video' || mediaItem.type === 'external_video';
                   return (
                     <button
                       key={idx}
-                      onClick={() => {
-                        setActiveImageIndex(idx);
-                        setLightboxZoom(false);
-                      }}
-                      aria-label={`View media ${idx + 1}`}
+                      onClick={() => setActiveImageIndex(idx)}
+                      aria-label={`Jump to media ${idx + 1}`}
                       style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '10px',
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '8px',
                         overflow: 'hidden',
-                        border: isActive ? '2.5px solid var(--terracotta)' : '1.5px solid rgba(255, 255, 255, 0.35)',
-                        boxShadow: isActive ? '0 0 16px rgba(201, 130, 103, 0.85)' : 'none',
-                        backgroundColor: '#ffffff',
-                        padding: '2px',
+                        border: activeImageIndex === idx ? '2.5px solid var(--terracotta)' : '1px solid rgba(255, 255, 255, 0.25)',
+                        backgroundColor: '#000000',
                         cursor: 'pointer',
+                        padding: '2px',
                         flexShrink: 0,
-                        transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                        transform: activeImageIndex === idx ? 'scale(1.08)' : 'scale(1)',
                         transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
                         boxSizing: 'border-box',
                         position: 'relative',
                       }}
                     >
                       <img
-                        src={mediaItem.previewUrl || mediaItem.url}
+                        src={optimizeImageUrl(mediaItem.previewUrl || mediaItem.url, 150)}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         style={{
                           width: '100%',
                           height: '100%',
@@ -1067,12 +1068,13 @@ export const ProductDetailPage: React.FC = () => {
                             </div>
                           ) : (
                             <img
-                              src={mediaItem.url}
+                              src={optimizeImageUrl(mediaItem.url, 1000)}
                               alt={`${product.name} ${idx + 1}`}
                               className="gallery-active-img"
                               draggable={false}
+                              decoding="async"
                               onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = product.thumbnail;
+                                (e.currentTarget as HTMLImageElement).src = optimizeImageUrl(product.thumbnail, 600);
                               }}
                               style={{
                                 width: '100%',
@@ -1342,8 +1344,10 @@ export const ProductDetailPage: React.FC = () => {
                       }}
                     >
                       <img
-                        src={mediaItem.previewUrl || mediaItem.url}
+                        src={optimizeImageUrl(mediaItem.previewUrl || mediaItem.url, 160)}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         style={{
                           width: '100%',
                           height: '100%',

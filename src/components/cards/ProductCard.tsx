@@ -6,6 +6,7 @@ import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useShopify } from '../../context/ShopifyContext';
 import { Magnetic } from '../ui/Magnetic';
+import { optimizeImageUrl } from '../../utils/imageOptimizer';
 
 interface ProductCardProps {
   product: Product;
@@ -38,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div style={{ position: 'relative', overflow: 'hidden', backgroundColor: 'var(--cream-dark)' }}>
         <Link to={`/product/${product.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1', overflow: 'hidden', backgroundColor: 'var(--cream-dark)' }}>
           <img
-            src={product.thumbnail}
+            src={optimizeImageUrl(product.thumbnail, 600)}
             alt={product.name}
             loading="lazy"
             decoding="async"

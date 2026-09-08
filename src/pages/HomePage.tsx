@@ -29,6 +29,7 @@ import { useShopify } from '../context/ShopifyContext';
 import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getYouTubeEmbedUrl, getYouTubeThumbnailUrl, getInstagramPostId } from '../services/db';
+import { optimizeImageUrl } from '../utils/imageOptimizer';
 
 const YoutubeIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,12 +70,12 @@ export const HomePage: React.FC = () => {
       if (look.before) {
         const img = new Image();
         img.decoding = 'async';
-        img.src = look.before;
+        img.src = optimizeImageUrl(look.before, 1200);
       }
       if (look.after) {
         const img = new Image();
         img.decoding = 'async';
-        img.src = look.after;
+        img.src = optimizeImageUrl(look.after, 1200);
       }
     });
   }, [homeLooks]);
@@ -848,39 +849,21 @@ export const HomePage: React.FC = () => {
                       setSelectedUgcIndex(originalIndex);
                     }}
                   >
-                    {/* Background Vertical Media (Video / Photo / YouTube / Instagram) */}
-                    {item.mediaType === 'video' && item.videoUrl ? (
-                      <video
-                        src={item.videoUrl}
-                        poster={item.image}
-                        muted
-                        loop
-                        playsInline
-                        preload="metadata"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
-                        className="ugc-vertical-img"
-                      />
-                    ) : (
-                      <img
-                        src={item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : '')}
-                        alt={item.caption || item.creatorName}
-                        loading="lazy"
-                        decoding="async"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                          transition: 'transform 0.5s ease',
-                        }}
-                        className="ugc-vertical-img"
-                      />
-                    )}
+                    {/* Background Vertical Media (Video Poster / Photo / YouTube / Instagram) */}
+                    <img
+                      src={optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 500)}
+                      alt={item.caption || item.creatorName}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.5s ease',
+                      }}
+                      className="ugc-vertical-img"
+                    />
 
                     {/* Floating Center Play Badge for Videos / Reels */}
                     {(item.mediaType === 'video' || item.mediaType === 'youtube' || item.mediaType === 'instagram' || item.videoUrl) && (
