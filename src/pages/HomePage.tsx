@@ -79,6 +79,24 @@ export const HomePage: React.FC = () => {
     });
   }, [homeLooks]);
 
+  // Touch swipe support for Homepage showcase slider
+  const [homeTouchStart, setHomeTouchStart] = useState<number | null>(null);
+  const handleHomeTouchStart = (e: React.TouchEvent) => {
+    if (homeLooks.length <= 1) return;
+    setHomeTouchStart(e.targetTouches[0].clientX);
+  };
+  const handleHomeTouchEnd = (e: React.TouchEvent) => {
+    if (homeTouchStart === null || homeLooks.length <= 1) return;
+    const endX = e.changedTouches[0].clientX;
+    const delta = endX - homeTouchStart;
+    if (delta < -45) {
+      setActiveHomeLookIndex((prev) => (prev + 1) % homeLooks.length);
+    } else if (delta > 45) {
+      setActiveHomeLookIndex((prev) => (prev - 1 + homeLooks.length) % homeLooks.length);
+    }
+    setHomeTouchStart(null);
+  };
+
   const displayedHomeProducts = useMemo(() => {
     if (homeCategory === 'all') return products;
     return products.filter((p) => {
@@ -1016,10 +1034,13 @@ export const HomePage: React.FC = () => {
             )}
 
             <div
+              onTouchStart={handleHomeTouchStart}
+              onTouchEnd={handleHomeTouchEnd}
               style={{
                 maxWidth: '960px',
                 margin: '0 auto',
                 position: 'relative',
+                touchAction: 'pan-y',
               }}
             >
               <BeforeAfterSlider
@@ -1031,6 +1052,92 @@ export const HomePage: React.FC = () => {
                 aspectRatio="auto"
               />
 
+              {/* Translucent Left Arrow Button */}
+              {homeLooks.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveHomeLookIndex((prev) => (prev - 1 + homeLooks.length) % homeLooks.length);
+                  }}
+                  aria-label="Previous Look"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '12px',
+                    transform: 'translateY(-50%)',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(24, 19, 16, 0.45)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.22)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 15,
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.85)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.45)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                  }}
+                >
+                  <ChevronLeft size={22} strokeWidth={2.5} />
+                </button>
+              )}
+
+              {/* Translucent Right Arrow Button */}
+              {homeLooks.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveHomeLookIndex((prev) => (prev + 1) % homeLooks.length);
+                  }}
+                  aria-label="Next Look"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: '12px',
+                    transform: 'translateY(-50%)',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(24, 19, 16, 0.45)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.22)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 15,
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.85)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.45)';
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                  }}
+                >
+                  <ChevronRight size={22} strokeWidth={2.5} />
+                </button>
+              )}
+
               {/* Look Tag Badge on top-left of the slider */}
               {currentHomeLook.title && (
                 <div
@@ -1038,7 +1145,7 @@ export const HomePage: React.FC = () => {
                     position: 'absolute',
                     top: '14px',
                     left: '14px',
-                    zIndex: 20,
+                    zIndex: 12,
                     backgroundColor: 'rgba(33, 25, 19, 0.82)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
@@ -1059,6 +1166,43 @@ export const HomePage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Dot Pagination Below Homepage Slider */}
+            {homeLooks.length > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '7px',
+                  marginTop: '16px',
+                  padding: '4px 0',
+                }}
+              >
+                {homeLooks.map((look, idx) => {
+                  const isActive = activeHomeLookIndex === idx;
+                  return (
+                    <button
+                      key={look.id || idx}
+                      onClick={() => setActiveHomeLookIndex(idx)}
+                      aria-label={`Go to ${look.title || `Look ${idx + 1}`}`}
+                      title={look.title || `Look #${idx + 1}`}
+                      style={{
+                        width: isActive ? '24px' : '8px',
+                        height: '8px',
+                        borderRadius: '4px',
+                        backgroundColor: isActive ? 'var(--brown)' : 'var(--cream-dark)',
+                        border: isActive ? '1px solid var(--brown)' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.25)' : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       )}

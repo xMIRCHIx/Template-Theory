@@ -89,6 +89,26 @@ export const ProductDetailPage: React.FC = () => {
   const mainThumbsRowRef = useRef<HTMLDivElement | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
 
+  // Touch swipe support for PDP Before/After showcase section
+  const [showcaseTouchStart, setShowcaseTouchStart] = useState<number | null>(null);
+  const handleShowcaseTouchStart = (e: React.TouchEvent) => {
+    if (beforeAfterPairs.length <= 1) return;
+    setShowcaseTouchStart(e.targetTouches[0].clientX);
+  };
+  const handleShowcaseTouchEnd = (e: React.TouchEvent) => {
+    if (showcaseTouchStart === null || beforeAfterPairs.length <= 1) return;
+    const endX = e.changedTouches[0].clientX;
+    const delta = endX - showcaseTouchStart;
+    if (delta < -45) {
+      // Swipe Left -> Next Look
+      setActiveBAIndex((prev) => (prev + 1) % beforeAfterPairs.length);
+    } else if (delta > 45) {
+      // Swipe Right -> Prev Look
+      setActiveBAIndex((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
+    }
+    setShowcaseTouchStart(null);
+  };
+
   useEffect(() => {
     if (product?.fontPreviewText) {
       setFontTestText(product.fontPreviewText);
@@ -1681,39 +1701,12 @@ export const ProductDetailPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Variation Pills on Top */}
-                {beforeAfterPairs.length > 1 && (
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {beforeAfterPairs.map((pair, idx) => {
-                      const isActive = activeBAIndex === idx;
-                      return (
-                        <button
-                          key={pair.id || idx}
-                          onClick={() => setActiveBAIndex(idx)}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: 'var(--radius-full)',
-                            fontSize: '0.82rem',
-                            fontWeight: 700,
-                            backgroundColor: isActive ? 'var(--brown)' : 'var(--white)',
-                            color: isActive ? 'var(--white)' : 'var(--brown)',
-                            border: '1.5px solid',
-                            borderColor: isActive ? 'var(--brown-dark)' : 'var(--border)',
-                            cursor: 'pointer',
-                            boxShadow: isActive ? '0 4px 12px rgba(96, 68, 46, 0.25)' : 'var(--shadow-sm)',
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          {pair.title || `Look #${idx + 1}`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               {/* Big Slider Frame */}
               <div
+                onTouchStart={handleShowcaseTouchStart}
+                onTouchEnd={handleShowcaseTouchEnd}
                 style={{
                   width: '100%',
                   borderRadius: 'var(--radius-lg)',
@@ -1722,6 +1715,7 @@ export const ProductDetailPage: React.FC = () => {
                   backgroundColor: '#181310',
                   boxShadow: '0 12px 36px rgba(0, 0, 0, 0.18)',
                   position: 'relative',
+                  touchAction: 'pan-y',
                 }}
               >
                 <BeforeAfterSlider
@@ -1738,7 +1732,158 @@ export const ProductDetailPage: React.FC = () => {
                     boxShadow: 'none',
                   }}
                 />
+
+                {/* Translucent Left Arrow Button */}
+                {beforeAfterPairs.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveBAIndex((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
+                    }}
+                    aria-label="Previous Look"
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '12px',
+                      transform: 'translateY(-50%)',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(24, 19, 16, 0.45)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.22)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      zIndex: 15,
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.85)';
+                      e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.45)';
+                      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                    }}
+                  >
+                    <ChevronLeft size={22} strokeWidth={2.5} />
+                  </button>
+                )}
+
+                {/* Translucent Right Arrow Button */}
+                {beforeAfterPairs.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveBAIndex((prev) => (prev + 1) % beforeAfterPairs.length);
+                    }}
+                    aria-label="Next Look"
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      right: '12px',
+                      transform: 'translateY(-50%)',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(24, 19, 16, 0.45)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.22)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      zIndex: 15,
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.85)';
+                      e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.45)';
+                      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                    }}
+                  >
+                    <ChevronRight size={22} strokeWidth={2.5} />
+                  </button>
+                )}
+
+                {/* Active Look Title / Counter overlay at bottom center */}
+                {currentBAPair && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '12px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(24, 19, 16, 0.72)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      color: '#ffffff',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      padding: '4px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      letterSpacing: '0.04em',
+                      zIndex: 12,
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      pointerEvents: 'none',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                    }}
+                  >
+                    {currentBAPair.title || `Look #${activeBAIndex + 1}`} ({activeBAIndex + 1} / {beforeAfterPairs.length})
+                  </div>
+                )}
               </div>
+
+              {/* Dot Pagination Below Slider */}
+              {beforeAfterPairs.length > 1 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    marginTop: '16px',
+                    padding: '4px 0',
+                  }}
+                >
+                  {beforeAfterPairs.map((pair, idx) => {
+                    const isActive = activeBAIndex === idx;
+                    return (
+                      <button
+                        key={pair.id || idx}
+                        onClick={() => setActiveBAIndex(idx)}
+                        aria-label={`Go to ${pair.title || `Look ${idx + 1}`}`}
+                        title={pair.title || `Look #${idx + 1}`}
+                        style={{
+                          width: isActive ? '24px' : '8px',
+                          height: '8px',
+                          borderRadius: '4px',
+                          backgroundColor: isActive ? 'var(--brown)' : 'var(--cream-dark)',
+                          border: isActive ? '1px solid var(--brown)' : '1px solid var(--border)',
+                          cursor: 'pointer',
+                          padding: 0,
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                          boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.25)' : 'none',
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </section>
