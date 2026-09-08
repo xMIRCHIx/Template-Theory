@@ -133,6 +133,121 @@ export const HomePage: React.FC = () => {
     setIsHomeScrubbing(false);
   };
 
+  // --- 5. UGC Interactive Physics-based Continuous Marquee Ticker ---
+  const ugcSpeedSeconds = homepageSettings?.ugcSpeed || 50;
+  const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
+  const marqueeOffsetRef = useRef<number>(0);
+  const isUgcDraggingRef = useRef<boolean>(false);
+  const isUgcHoveredRef = useRef<boolean>(false);
+  const ugcDragStartXRef = useRef<number>(0);
+  const ugcDragStartOffsetRef = useRef<number>(0);
+  const ugcLastPointerXRef = useRef<number>(0);
+  const ugcLastPointerTimeRef = useRef<number>(0);
+  const ugcDragVelocityRef = useRef<number>(0);
+  const ugcTotalDragDistRef = useRef<number>(0);
+  const [isUgcGrabbing, setIsUgcGrabbing] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!ugcList || ugcList.length === 0) return;
+    let animId: number;
+
+    const tick = () => {
+      const track = marqueeTrackRef.current;
+      if (track) {
+        const totalScrollWidth = track.scrollWidth;
+        const blockWidth = totalScrollWidth > 0 ? totalScrollWidth / 3 : 2000;
+
+        if (!isUgcDraggingRef.current) {
+          // Momentum velocity decay after user swipes/flicks
+          if (Math.abs(ugcDragVelocityRef.current) > 0.08) {
+            marqueeOffsetRef.current += ugcDragVelocityRef.current;
+            ugcDragVelocityRef.current *= 0.94; // natural inertia friction
+          } else {
+            ugcDragVelocityRef.current = 0;
+            if (!isUgcHoveredRef.current) {
+              // Base auto-scroll velocity (pixels per frame at 60fps)
+              const baseVelocity = -(blockWidth / (Math.max(10, ugcSpeedSeconds) * 60));
+              marqueeOffsetRef.current += baseVelocity;
+            }
+          }
+
+          // Seamless infinite wrap around in both directions (left & right)
+          while (marqueeOffsetRef.current <= -blockWidth) {
+            marqueeOffsetRef.current += blockWidth;
+          }
+          while (marqueeOffsetRef.current > 0) {
+            marqueeOffsetRef.current -= blockWidth;
+          }
+
+          track.style.transform = `translate3d(${marqueeOffsetRef.current}px, 0, 0)`;
+        }
+      }
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [ugcList, ugcSpeedSeconds]);
+
+  const handleUgcPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    isUgcDraggingRef.current = true;
+    setIsUgcGrabbing(true);
+    ugcDragStartXRef.current = e.clientX;
+    ugcDragStartOffsetRef.current = marqueeOffsetRef.current;
+    ugcLastPointerXRef.current = e.clientX;
+    ugcLastPointerTimeRef.current = performance.now();
+    ugcDragVelocityRef.current = 0;
+    ugcTotalDragDistRef.current = 0;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleUgcPointerMove = (e: React.PointerEvent) => {
+    if (!isUgcDraggingRef.current) return;
+    const track = marqueeTrackRef.current;
+    if (!track) return;
+
+    const deltaX = e.clientX - ugcDragStartXRef.current;
+    ugcTotalDragDistRef.current = Math.max(ugcTotalDragDistRef.current, Math.abs(deltaX));
+
+    const now = performance.now();
+    const dt = Math.max(1, now - ugcLastPointerTimeRef.current);
+    const instantVelocity = (e.clientX - ugcLastPointerXRef.current) * (16 / dt);
+    ugcDragVelocityRef.current = instantVelocity;
+    ugcLastPointerXRef.current = e.clientX;
+    ugcLastPointerTimeRef.current = now;
+
+    const totalScrollWidth = track.scrollWidth;
+    const blockWidth = totalScrollWidth > 0 ? totalScrollWidth / 3 : 2000;
+
+    let targetOffset = ugcDragStartOffsetRef.current + deltaX;
+    while (targetOffset <= -blockWidth) {
+      targetOffset += blockWidth;
+    }
+    while (targetOffset > 0) {
+      targetOffset -= blockWidth;
+    }
+
+    marqueeOffsetRef.current = targetOffset;
+    track.style.transform = `translate3d(${targetOffset}px, 0, 0)`;
+  };
+
+  const handleUgcPointerUp = (e: React.PointerEvent) => {
+    if (isUgcDraggingRef.current) {
+      isUgcDraggingRef.current = false;
+      setIsUgcGrabbing(false);
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
   const displayedHomeProducts = useMemo(() => {
     if (homeCategory === 'all') return products;
     return products.filter((p) => {
@@ -650,14 +765,30 @@ export const HomePage: React.FC = () => {
               </div>
 
               <span style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>
-                Click photo to expand • Hover to pause
+                Click photo to expand • Hold to pause • Drag to scrub
               </span>
             </div>
           </div>
 
-          {/* Continuous Full-Width Horizontal Marquee Loop */}
-          <div className="marquee-container" style={{ width: '100%', padding: '8px 0' }}>
-            <div className="marquee-track">
+          {/* Continuous Full-Width Horizontal Marquee Loop with Interactive Physics, Hold-to-Pause & Scrub */}
+          <div
+            className="marquee-container"
+            onPointerDown={handleUgcPointerDown}
+            onPointerMove={handleUgcPointerMove}
+            onPointerUp={handleUgcPointerUp}
+            onPointerCancel={handleUgcPointerUp}
+            onMouseEnter={() => { isUgcHoveredRef.current = true; }}
+            onMouseLeave={() => { isUgcHoveredRef.current = false; }}
+            style={{
+              width: '100%',
+              padding: '8px 0',
+              cursor: isUgcGrabbing ? 'grabbing' : 'grab',
+              touchAction: 'pan-y', // allows natural vertical page scrolling, horizontal touch scrubs marquee
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            <div ref={marqueeTrackRef} className="marquee-track">
               {[...ugcList, ...ugcList, ...ugcList].map((item, idx) => {
                 const originalIndex = idx % ugcList.length;
                 return (
@@ -675,11 +806,16 @@ export const HomePage: React.FC = () => {
                       border: '1.5px solid var(--border)',
                       boxShadow: 'var(--shadow-clay)',
                       transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                      cursor: 'pointer',
+                      cursor: isUgcGrabbing ? 'grabbing' : 'pointer',
                       contain: 'paint',
                       transform: 'translateZ(0)',
                     }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (ugcTotalDragDistRef.current > 8) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
                       setSelectedUgcIndex(originalIndex);
                     }}
                   >

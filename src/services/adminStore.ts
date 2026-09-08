@@ -14,6 +14,7 @@ export interface HomepageSettings {
   heading?: string;
   subheading?: string;
   looks: CustomBeforeAfterLook[];
+  ugcSpeed?: number; // duration in seconds (e.g. 15 to 120, default ~50s)
 }
 
 export interface AdminCustomizations {
@@ -22,6 +23,7 @@ export interface AdminCustomizations {
   productOrder: string[]; // array of product ids / slugs in custom priority order
   collectionOverrides: Record<string, string[]>; // collection slug -> array of product slugs/ids
   ugcItems?: UGCItem[]; // custom vertical UGC items for continuous marquee
+  ugcSpeed?: number; // duration in seconds for community marquee ticker
 }
 
 const STORAGE_KEY = 'cinevo_admin_customizations_v1';
@@ -243,6 +245,20 @@ export function getSavedUGCItems(): UGCItem[] {
 export function saveSavedUGCItems(items: UGCItem[]): void {
   const custom = getAdminCustomizations();
   custom.ugcItems = items;
+  saveAdminCustomizations(custom);
+}
+
+export function getSavedUGCSpeed(): number {
+  const custom = getAdminCustomizations();
+  return custom.ugcSpeed || custom.homepageSettings?.ugcSpeed || 50;
+}
+
+export function saveSavedUGCSpeed(speed: number): void {
+  const custom = getAdminCustomizations();
+  custom.ugcSpeed = speed;
+  if (custom.homepageSettings) {
+    custom.homepageSettings.ugcSpeed = speed;
+  }
   saveAdminCustomizations(custom);
 }
 

@@ -36,6 +36,7 @@ import {
   Star,
   Play,
   Video,
+  Sliders,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
@@ -63,6 +64,8 @@ import {
   saveAdminCustomizations,
   getSavedHomepageSettings,
   saveSavedHomepageSettings,
+  getSavedUGCSpeed,
+  saveSavedUGCSpeed,
   CustomBeforeAfterLook,
   HomepageSettings,
 } from '../services/adminStore';
@@ -786,6 +789,7 @@ export const AdminPage: React.FC = () => {
   // --- TAB 4: Community UGC Marquee State ---
   const [localUgcList, setLocalUgcList] = useState<UGCItem[]>([]);
   const [previewUgcIndex, setPreviewUgcIndex] = useState<number>(0);
+  const [ugcSpeed, setUgcSpeed] = useState<number>(() => getSavedUGCSpeed());
 
   // --- TAB 5: Collections State ---
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('presets');
@@ -1283,20 +1287,25 @@ export const AdminPage: React.FC = () => {
       alert('Please upload at least 1 UGC item image or video before saving.');
       return;
     }
-    showToast('⏳ Saving Community UGC Showcase to Supabase Cloud Database...');
+    showToast('⏳ Saving Community UGC Showcase & Speed to Supabase Cloud Database...');
 
     // 1. Update React context & local cache
     updateUGCItems(valid);
+    saveSavedUGCSpeed(ugcSpeed);
 
     // 2. Explicitly persist to Supabase Cloud Database
     const allCustomizations = getAdminCustomizations();
     allCustomizations.ugcItems = valid;
+    allCustomizations.ugcSpeed = ugcSpeed;
+    if (allCustomizations.homepageSettings) {
+      allCustomizations.homepageSettings.ugcSpeed = ugcSpeed;
+    }
     saveAdminCustomizations(allCustomizations);
     const cloudRes = await saveCustomizationsToCloud(allCustomizations);
     await saveUGCToShopify(valid).catch(() => {});
 
     if (cloudRes.success) {
-      showToast('✓ Community UGC Showcase saved to Supabase Cloud Database! Live across all visitors.');
+      showToast('✓ Community UGC Showcase & Marquee Speed saved to Cloud Database! Live across all visitors.');
     } else {
       showToast(cloudRes.error ? `⚠️ Supabase Sync: ${cloudRes.error}` : '✓ Community UGC Showcase saved globally!');
     }
@@ -2897,6 +2906,87 @@ export const AdminPage: React.FC = () => {
                       <Save size={16} /> Save Changes
                     </button>
                   </div>
+                </div>
+
+                {/* Marquee Speed & Touch Physics Controller */}
+                <div
+                  style={{
+                    backgroundColor: 'var(--cream-light)',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '18px 20px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sliders size={18} color="var(--terracotta)" />
+                      <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--brown)' }}>
+                        Marquee Auto-Scroll Speed: <span style={{ color: 'var(--terracotta)' }}>{ugcSpeed}s / cycle</span>
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600 }}>
+                      {ugcSpeed <= 30 ? '⚡ Fast Ticker' : ugcSpeed <= 55 ? '✨ Smooth & Balanced (Recommended)' : ugcSpeed <= 75 ? '🕊️ Cinematic & Elegant' : '🐢 Slow & Relaxed'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--muted)', minWidth: '55px' }}>Fast (15s)</span>
+                    <input
+                      type="range"
+                      min={15}
+                      max={100}
+                      step={5}
+                      value={ugcSpeed}
+                      onChange={(e) => setUgcSpeed(Number(e.target.value))}
+                      style={{
+                        flex: 1,
+                        accentColor: 'var(--terracotta)',
+                        cursor: 'pointer',
+                        height: '6px',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--muted)', minWidth: '65px', textAlign: 'right' }}>Slow (100s)</span>
+                  </div>
+
+                  {/* Preset Speed Buttons */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    {[
+                      { label: '⚡ Fast (25s)', val: 25 },
+                      { label: '✨ Balanced (45s)', val: 45 },
+                      { label: '🕊️ Cinematic (65s)', val: 65 },
+                      { label: '🐢 Relaxed (85s)', val: 85 },
+                    ].map((preset) => {
+                      const isSel = ugcSpeed === preset.val;
+                      return (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => setUgcSpeed(preset.val)}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            backgroundColor: isSel ? 'var(--brown)' : '#ffffff',
+                            color: isSel ? '#ffffff' : 'var(--brown)',
+                            border: isSel ? '1px solid var(--brown)' : '1px solid var(--border)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                    💡 <strong>Live Touch & Physics:</strong> Visitors can touch, hold to pause, drag left or right (opposite too), and flick to scrub smoothly on mobile and desktop!
+                  </p>
                 </div>
 
                 {/* List of UGC Cards */}
