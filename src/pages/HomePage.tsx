@@ -133,7 +133,7 @@ export const HomePage: React.FC = () => {
     setIsHomeScrubbing(false);
   };
 
-  // --- 5. UGC Interactive Physics-based Continuous Marquee Ticker ---
+  // --- 5. ULTRA-SMOOTH UGC INTERACTIVE PHYSICS TICKER (60/120FPS ZERO-REFLOW ENGINE) ---
   const ugcSpeedSeconds = homepageSettings?.ugcSpeed || 50;
   const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
   const marqueeOffsetRef = useRef<number>(0);
@@ -145,29 +145,57 @@ export const HomePage: React.FC = () => {
   const ugcLastPointerTimeRef = useRef<number>(0);
   const ugcDragVelocityRef = useRef<number>(0);
   const ugcTotalDragDistRef = useRef<number>(0);
+  const blockWidthRef = useRef<number>(2000);
+  const lastTimeRef = useRef<number>(0);
   const [isUgcGrabbing, setIsUgcGrabbing] = useState<boolean>(false);
+
+  // Pre-measure block width once on mount/resize to avoid layout reflow in the animation loop
+  const measureBlockWidth = useCallback(() => {
+    if (marqueeTrackRef.current) {
+      const scrollW = marqueeTrackRef.current.scrollWidth;
+      if (scrollW > 0) {
+        blockWidthRef.current = scrollW / 3;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    measureBlockWidth();
+    window.addEventListener('resize', measureBlockWidth, { passive: true });
+    const timer1 = setTimeout(measureBlockWidth, 200);
+    const timer2 = setTimeout(measureBlockWidth, 800);
+    return () => {
+      window.removeEventListener('resize', measureBlockWidth);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [ugcList, measureBlockWidth]);
 
   useEffect(() => {
     if (!ugcList || ugcList.length === 0) return;
     let animId: number;
+    lastTimeRef.current = performance.now();
 
-    const tick = () => {
+    const tick = (now: number) => {
+      // Delta time in seconds (clamped to prevent jumps when tab is inactive)
+      const dt = Math.min((now - (lastTimeRef.current || now)) / 1000, 0.08);
+      lastTimeRef.current = now;
+
       const track = marqueeTrackRef.current;
-      if (track) {
-        const totalScrollWidth = track.scrollWidth;
-        const blockWidth = totalScrollWidth > 0 ? totalScrollWidth / 3 : 2000;
+      const blockWidth = blockWidthRef.current;
 
+      if (track && blockWidth > 0) {
         if (!isUgcDraggingRef.current) {
-          // Momentum velocity decay after user swipes/flicks
+          // Momentum velocity decay after user flick
           if (Math.abs(ugcDragVelocityRef.current) > 0.08) {
-            marqueeOffsetRef.current += ugcDragVelocityRef.current;
-            ugcDragVelocityRef.current *= 0.94; // natural inertia friction
+            marqueeOffsetRef.current += ugcDragVelocityRef.current * (dt * 60);
+            ugcDragVelocityRef.current *= Math.pow(0.92, dt * 60); // frame-rate independent friction
           } else {
             ugcDragVelocityRef.current = 0;
             if (!isUgcHoveredRef.current) {
-              // Base auto-scroll velocity (pixels per frame at 60fps)
-              const baseVelocity = -(blockWidth / (Math.max(10, ugcSpeedSeconds) * 60));
-              marqueeOffsetRef.current += baseVelocity;
+              // Smooth constant velocity in px/sec
+              const pxPerSecond = blockWidth / Math.max(10, ugcSpeedSeconds);
+              marqueeOffsetRef.current -= pxPerSecond * dt;
             }
           }
 
@@ -179,7 +207,7 @@ export const HomePage: React.FC = () => {
             marqueeOffsetRef.current -= blockWidth;
           }
 
-          track.style.transform = `translate3d(${marqueeOffsetRef.current}px, 0, 0)`;
+          track.style.transform = `translate3d(${marqueeOffsetRef.current.toFixed(2)}px, 0, 0)`;
         }
       }
       animId = requestAnimationFrame(tick);
@@ -217,29 +245,30 @@ export const HomePage: React.FC = () => {
     const now = performance.now();
     const dt = Math.max(1, now - ugcLastPointerTimeRef.current);
     const instantVelocity = (e.clientX - ugcLastPointerXRef.current) * (16 / dt);
-    ugcDragVelocityRef.current = instantVelocity;
+    ugcDragVelocityRef.current = ugcDragVelocityRef.current * 0.4 + instantVelocity * 0.6;
     ugcLastPointerXRef.current = e.clientX;
     ugcLastPointerTimeRef.current = now;
 
-    const totalScrollWidth = track.scrollWidth;
-    const blockWidth = totalScrollWidth > 0 ? totalScrollWidth / 3 : 2000;
-
+    const blockWidth = blockWidthRef.current;
     let targetOffset = ugcDragStartOffsetRef.current + deltaX;
-    while (targetOffset <= -blockWidth) {
-      targetOffset += blockWidth;
-    }
-    while (targetOffset > 0) {
-      targetOffset -= blockWidth;
+    if (blockWidth > 0) {
+      while (targetOffset <= -blockWidth) {
+        targetOffset += blockWidth;
+      }
+      while (targetOffset > 0) {
+        targetOffset -= blockWidth;
+      }
     }
 
     marqueeOffsetRef.current = targetOffset;
-    track.style.transform = `translate3d(${targetOffset}px, 0, 0)`;
+    track.style.transform = `translate3d(${targetOffset.toFixed(2)}px, 0, 0)`;
   };
 
   const handleUgcPointerUp = (e: React.PointerEvent) => {
     if (isUgcDraggingRef.current) {
       isUgcDraggingRef.current = false;
       setIsUgcGrabbing(false);
+      lastTimeRef.current = performance.now();
       try {
         (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
       } catch {

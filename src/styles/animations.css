@@ -140,6 +140,13 @@
   background: linear-gradient(to left, var(--cream) 0%, rgba(246, 241, 235, 0) 100%);
 }
 
+.marquee-container {
+  overflow: hidden;
+  position: relative;
+  contain: paint layout;
+  transform: translateZ(0);
+}
+
 .marquee-track {
   display: flex;
   gap: 20px;
@@ -148,9 +155,14 @@
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  contain: layout paint;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.ugc-vertical-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 @media (max-width: 768px) {
