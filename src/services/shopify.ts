@@ -165,8 +165,8 @@ export const GET_ALL_PRODUCTS_QUERY = `
 `;
 
 export const CREATE_CART_MUTATION = `
-  mutation CreateCart($lines: [CartLineInput!]!) {
-    cartCreate(input: { lines: $lines }) {
+  mutation CreateCart($lines: [CartLineInput!]!, $discountCodes: [String!]) {
+    cartCreate(input: { lines: $lines, discountCodes: $discountCodes }) {
       cart {
         id
         checkoutUrl
@@ -362,9 +362,14 @@ export async function createShopifyCheckoutSession(
       return discountCode ? `${base}?discount=${encodeURIComponent(discountCode)}` : base;
     }
 
+    const variables: any = { lines: validLines };
+    if (discountCode) {
+      variables.discountCodes = [discountCode];
+    }
+
     const data = await shopifyFetch<any>({
       query: CREATE_CART_MUTATION,
-      variables: { lines: validLines },
+      variables,
     });
 
     let checkoutUrl = data?.cartCreate?.cart?.checkoutUrl || `https://${SHOPIFY_DOMAIN}/checkout`;
