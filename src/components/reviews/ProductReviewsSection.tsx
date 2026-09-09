@@ -1661,35 +1661,6 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       </div>
                     )}
 
-                    {/* Headline / Heading Input (Optional) */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <label style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)' }}>
-                          Review Headline / Heading (Optional)
-                        </label>
-                        {selectedTags.length > 0 && !formTitle && (
-                          <span style={{ fontSize: '0.74rem', color: 'var(--terracotta)', fontWeight: 700 }}>
-                            {selectedTags.length} tag{selectedTags.length > 1 ? 's' : ''} chosen
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={formTitle}
-                        onChange={(e) => setFormTitle(e.target.value)}
-                        placeholder={selectedTags.length > 0 ? selectedTags.join(' • ') : "e.g. Haldi aur Mehendi shoots pe next level result!"}
-                        style={{
-                          width: '100%',
-                          padding: '11px 14px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1.5px solid var(--border)',
-                          fontSize: '0.92rem',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                        }}
-                      />
-                    </div>
-
                     {/* Review Comments */}
                     <div>
                       <label style={{ display: 'block', fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)', marginBottom: '6px' }}>
