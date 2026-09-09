@@ -113,9 +113,10 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     }
   });
 
-  // Write Review Form State (Super simplified: Rating + Name + Review Feedback)
+  // Write Review Form State (Super simplified: Rating + Headline + Name + Review Feedback)
   const [formRating, setFormRating] = useState<number>(5);
   const [formHoverRating, setFormHoverRating] = useState<number>(0);
+  const [formTitle, setFormTitle] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [formName, setFormName] = useState('');
   const [formContent, setFormContent] = useState('');
@@ -197,7 +198,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     setModalStep(1);
     setFormRating(5);
     setFormHoverRating(0);
+    setFormTitle('');
     setSelectedTags([]);
+    setFormName('');
+    setFormContent('');
+    setPhotoPreviews([]);
     setSubmitError(null);
     setSubmitSuccess(false);
     setIsWriteModalOpen(true);
@@ -258,7 +263,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Submit Review Form (Frictionless: Just Name + Review)
+  // Submit Review Form (Frictionless: Headline + Name + Review)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formContent.trim()) {
@@ -272,7 +277,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     try {
       const filesToUpload = photoPreviews.map((p) => p.file);
       const productSlug = product.slug || product.id;
-      const cleanTitle = selectedTags.length > 0 ? selectedTags.join(' • ') : '';
+      
+      // Combine custom headline and/or selected tags
+      const cleanTitle = formTitle.trim() || (selectedTags.length > 0 ? selectedTags.join(' • ') : '');
 
       const res = await submitProductReview(
         {
@@ -294,7 +301,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
         setTimeout(() => {
           setIsWriteModalOpen(false);
           setSubmitSuccess(false);
+          setFormTitle('');
           setFormContent('');
+          setFormName('');
           setPhotoPreviews([]);
           setSelectedTags([]);
           setModalStep(1);
@@ -1445,12 +1454,19 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       </motion.div>
                     </div>
 
-                    {/* Quick Highlight Tags (1-Tap Selection) */}
+                    {/* Quick Highlights & Custom Heading */}
                     <div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '8px' }}>
-                        Quick Highlights (Optional 1-Tap):
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--brown)' }}>
+                          Review Heading / Highlights (Optional):
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--muted)', fontWeight: 600 }}>
+                          Optional
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+
+                      {/* Quick Highlight Tags (1-Tap Selection) */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                         {QUICK_TAG_OPTIONS.map((tag) => {
                           const isSelected = selectedTags.includes(tag);
                           return (
@@ -1479,6 +1495,51 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                             </motion.button>
                           );
                         })}
+                      </div>
+
+                      {/* Custom Heading Input (Optional) */}
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          value={formTitle}
+                          onChange={(e) => setFormTitle(e.target.value)}
+                          placeholder="Or write a custom heading (e.g. 'Haldi shoots pe next level result!')"
+                          style={{
+                            width: '100%',
+                            padding: '10px 14px',
+                            paddingRight: formTitle ? '36px' : '14px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1.5px solid var(--border)',
+                            fontSize: '0.88rem',
+                            backgroundColor: '#ffffff',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            color: 'var(--brown)',
+                            transition: 'border-color 0.15s',
+                          }}
+                        />
+                        {formTitle && (
+                          <button
+                            type="button"
+                            onClick={() => setFormTitle('')}
+                            style={{
+                              position: 'absolute',
+                              right: '10px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--muted)',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1599,6 +1660,35 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                         <span>{submitError}</span>
                       </div>
                     )}
+
+                    {/* Headline / Heading Input (Optional) */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)' }}>
+                          Review Headline / Heading (Optional)
+                        </label>
+                        {selectedTags.length > 0 && !formTitle && (
+                          <span style={{ fontSize: '0.74rem', color: 'var(--terracotta)', fontWeight: 700 }}>
+                            {selectedTags.length} tag{selectedTags.length > 1 ? 's' : ''} chosen
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        placeholder={selectedTags.length > 0 ? selectedTags.join(' • ') : "e.g. Haldi aur Mehendi shoots pe next level result!"}
+                        style={{
+                          width: '100%',
+                          padding: '11px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1.5px solid var(--border)',
+                          fontSize: '0.92rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
 
                     {/* Review Comments */}
                     <div>
