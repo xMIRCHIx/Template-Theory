@@ -46,27 +46,18 @@ export const Footer: React.FC = () => {
                 marginBottom: '16px',
               }}
             >
-              <div
+              <img
+                src="/images/logo-square.png"
+                alt="Template Theory Logo"
                 style={{
-                  width: '32px',
-                  height: '32px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--clay) 0%, var(--terracotta) 100%)',
-                  boxShadow: '0 3px 8px rgba(201, 130, 103, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  objectFit: 'cover',
+                  boxShadow: '0 3px 10px rgba(30, 98, 59, 0.28)',
+                  border: '1px solid rgba(30, 98, 59, 0.18)',
                 }}
-              >
-                <div
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--cream-light)',
-                  }}
-                />
-              </div>
+              />
               <span
                 style={{
                   fontFamily: 'var(--font-display)',

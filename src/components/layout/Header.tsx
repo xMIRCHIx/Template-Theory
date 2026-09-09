@@ -80,31 +80,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
             flexShrink: 0,
           }}
         >
-          <div
+          <img
+            src="/images/logo-square.png"
+            alt="Template Theory Logo"
             className="header-logo-icon"
             style={{
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--clay) 0%, var(--terracotta) 100%)',
-              boxShadow: '0 3px 12px rgba(201, 130, 103, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.65)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              objectFit: 'cover',
               flexShrink: 0,
+              boxShadow: '0 3px 12px rgba(30, 98, 59, 0.28)',
+              border: '1px solid rgba(30, 98, 59, 0.18)',
             }}
-          >
-            <div
-              className="header-logo-dot"
-              style={{
-                width: '11px',
-                height: '11px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--cream-light)',
-                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.18)',
-              }}
-            />
-          </div>
+          />
           <span
             className="header-logo-text"
             style={{
