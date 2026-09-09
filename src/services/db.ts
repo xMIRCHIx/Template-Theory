@@ -332,16 +332,17 @@ export function getInstagramPostId(url?: string): string | null {
 }
 
 // 8. SQL Setup Helper Script for Supabase SQL Editor
-export const SUPABASE_SQL_SETUP = `-- Copy and paste this into Supabase SQL Editor to create the tables & storage:
+export const SUPABASE_SQL_SETUP = `-- Copy and paste this into Supabase SQL Editor to create tables, buckets & RLS:
 
--- 1. Create store_customizations table
+-- ========================================================
+-- 1. STORE CUSTOMIZATIONS TABLE (Before/Afters, UGC, Sort)
+-- ========================================================
 CREATE TABLE IF NOT EXISTS public.store_customizations (
   id TEXT PRIMARY KEY,
   payload JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Enable Public Read & Authenticated/Anon Upsert
 ALTER TABLE public.store_customizations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public read on store_customizations"
@@ -353,16 +354,74 @@ ON public.store_customizations FOR ALL
 USING (true)
 WITH CHECK (true);
 
--- 3. Create Storage bucket for Before/After photos (optional for high-res CDN)
+-- ========================================================
+-- 2. PRODUCT REVIEWS TABLE (Customer Reviews & Star Ratings)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS public.product_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id TEXT NOT NULL,
+  product_slug TEXT NOT NULL,
+  product_name TEXT,
+  author_name TEXT NOT NULL,
+  author_email TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  title TEXT,
+  content TEXT NOT NULL,
+  photos TEXT[] DEFAULT '{}',
+  is_verified_buyer BOOLEAN DEFAULT true,
+  status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('approved', 'pending', 'rejected')),
+  likes INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_product_slug ON public.product_reviews (product_slug, status);
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON public.product_reviews (product_id, status);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON public.product_reviews (created_at DESC);
+
+ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can view approved reviews"
+ON public.product_reviews FOR SELECT
+USING (status = 'approved' OR status = 'pending' OR status = 'rejected');
+
+CREATE POLICY "Public can insert reviews"
+ON public.product_reviews FOR INSERT
+WITH CHECK (true);
+
+CREATE POLICY "Public can update reviews"
+ON public.product_reviews FOR UPDATE
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Public can delete reviews"
+ON public.product_reviews FOR DELETE
+USING (true);
+
+-- ========================================================
+-- 3. STORAGE BUCKETS (Product Media & Compressed Reviews)
+-- ========================================================
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('product-media', 'product-media', true)
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY "Public media access"
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('review-photos', 'review-photos', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public product-media read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'product-media');
 
-CREATE POLICY "Public media upload"
+CREATE POLICY "Public product-media upload"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'product-media');
+
+CREATE POLICY "Public review-photos read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'review-photos');
+
+CREATE POLICY "Public review-photos upload"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'review-photos');
 `;

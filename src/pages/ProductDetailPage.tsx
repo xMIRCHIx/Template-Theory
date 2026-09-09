@@ -34,6 +34,7 @@ import { useShopify } from '../context/ShopifyContext';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import { ProductCard } from '../components/cards/ProductCard';
 import { MobileStickyBuyBar } from '../components/pdp/MobileStickyBuyBar';
+import { ProductReviewsSection } from '../components/reviews/ProductReviewsSection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
 
@@ -1478,7 +1479,23 @@ export const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Rating & Reviews */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const revEl = document.getElementById('product-reviews-section');
+                  if (revEl) revEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
                 <div style={{ display: 'flex', gap: '2px' }}>
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={16} fill="var(--gold)" color="var(--gold)" />
@@ -1487,10 +1504,10 @@ export const ProductDetailPage: React.FC = () => {
                 <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--brown)' }}>
                   {product.rating}
                 </span>
-                <span style={{ fontSize: '0.88rem', color: 'var(--muted)' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--muted)', textDecoration: 'underline' }}>
                   ({product.reviews} verified reviews)
                 </span>
-              </div>
+              </button>
 
               {/* Price & Discount */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
@@ -2156,7 +2173,16 @@ export const ProductDetailPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. RELATED PRODUCTS */}
+      {/* 4. VERIFIED CUSTOMER REVIEWS */}
+      <ProductReviewsSection
+        product={{
+          id: product.id,
+          slug: product.slug,
+          title: product.name,
+        }}
+      />
+
+      {/* 5. RELATED PRODUCTS */}
       {relatedProducts.length > 0 && (
         <section>
           <div className="container">

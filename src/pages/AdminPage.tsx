@@ -37,6 +37,7 @@ import {
   Play,
   Video,
   Sliders,
+  X,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
@@ -94,8 +95,15 @@ import {
   saveProductOrderToShopify,
   saveCollectionsToShopify,
 } from '../services/shopifyAdmin';
+import {
+  fetchAllReviewsForAdmin,
+  updateReviewStatus,
+  deleteProductReview,
+  submitProductReview,
+  ProductReview,
+} from '../services/reviewService';
 
-type AdminTab = 'homeShowcase' | 'productBA' | 'productOrder' | 'ugc' | 'collections' | 'settings';
+type AdminTab = 'homeShowcase' | 'productBA' | 'productOrder' | 'ugc' | 'collections' | 'reviews' | 'settings';
 
 interface ImageDropZoneProps {
   label: string;
@@ -814,6 +822,101 @@ export const AdminPage: React.FC = () => {
   const [isPullingCloud, setIsPullingCloud] = useState<boolean>(false);
   const [showSqlDrawer, setShowSqlDrawer] = useState<boolean>(false);
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
+
+  // --- TAB 7: Customer Reviews Moderation State ---
+  const [adminReviews, setAdminReviews] = useState<ProductReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState<boolean>(false);
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [reviewProductFilter, setReviewProductFilter] = useState<string>('all');
+  const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState<boolean>(false);
+  const [curatedProductSlug, setCuratedProductSlug] = useState<string>('');
+  const [curatedAuthorName, setCuratedAuthorName] = useState<string>('');
+  const [curatedAuthorEmail, setCuratedAuthorEmail] = useState<string>('');
+  const [curatedRating, setCuratedRating] = useState<number>(5);
+  const [curatedTitle, setCuratedTitle] = useState<string>('');
+  const [curatedContent, setCuratedContent] = useState<string>('');
+  const [isSubmittingCurated, setIsSubmittingCurated] = useState<boolean>(false);
+
+  const loadAdminReviews = async () => {
+    setIsLoadingReviews(true);
+    try {
+      const data = await fetchAllReviewsForAdmin();
+      setAdminReviews(data);
+    } catch (e) {
+      console.error('Failed to load admin reviews:', e);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      loadAdminReviews();
+    }
+  }, [activeTab]);
+
+  const handleUpdateReviewStatus = async (reviewId: string, status: 'approved' | 'pending' | 'rejected') => {
+    const ok = await updateReviewStatus(reviewId, status);
+    if (ok) {
+      setAdminReviews((prev) =>
+        prev.map((r) => (r.id === reviewId ? { ...r, status } : r))
+      );
+      showToast(`✓ Review status changed to "${status}".`);
+    } else {
+      showToast('⚠️ Could not update review status in Supabase.');
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm('Are you sure you want to delete this review permanently?')) return;
+    const ok = await deleteProductReview(reviewId);
+    if (ok) {
+      setAdminReviews((prev) => prev.filter((r) => r.id !== reviewId));
+      showToast('✓ Review permanently deleted.');
+    } else {
+      showToast('⚠️ Failed to delete review from Supabase.');
+    }
+  };
+
+  const handleCreateCuratedReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!curatedProductSlug || !curatedAuthorName.trim() || !curatedContent.trim()) {
+      alert('Please select a product and fill out author name and review content.');
+      return;
+    }
+
+    const prod = products.find((p) => p.slug === curatedProductSlug || p.id === curatedProductSlug);
+    setIsSubmittingCurated(true);
+    try {
+      const res = await submitProductReview({
+        productId: prod?.id || curatedProductSlug,
+        productSlug: prod?.slug || curatedProductSlug,
+        productName: prod?.name || curatedProductSlug,
+        authorName: curatedAuthorName.trim(),
+        authorEmail: curatedAuthorEmail.trim() || 'creator@cinevo.in',
+        rating: curatedRating,
+        title: curatedTitle.trim(),
+        content: curatedContent.trim(),
+        isVerifiedBuyer: true,
+      });
+
+      if (res.success && res.review) {
+        setAdminReviews((prev) => [res.review!, ...prev]);
+        setIsAddReviewModalOpen(false);
+        setCuratedAuthorName('');
+        setCuratedAuthorEmail('');
+        setCuratedTitle('');
+        setCuratedContent('');
+        showToast('✓ Verified Creator Review published successfully!');
+      } else {
+        alert(res.message || 'Failed to publish review.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error submitting review.');
+    } finally {
+      setIsSubmittingCurated(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -1841,6 +1944,29 @@ export const AdminPage: React.FC = () => {
           >
             <FolderKanban size={16} />
             Collection Manager
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reviews')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              backgroundColor: activeTab === 'reviews' ? 'var(--brown)' : 'var(--cream-light)',
+              color: activeTab === 'reviews' ? '#fff' : 'var(--brown)',
+              border: '1.5px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: activeTab === 'reviews' ? 'var(--shadow-sm)' : 'none',
+              flexShrink: 0,
+            }}
+          >
+            <Star size={16} color={activeTab === 'reviews' ? '#f59e0b' : '#f59e0b'} fill="#f59e0b" />
+            Customer Reviews {adminReviews.length > 0 ? `(${adminReviews.length})` : ''}
           </button>
 
           <button
@@ -4473,6 +4599,555 @@ export const AdminPage: React.FC = () => {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 7: CUSTOMER REVIEWS MODERATION PANEL */}
+        {/* ========================================================================= */}
+        {activeTab === 'reviews' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Top Toolbar */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '16px',
+                backgroundColor: '#ffffff',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '20px 24px',
+                boxShadow: 'var(--shadow-clay)',
+              }}
+            >
+              <div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                  Customer Reviews Moderation
+                </h2>
+                <p style={{ fontSize: '0.86rem', color: 'var(--muted)', margin: '4px 0 0 0' }}>
+                  Manage verified customer ratings, approve/reject feedback, or add curated reviews with photos.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={loadAdminReviews}
+                  disabled={isLoadingReviews}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--cream-light)',
+                    border: '1.5px solid var(--border)',
+                    color: 'var(--brown)',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <RefreshCw size={14} className={isLoadingReviews ? 'spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCuratedProductSlug(products[0]?.slug || '');
+                    setIsAddReviewModalOpen(true);
+                  }}
+                  className="clay-button"
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--brown)',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={15} />
+                  <span>Add Curated Review</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Pills Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(['all', 'approved', 'pending', 'rejected'] as const).map((status) => {
+                  const count =
+                    status === 'all'
+                      ? adminReviews.length
+                      : adminReviews.filter((r) => r.status === status).length;
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setReviewStatusFilter(status)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: reviewStatusFilter === status ? '1.5px solid var(--brown)' : '1px solid var(--border)',
+                        backgroundColor: reviewStatusFilter === status ? 'var(--brown)' : '#ffffff',
+                        color: reviewStatusFilter === status ? '#ffffff' : 'var(--brown)',
+                        cursor: 'pointer',
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {status} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Product Filter Dropdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--muted)', fontWeight: 600 }}>Filter by Product:</span>
+                <select
+                  value={reviewProductFilter}
+                  onChange={(e) => setReviewProductFilter(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    color: 'var(--brown)',
+                    backgroundColor: '#ffffff',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="all">All Products ({adminReviews.length})</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.slug}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Reviews List */}
+            {isLoadingReviews ? (
+              <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                <Loader2 size={32} className="spin" style={{ color: 'var(--brown)', margin: '0 auto' }} />
+                <p style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--muted)' }}>
+                  Loading reviews from Supabase...
+                </p>
+              </div>
+            ) : adminReviews.length === 0 ? (
+              <div
+                style={{
+                  padding: '50px 20px',
+                  textAlign: 'center',
+                  backgroundColor: '#ffffff',
+                  border: '1.5px dashed var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                }}
+              >
+                <Star size={36} style={{ color: '#cbd5e1', margin: '0 auto 12px auto' }} />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                  No Reviews Found in Database
+                </h3>
+                <p style={{ fontSize: '0.86rem', color: 'var(--muted)', marginTop: '6px' }}>
+                  Click "Add Curated Review" to publish initial creator testimonials or submit a review on any product page.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {adminReviews
+                  .filter((r) => (reviewStatusFilter === 'all' ? true : r.status === reviewStatusFilter))
+                  .filter((r) => (reviewProductFilter === 'all' ? true : r.productSlug === reviewProductFilter))
+                  .map((review) => (
+                    <div
+                      key={review.id}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '20px 24px',
+                        boxShadow: 'var(--shadow-clay)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                      }}
+                    >
+                      {/* Top Meta Line */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '10px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          {/* Stars */}
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                size={14}
+                                fill={s <= review.rating ? '#f59e0b' : '#e2e8f0'}
+                                color={s <= review.rating ? '#f59e0b' : '#cbd5e1'}
+                              />
+                            ))}
+                          </div>
+
+                          <span style={{ fontWeight: 800, fontSize: '0.94rem', color: 'var(--brown)' }}>
+                            {review.authorName}
+                          </span>
+
+                          <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                            &lt;{review.authorEmail}&gt;
+                          </span>
+
+                          {/* Product Badge */}
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              backgroundColor: 'var(--cream-light)',
+                              color: 'var(--brown)',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              border: '1px solid var(--border)',
+                            }}
+                          >
+                            📦 {review.productName || review.productSlug}
+                          </span>
+
+                          {/* Status Badge */}
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              backgroundColor:
+                                review.status === 'approved'
+                                  ? '#dcfce7'
+                                  : review.status === 'pending'
+                                  ? '#fef3c7'
+                                  : '#fee2e2',
+                              color:
+                                review.status === 'approved'
+                                  ? '#15803d'
+                                  : review.status === 'pending'
+                                  ? '#b45309'
+                                  : '#b91c1c',
+                            }}
+                          >
+                            {review.status}
+                          </span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {review.status !== 'approved' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateReviewStatus(review.id, 'approved')}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#dcfce7',
+                                color: '#15803d',
+                                border: '1px solid #bbf7d0',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ✓ Approve
+                            </button>
+                          )}
+
+                          {review.status !== 'rejected' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateReviewStatus(review.id, 'rejected')}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ✕ Reject
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReview(review.id)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              backgroundColor: 'transparent',
+                              color: '#dc2626',
+                              border: '1px solid rgba(220, 38, 38, 0.3)',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div>
+                        {review.title && (
+                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--brown)', marginBottom: '4px' }}>
+                            {review.title}
+                          </div>
+                        )}
+                        <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--charcoal)', lineHeight: 1.55 }}>
+                          {review.content}
+                        </p>
+                      </div>
+
+                      {/* Photo Attachments Preview */}
+                      {review.photos && review.photos.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                          {review.photos.map((url, pIdx) => (
+                            <a
+                              key={pIdx}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                border: '1px solid var(--border)',
+                                display: 'block',
+                              }}
+                            >
+                              <img src={url} alt="Review" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                        Created: {new Date(review.createdAt).toLocaleString()} • Helpful Likes: {review.likes || 0}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Modal: Add Curated Review */}
+            {isAddReviewModalOpen && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.65)',
+                  zIndex: 9999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: 'var(--radius-lg)',
+                    maxWidth: '520px',
+                    width: '100%',
+                    padding: '28px',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                    border: '1.5px solid var(--border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                    <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Add Curated Creator Review
+                    </h3>
+                    <button
+                      onClick={() => setIsAddReviewModalOpen(false)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleCreateCuratedReview} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                        Assign to Product *
+                      </label>
+                      <select
+                        required
+                        value={curatedProductSlug}
+                        onChange={(e) => setCuratedProductSlug(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                          outline: 'none',
+                        }}
+                      >
+                        {products.map((p) => (
+                          <option key={p.id} value={p.slug}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                          Author Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={curatedAuthorName}
+                          onChange={(e) => setCuratedAuthorName(e.target.value)}
+                          placeholder="e.g. Vikram Malhotra"
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                          Star Rating (1-5) *
+                        </label>
+                        <select
+                          value={curatedRating}
+                          onChange={(e) => setCuratedRating(Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            fontSize: '0.88rem',
+                            fontWeight: 700,
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <option value={5}>⭐⭐⭐⭐⭐ 5 Stars</option>
+                          <option value={4}>⭐⭐⭐⭐ 4 Stars</option>
+                          <option value={3}>⭐⭐⭐ 3 Stars</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                        Review Title (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={curatedTitle}
+                        onChange={(e) => setCuratedTitle(e.target.value)}
+                        placeholder="e.g. Unbelievable color grading results"
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '4px' }}>
+                        Review Content *
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={curatedContent}
+                        onChange={(e) => setCuratedContent(e.target.value)}
+                        placeholder="Detailed feedback from the creator..."
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingCurated}
+                      className="btn-primary"
+                      style={{
+                        padding: '12px',
+                        fontSize: '0.92rem',
+                        fontWeight: 800,
+                        marginTop: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      {isSubmittingCurated ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
+                      <span>Publish Verified Review</span>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
