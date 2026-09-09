@@ -34,6 +34,7 @@ import { useShopify } from '../context/ShopifyContext';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
 import { ProductCard } from '../components/cards/ProductCard';
 import { MobileStickyBuyBar } from '../components/pdp/MobileStickyBuyBar';
+import { ProductBundleUpsell } from '../components/pdp/ProductBundleUpsell';
 import { ProductReviewsSection } from '../components/reviews/ProductReviewsSection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
@@ -1739,6 +1740,9 @@ export const ProductDetailPage: React.FC = () => {
                   <span>100% Satisfaction Guarantee</span>
                 </div>
               </div>
+
+              {/* ⚡ High-Converting Bundle & Save Cross-Sell / Upsell */}
+              <ProductBundleUpsell currentProduct={product} allProducts={products} />
 
             </div>
           </div>
