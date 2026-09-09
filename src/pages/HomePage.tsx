@@ -80,6 +80,19 @@ export const HomePage: React.FC = () => {
     });
   }, [homeLooks]);
 
+  // Preload all UGC images in background immediately on mount so sliding has zero lag/load delay
+  useEffect(() => {
+    if (!ugcList || ugcList.length === 0) return;
+    ugcList.forEach((item) => {
+      const src = optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 450);
+      if (src) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = src;
+      }
+    });
+  }, [ugcList]);
+
   // Directional slide state for smooth animated look transitions on Homepage
   const [homeSlideDirection, setHomeSlideDirection] = useState<number>(1);
 
@@ -850,16 +863,16 @@ export const HomePage: React.FC = () => {
                   >
                     {/* Background Vertical Media (Video Poster / Photo / YouTube / Instagram) */}
                     <img
-                      src={optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 500)}
+                      src={optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 450)}
                       alt={item.caption || item.creatorName}
-                      loading="lazy"
+                      loading="eager"
                       decoding="async"
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
                         display: 'block',
-                        transition: 'transform 0.5s ease',
+                        transition: isUgcGrabbing ? 'none' : 'transform 0.5s ease',
                       }}
                       className="ugc-vertical-img"
                     />
