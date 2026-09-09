@@ -1,11 +1,24 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Plus, Minus, Trash2, ArrowRight, DownloadCloud, ShoppingBag, Zap, Loader2 } from 'lucide-react';
+import { X, Plus, Minus, Trash2, ArrowRight, DownloadCloud, ShoppingBag, Zap, Loader2, Tag, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useShopify } from '../../context/ShopifyContext';
 
 export const CartDrawer: React.FC = () => {
-  const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, subtotal, totalItems, checkoutWithShopify, isCheckingOut } = useCart();
+  const {
+    cart,
+    isCartOpen,
+    setIsCartOpen,
+    removeFromCart,
+    updateQuantity,
+    subtotal,
+    bundleDiscountPercent,
+    bundleDiscountAmount,
+    finalTotal,
+    totalItems,
+    checkoutWithShopify,
+    isCheckingOut,
+  } = useCart();
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
 
@@ -266,12 +279,51 @@ export const CartDrawer: React.FC = () => {
               <span>Instant digital delivery & commercial license included.</span>
             </div>
 
-            {/* Subtotal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>Subtotal</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)' }}>
-                {currencySymbol}{subtotal}
-              </span>
+            {/* Pricing Summary */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {bundleDiscountPercent > 0 ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.92rem', color: 'var(--muted)', fontWeight: 500 }}>Original Price</span>
+                    <span style={{ fontSize: '0.96rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                      {currencySymbol}{subtotal}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--terracotta-dark)' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Tag size={13} /> {bundleDiscountPercent}% Bundle Savings
+                    </span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                      -{currencySymbol}{bundleDiscountAmount}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      paddingTop: '8px',
+                      borderTop: '1px dashed var(--border)',
+                    }}
+                  >
+                    <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--brown)' }}>Final Total</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--brown-dark)' }}>
+                        {currencySymbol}{finalTotal}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>Subtotal</span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)' }}>
+                    {currencySymbol}{subtotal}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Direct Shopify Checkout Button */}

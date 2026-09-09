@@ -346,7 +346,8 @@ export async function fetchLiveShopifyProducts(): Promise<Product[]> {
 
 // Create Shopify Checkout Session URL
 export async function createShopifyCheckoutSession(
-  items: Array<{ shopifyVariantId?: string; quantity: number }>
+  items: Array<{ shopifyVariantId?: string; quantity: number }>,
+  discountCode?: string
 ): Promise<string | null> {
   try {
     const validLines = items
@@ -357,8 +358,8 @@ export async function createShopifyCheckoutSession(
       }));
 
     if (validLines.length === 0) {
-      // If items don't have a variant ID, redirect to shopify store root or checkout
-      return `https://${SHOPIFY_DOMAIN}/checkout`;
+      const base = `https://${SHOPIFY_DOMAIN}/checkout`;
+      return discountCode ? `${base}?discount=${encodeURIComponent(discountCode)}` : base;
     }
 
     const data = await shopifyFetch<any>({
@@ -366,8 +367,12 @@ export async function createShopifyCheckoutSession(
       variables: { lines: validLines },
     });
 
-    const checkoutUrl = data?.cartCreate?.cart?.checkoutUrl;
-    return checkoutUrl || `https://${SHOPIFY_DOMAIN}/checkout`;
+    let checkoutUrl = data?.cartCreate?.cart?.checkoutUrl || `https://${SHOPIFY_DOMAIN}/checkout`;
+    if (discountCode) {
+      const separator = checkoutUrl.includes('?') ? '&' : '?';
+      checkoutUrl = `${checkoutUrl}${separator}discount=${encodeURIComponent(discountCode)}`;
+    }
+    return checkoutUrl;
   } catch (err) {
     console.error('Failed to create Shopify cart checkout session:', err);
     return `https://${SHOPIFY_DOMAIN}/checkout`;

@@ -1,11 +1,23 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ArrowRight, DownloadCloud, ShieldCheck, ShoppingBag, Zap, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, DownloadCloud, ShieldCheck, ShoppingBag, Zap, Loader2, Tag, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useShopify } from '../context/ShopifyContext';
 
 export const CartPage: React.FC = () => {
-  const { cart, removeFromCart, updateQuantity, subtotal, totalItems, clearCart, checkoutWithShopify, isCheckingOut } = useCart();
+  const {
+    cart,
+    removeFromCart,
+    updateQuantity,
+    subtotal,
+    bundleDiscountPercent,
+    bundleDiscountAmount,
+    finalTotal,
+    totalItems,
+    clearCart,
+    checkoutWithShopify,
+    isCheckingOut,
+  } = useCart();
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
 
@@ -175,8 +187,20 @@ export const CartPage: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--muted)' }}>
                   <span>Items Subtotal ({totalItems})</span>
-                  <span style={{ fontWeight: 700, color: 'var(--brown)' }}>{currencySymbol}{subtotal}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--brown)', textDecoration: bundleDiscountPercent > 0 ? 'line-through' : 'none' }}>
+                    {currencySymbol}{subtotal}
+                  </span>
                 </div>
+
+                {bundleDiscountPercent > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--terracotta-dark)' }}>
+                    <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Tag size={14} /> Bundle Savings ({bundleDiscountPercent}% OFF)
+                    </span>
+                    <span style={{ fontWeight: 800 }}>-{currencySymbol}{bundleDiscountAmount}</span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--muted)' }}>
                   <span>Digital Delivery</span>
                   <span style={{ fontWeight: 700, color: 'var(--olive-dark)' }}>FREE (Instant)</span>
@@ -196,7 +220,9 @@ export const CartPage: React.FC = () => {
                   }}
                 >
                   <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--brown)' }}>Total Due</span>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--brown)' }}>{currencySymbol}{subtotal}</span>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--brown-dark)' }}>
+                    {currencySymbol}{finalTotal}
+                  </span>
                 </div>
               </div>
 

@@ -12,6 +12,9 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void;
   totalItems: number;
   subtotal: number;
+  bundleDiscountPercent: number;
+  bundleDiscountAmount: number;
+  finalTotal: number;
   isCheckingOut: boolean;
   checkoutWithShopify: (singleProduct?: Product) => Promise<void>;
 }
@@ -76,6 +79,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
+  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+
+  // Automatic Bundle Savings Tier:
+  // 3+ items = 25% OFF (Code: BUNDLE25)
+  // 2 items = 20% OFF (Code: BUNDLE20)
+  const bundleDiscountPercent = totalItems >= 3 ? 25 : totalItems === 2 ? 20 : 0;
+  const bundleDiscountAmount = Math.round((subtotal * bundleDiscountPercent) / 100);
+  const finalTotal = subtotal - bundleDiscountAmount;
+  const bundleDiscountCode = bundleDiscountPercent === 25 ? 'BUNDLE25' : bundleDiscountPercent === 20 ? 'BUNDLE20' : '';
+
   const checkoutWithShopify = async (singleProduct?: Product) => {
     setIsCheckingOut(true);
     try {
@@ -86,21 +100,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             quantity: item.quantity,
           }));
 
-      const checkoutUrl = await createShopifyCheckoutSession(itemsToCheckout);
+      // Apply automatic bundle coupon code if 2+ items
+      const applicableDiscount = singleProduct ? undefined : (bundleDiscountCode || undefined);
+
+      const checkoutUrl = await createShopifyCheckoutSession(itemsToCheckout, applicableDiscount);
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       }
     } catch (error) {
       console.error('Failed to start Shopify checkout:', error);
       // Fallback redirect to store checkout
-      window.location.href = 'https://template-theory-2.myshopify.com/checkout';
+      const fallbackUrl = bundleDiscountCode
+        ? `https://template-theory-2.myshopify.com/checkout?discount=${encodeURIComponent(bundleDiscountCode)}`
+        : 'https://template-theory-2.myshopify.com/checkout';
+      window.location.href = fallbackUrl;
     } finally {
       setIsCheckingOut(false);
     }
   };
-
-  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
 
   return (
     <CartContext.Provider
@@ -114,6 +131,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsCartOpen,
         totalItems,
         subtotal,
+        bundleDiscountPercent,
+        bundleDiscountAmount,
+        finalTotal,
         isCheckingOut,
         checkoutWithShopify,
       }}
