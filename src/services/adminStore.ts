@@ -17,6 +17,36 @@ export interface HomepageSettings {
   ugcSpeed?: number; // duration in seconds (e.g. 15 to 120, default ~50s)
 }
 
+export interface SocialSettings {
+  instagramUrl: string;
+  instagramEnabled: boolean;
+  whatsappNumber: string; // e.g. "8109280664"
+  whatsappMessage: string;
+  whatsappEnabled: boolean; // Footer WhatsApp icon
+  floatingWhatsappEnabled: boolean; // Floating widget at bottom right
+  youtubeUrl?: string;
+  youtubeEnabled?: boolean;
+  twitterUrl?: string;
+  twitterEnabled?: boolean;
+  facebookUrl?: string;
+  facebookEnabled?: boolean;
+}
+
+export const DEFAULT_SOCIAL_SETTINGS: SocialSettings = {
+  instagramUrl: 'https://www.instagram.com/template_theory_/',
+  instagramEnabled: true,
+  whatsappNumber: '8109280664',
+  whatsappMessage: 'Hi Template Theory, I have a question about your packs!',
+  whatsappEnabled: true,
+  floatingWhatsappEnabled: true,
+  youtubeUrl: 'https://youtube.com',
+  youtubeEnabled: false,
+  twitterUrl: 'https://twitter.com',
+  twitterEnabled: false,
+  facebookUrl: 'https://facebook.com',
+  facebookEnabled: false,
+};
+
 export interface AdminCustomizations {
   beforeAfter: Record<string, CustomBeforeAfterLook[]>; // keyed by product slug or id
   homepageSettings?: HomepageSettings; // dedicated homepage settings & looks
@@ -24,6 +54,7 @@ export interface AdminCustomizations {
   collectionOverrides: Record<string, string[]>; // collection slug -> array of product slugs/ids
   ugcItems?: UGCItem[]; // custom vertical UGC items for continuous marquee
   ugcSpeed?: number; // duration in seconds for community marquee ticker
+  socialSettings?: SocialSettings; // social links & floating WhatsApp settings
 }
 
 const STORAGE_KEY = 'cinevo_admin_customizations_v1';
@@ -259,6 +290,17 @@ export function saveSavedUGCSpeed(speed: number): void {
   if (custom.homepageSettings) {
     custom.homepageSettings.ugcSpeed = speed;
   }
+  saveAdminCustomizations(custom);
+}
+
+export function getSavedSocialSettings(): SocialSettings {
+  const custom = getAdminCustomizations();
+  return custom.socialSettings || DEFAULT_SOCIAL_SETTINGS;
+}
+
+export function saveSavedSocialSettings(settings: SocialSettings): void {
+  const custom = getAdminCustomizations();
+  custom.socialSettings = settings;
   saveAdminCustomizations(custom);
 }
 

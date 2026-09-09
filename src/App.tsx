@@ -9,6 +9,7 @@ import { CartDrawer } from './components/layout/CartDrawer';
 import { SearchModal } from './components/layout/SearchModal';
 import { WishlistDrawer } from './components/layout/WishlistDrawer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
+import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
 
 // Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
@@ -85,6 +86,9 @@ const AppContent: React.FC = () => {
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
       
+      {/* Floating WhatsApp Action Widget */}
+      <FloatingWhatsApp />
+
       {/* Mobile Floating Action Dock */}
       <MobileBottomNav
         onOpenSearch={() => setIsSearchOpen(true)}

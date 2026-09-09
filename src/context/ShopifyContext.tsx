@@ -12,9 +12,13 @@ import {
   saveSavedUGCItems,
   getSavedHomepageSettings,
   saveSavedHomepageSettings,
+  getSavedSocialSettings,
+  saveSavedSocialSettings,
   hydrateFromIndexedDb,
   CustomBeforeAfterLook,
   HomepageSettings,
+  SocialSettings,
+  DEFAULT_SOCIAL_SETTINGS,
 } from '../services/adminStore';
 import {
   fetchCustomizationsFromCloud,
@@ -33,11 +37,13 @@ interface ShopifyContextType {
   ugcList: UGCItem[];
   homeBeforeAfterLooks: CustomBeforeAfterLook[];
   homepageSettings: HomepageSettings;
+  socialSettings: SocialSettings;
   getProductBySlug: (slug: string) => Product | undefined;
   getProductsByCategory: (category: ProductCategory | 'all') => Product[];
   refreshProducts: () => Promise<void>;
   updateProductBeforeAfter: (slugOrId: string, looks: CustomBeforeAfterLook[]) => void;
   updateHomepageSettings: (settings: HomepageSettings) => void;
+  updateSocialSettings: (settings: SocialSettings) => void;
   updateProductOrder: (orderedIdentifiers: string[]) => void;
   updateCollectionMapping: (collectionSlug: string, productIdentifiers: string[]) => void;
   updateUGCItems: (items: UGCItem[]) => void;
@@ -352,6 +358,19 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return homepageSettings.looks || [];
   }, [homepageSettings]);
 
+  // Social & Floating WhatsApp Settings
+  const socialSettings = useMemo<SocialSettings>(() => {
+    return getSavedSocialSettings();
+  }, [customizationVersion]);
+
+  const updateSocialSettings = useCallback((settings: SocialSettings) => {
+    saveSavedSocialSettings(settings);
+    setCustomizationVersion((v) => v + 1);
+    // Background sync to Cloud Database
+    const allCustomizations = getAdminCustomizations();
+    saveCustomizationsToCloud(allCustomizations).catch((err) => console.warn('Cloud sync error:', err));
+  }, []);
+
   const updateHomepageSettings = useCallback((settings: HomepageSettings) => {
     saveSavedHomepageSettings(settings);
     setCustomizationVersion((v) => v + 1);
@@ -388,11 +407,13 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ugcList,
         homeBeforeAfterLooks,
         homepageSettings,
+        socialSettings,
         getProductBySlug,
         getProductsByCategory,
         refreshProducts: loadProducts,
         updateProductBeforeAfter,
         updateHomepageSettings,
+        updateSocialSettings,
         updateProductOrder,
         updateCollectionMapping,
         updateUGCItems,

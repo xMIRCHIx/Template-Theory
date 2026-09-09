@@ -38,6 +38,10 @@ import {
   Video,
   Sliders,
   X,
+  MessageCircle,
+  Send,
+  Share2,
+  Phone,
 } from 'lucide-react';
 import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
@@ -58,6 +62,25 @@ const InstagramIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14,
     <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
   </svg>
 );
+
+const WhatsAppIcon: React.FC<{ size?: number; color?: string }> = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.28-2.42 5.83a8.18 8.18 0 0 1-5.82 2.41c-1.47 0-2.92-.39-4.19-1.15l-.3-.18-3.11.82.83-3.03-.2-.31a8.21 8.21 0 0 1-1.26-4.39c0-4.54 3.7-8.24 8.24-8.24zm4.8 11.66c-.2-.1-1.2-.59-1.39-.66-.19-.07-.33-.1-.47.1-.14.2-.54.66-.66.8-.12.14-.24.16-.45.05-.2-.1-.87-.32-1.66-1.02-.61-.55-1.03-1.22-1.15-1.43-.12-.2-.01-.31.09-.41.09-.09.2-.24.3-.35.1-.12.14-.2.2-.34.07-.14.03-.25-.02-.35s-.47-1.14-.65-1.56c-.17-.41-.35-.35-.48-.36-.12 0-.27-.01-.41-.01-.14 0-.38.05-.58.27-.2.22-.77.75-.77 1.83 0 1.08.79 2.12.9 2.27.11.15 1.55 2.37 3.76 3.32.53.23.94.36 1.26.47.53.17 1.01.15 1.39.09.43-.06 1.31-.53 1.49-1.05.19-.51.19-.96.13-1.05-.06-.1-.2-.16-.4-.26z" />
+  </svg>
+);
+
+const FacebookIcon: React.FC<{ size?: number; color?: string }> = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
+
+const XTwitterIcon: React.FC<{ size?: number; color?: string }> = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
 import {
   getAdminPin,
   setAdminPin,
@@ -67,6 +90,10 @@ import {
   saveSavedHomepageSettings,
   getSavedUGCSpeed,
   saveSavedUGCSpeed,
+  getSavedSocialSettings,
+  saveSavedSocialSettings,
+  DEFAULT_SOCIAL_SETTINGS,
+  SocialSettings,
   CustomBeforeAfterLook,
   HomepageSettings,
 } from '../services/adminStore';
@@ -103,7 +130,7 @@ import {
   ProductReview,
 } from '../services/reviewService';
 
-type AdminTab = 'homeShowcase' | 'productBA' | 'productOrder' | 'ugc' | 'collections' | 'reviews' | 'settings';
+type AdminTab = 'homeShowcase' | 'productBA' | 'productOrder' | 'ugc' | 'collections' | 'reviews' | 'social' | 'settings';
 
 interface ImageDropZoneProps {
   label: string;
@@ -734,6 +761,8 @@ export const AdminPage: React.FC = () => {
     resetAllCustomizations,
     isCloudSyncActive,
     syncWithCloud,
+    socialSettings,
+    updateSocialSettings,
   } = useShopify();
 
   // PIN Authentication State
@@ -915,6 +944,41 @@ export const AdminPage: React.FC = () => {
       alert(err.message || 'Error submitting review.');
     } finally {
       setIsSubmittingCurated(false);
+    }
+  };
+
+  // --- TAB 8: Social & WhatsApp State ---
+  const [socialConfig, setSocialConfig] = useState<SocialSettings>(() => getSavedSocialSettings());
+  const [isSavingSocial, setIsSavingSocial] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (socialSettings) {
+      setSocialConfig(JSON.parse(JSON.stringify(socialSettings)));
+    }
+  }, [socialSettings]);
+
+  const handleSaveSocialSettings = async () => {
+    setIsSavingSocial(true);
+    try {
+      showToast('⏳ Saving Social & WhatsApp settings to Supabase Cloud Database...');
+      updateSocialSettings(socialConfig);
+      saveSavedSocialSettings(socialConfig);
+
+      const allCustomizations = getAdminCustomizations();
+      allCustomizations.socialSettings = socialConfig;
+      saveAdminCustomizations(allCustomizations);
+
+      const cloudRes = await saveCustomizationsToCloud(allCustomizations);
+      if (cloudRes.success) {
+        showToast('✓ Social & WhatsApp Settings saved to Cloud Database! Live across all visitors.');
+      } else {
+        showToast('✓ Social & WhatsApp settings saved locally & on Storefront!');
+      }
+    } catch (err: any) {
+      console.error('Error saving social settings:', err);
+      showToast('⚠️ Error saving social settings.');
+    } finally {
+      setIsSavingSocial(false);
     }
   };
 
@@ -1967,6 +2031,29 @@ export const AdminPage: React.FC = () => {
           >
             <Star size={16} color={activeTab === 'reviews' ? '#f59e0b' : '#f59e0b'} fill="#f59e0b" />
             Customer Reviews {adminReviews.length > 0 ? `(${adminReviews.length})` : ''}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('social')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              backgroundColor: activeTab === 'social' ? 'var(--brown)' : 'var(--cream-light)',
+              color: activeTab === 'social' ? '#fff' : 'var(--brown)',
+              border: '1.5px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: activeTab === 'social' ? 'var(--shadow-sm)' : 'none',
+              flexShrink: 0,
+            }}
+          >
+            <MessageCircle size={16} color={activeTab === 'social' ? '#25D366' : '#25D366'} />
+            Social & WhatsApp Links
           </button>
 
           <button
@@ -5148,6 +5235,796 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 8: SOCIAL MEDIA & WHATSAPP SETTINGS                                   */}
+        {/* ========================================================================= */}
+        {activeTab === 'social' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {/* Header Banner */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '24px',
+                boxShadow: 'var(--shadow-clay)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '16px',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      backgroundColor: '#25D366',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <WhatsAppIcon size={20} color="#fff" />
+                  </div>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                    Social Media & WhatsApp Settings
+                  </h2>
+                </div>
+                <p style={{ fontSize: '0.86rem', color: 'var(--muted)', margin: '6px 0 0 0' }}>
+                  Manage the official Instagram profile, WhatsApp contact number, floating chat button, and toggle brand links displayed in the website footer.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveSocialSettings}
+                  disabled={isSavingSocial}
+                  className="clay-button"
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--brown)',
+                    color: '#ffffff',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  {isSavingSocial ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
+                  <span>Save Social Settings</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 2-Column Grid: Left (Inputs & Toggles), Right (Live Preview) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '28px' }} className="admin-grid-2col">
+              
+              {/* Left Column: Social Inputs */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* 1. WHATSAPP CONFIGURATION CARD */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    boxShadow: 'var(--shadow-clay)',
+                    borderLeft: '5px solid #25D366',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span
+                        style={{
+                          backgroundColor: '#dcfce7',
+                          color: '#15803d',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <WhatsAppIcon size={18} color="#25D366" />
+                      </span>
+                      <div>
+                        <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                          WhatsApp Configuration
+                        </h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                          Direct customer chat & floating button
+                        </span>
+                      </div>
+                    </div>
+
+                    <a
+                      href={`https://wa.me/${socialConfig.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(socialConfig.whatsappMessage || 'Hi Template Theory!')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: '#15803d',
+                        backgroundColor: '#dcfce7',
+                        padding: '5px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      Test Chat Link <ExternalLink size={12} />
+                    </a>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '5px' }}>
+                        WhatsApp Phone Number (with Country Code):
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div
+                          style={{
+                            padding: '10px 14px',
+                            backgroundColor: 'var(--cream-light)',
+                            border: '1.5px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            color: 'var(--brown)',
+                          }}
+                        >
+                          +91 / IN
+                        </div>
+                        <input
+                          type="text"
+                          value={socialConfig.whatsappNumber}
+                          onChange={(e) =>
+                            setSocialConfig((prev) => ({ ...prev, whatsappNumber: e.target.value }))
+                          }
+                          placeholder="e.g. 8109280664 or +918109280664"
+                          style={{
+                            flex: 1,
+                            padding: '10px 14px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1.5px solid var(--border)',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            outline: 'none',
+                            backgroundColor: '#fff',
+                          }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>
+                        💡 Tip: 10-digit Indian numbers (e.g. <code>8109280664</code>) will automatically open as <code>+91 8109280664</code>.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '5px' }}>
+                        Default WhatsApp Pre-filled Greeting Message:
+                      </label>
+                      <input
+                        type="text"
+                        value={socialConfig.whatsappMessage}
+                        onChange={(e) =>
+                          setSocialConfig((prev) => ({ ...prev, whatsappMessage: e.target.value }))
+                        }
+                        placeholder="Hi Template Theory, I have a question about your packs!"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1.5px solid var(--border)',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          backgroundColor: '#fff',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    {/* WhatsApp Toggles */}
+                    <div
+                      style={{
+                        backgroundColor: 'var(--cream-light)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                      }}
+                    >
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--brown)' }}>
+                            Show WhatsApp Icon in Footer
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={socialConfig.whatsappEnabled}
+                          onChange={(e) =>
+                            setSocialConfig((prev) => ({ ...prev, whatsappEnabled: e.target.checked }))
+                          }
+                          style={{ width: '18px', height: '18px', accentColor: '#25D366', cursor: 'pointer' }}
+                        />
+                      </label>
+
+                      <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />
+
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--brown)' }}>
+                            Show Floating WhatsApp Button on Website (Bottom-Right)
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={socialConfig.floatingWhatsappEnabled}
+                          onChange={(e) =>
+                            setSocialConfig((prev) => ({ ...prev, floatingWhatsappEnabled: e.target.checked }))
+                          }
+                          style={{ width: '18px', height: '18px', accentColor: '#25D366', cursor: 'pointer' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. INSTAGRAM CONFIGURATION CARD */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    boxShadow: 'var(--shadow-clay)',
+                    borderLeft: '5px solid #E1306C',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span
+                        style={{
+                          backgroundColor: '#fdf2f8',
+                          color: '#db2777',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <InstagramIcon size={18} color="#E1306C" />
+                      </span>
+                      <div>
+                        <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                          Instagram Profile
+                        </h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                          Brand portfolio & creator community
+                        </span>
+                      </div>
+                    </div>
+
+                    <a
+                      href={socialConfig.instagramUrl || 'https://www.instagram.com/template_theory_/'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: '#db2777',
+                        backgroundColor: '#fdf2f8',
+                        padding: '5px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      Open Instagram <ExternalLink size={12} />
+                    </a>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '5px' }}>
+                        Instagram Profile Link:
+                      </label>
+                      <input
+                        type="url"
+                        value={socialConfig.instagramUrl}
+                        onChange={(e) =>
+                          setSocialConfig((prev) => ({ ...prev, instagramUrl: e.target.value }))
+                        }
+                        placeholder="https://www.instagram.com/template_theory_/"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1.5px solid var(--border)',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                          outline: 'none',
+                          backgroundColor: '#fff',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        backgroundColor: 'var(--cream-light)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '14px',
+                      }}
+                    >
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--brown)' }}>
+                          Show Instagram Icon in Footer
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={socialConfig.instagramEnabled}
+                          onChange={(e) =>
+                            setSocialConfig((prev) => ({ ...prev, instagramEnabled: e.target.checked }))
+                          }
+                          style={{ width: '18px', height: '18px', accentColor: '#E1306C', cursor: 'pointer' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. OTHER SOCIAL CHANNELS (Facebook, YouTube, X/Twitter) */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    boxShadow: 'var(--shadow-clay)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--cream-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--terracotta)',
+                      }}
+                    >
+                      <Share2 size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                        Additional Channels (Facebook, YouTube, X)
+                      </h3>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                        Toggle and configure links to display in the footer
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                    {/* Facebook */}
+                    <div
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '14px',
+                        backgroundColor: socialConfig.facebookEnabled ? '#f0fdf4' : 'var(--cream-light)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <FacebookIcon size={16} color="#1877F2" />
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--brown)' }}>
+                            Facebook Page
+                          </span>
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                          <span>{socialConfig.facebookEnabled ? 'Enabled' : 'Disabled'}</span>
+                          <input
+                            type="checkbox"
+                            checked={socialConfig.facebookEnabled}
+                            onChange={(e) =>
+                              setSocialConfig((prev) => ({ ...prev, facebookEnabled: e.target.checked }))
+                            }
+                            style={{ width: '16px', height: '16px', accentColor: '#1877F2', cursor: 'pointer' }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={socialConfig.facebookUrl}
+                        onChange={(e) =>
+                          setSocialConfig((prev) => ({ ...prev, facebookUrl: e.target.value }))
+                        }
+                        placeholder="https://facebook.com/templatetheory"
+                        disabled={!socialConfig.facebookEnabled}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                          backgroundColor: socialConfig.facebookEnabled ? '#fff' : '#f5f5f5',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    {/* YouTube */}
+                    <div
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '14px',
+                        backgroundColor: socialConfig.youtubeEnabled ? '#f0fdf4' : 'var(--cream-light)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <YoutubeIcon size={16} color="#FF0000" />
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--brown)' }}>
+                            YouTube Channel
+                          </span>
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                          <span>{socialConfig.youtubeEnabled ? 'Enabled' : 'Disabled'}</span>
+                          <input
+                            type="checkbox"
+                            checked={socialConfig.youtubeEnabled}
+                            onChange={(e) =>
+                              setSocialConfig((prev) => ({ ...prev, youtubeEnabled: e.target.checked }))
+                            }
+                            style={{ width: '16px', height: '16px', accentColor: '#FF0000', cursor: 'pointer' }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={socialConfig.youtubeUrl}
+                        onChange={(e) =>
+                          setSocialConfig((prev) => ({ ...prev, youtubeUrl: e.target.value }))
+                        }
+                        placeholder="https://youtube.com/@templatetheory"
+                        disabled={!socialConfig.youtubeEnabled}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                          backgroundColor: socialConfig.youtubeEnabled ? '#fff' : '#f5f5f5',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    {/* X / Twitter */}
+                    <div
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '14px',
+                        backgroundColor: socialConfig.twitterEnabled ? '#f0fdf4' : 'var(--cream-light)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <XTwitterIcon size={15} color="#000000" />
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--brown)' }}>
+                            X / Twitter Profile
+                          </span>
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                          <span>{socialConfig.twitterEnabled ? 'Enabled' : 'Disabled'}</span>
+                          <input
+                            type="checkbox"
+                            checked={socialConfig.twitterEnabled}
+                            onChange={(e) =>
+                              setSocialConfig((prev) => ({ ...prev, twitterEnabled: e.target.checked }))
+                            }
+                            style={{ width: '16px', height: '16px', accentColor: '#000000', cursor: 'pointer' }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={socialConfig.twitterUrl}
+                        onChange={(e) =>
+                          setSocialConfig((prev) => ({ ...prev, twitterUrl: e.target.value }))
+                        }
+                        placeholder="https://x.com/templatetheory"
+                        disabled={!socialConfig.twitterEnabled}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                          backgroundColor: socialConfig.twitterEnabled ? '#fff' : '#f5f5f5',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: Live Preview & Action Box */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* Live Preview Card */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    boxShadow: 'var(--shadow-clay)',
+                    position: 'sticky',
+                    top: '20px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <Eye size={18} color="var(--terracotta)" />
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Live Storefront Preview
+                    </h3>
+                  </div>
+
+                  {/* 1. Footer Icons Preview */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>
+                      FOOTER SOCIAL ICONS ROW:
+                    </span>
+                    <div
+                      style={{
+                        padding: '16px',
+                        backgroundColor: 'var(--cream-light)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      {socialConfig.instagramEnabled && (
+                        <div
+                          title="Instagram"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            border: '1.5px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#E1306C',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <InstagramIcon size={18} color="#E1306C" />
+                        </div>
+                      )}
+
+                      {socialConfig.whatsappEnabled && (
+                        <div
+                          title="WhatsApp"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            border: '1.5px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#25D366',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <WhatsAppIcon size={18} color="#25D366" />
+                        </div>
+                      )}
+
+                      {socialConfig.facebookEnabled && (
+                        <div
+                          title="Facebook"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            border: '1.5px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#1877F2',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <FacebookIcon size={18} color="#1877F2" />
+                        </div>
+                      )}
+
+                      {socialConfig.youtubeEnabled && (
+                        <div
+                          title="YouTube"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            border: '1.5px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#FF0000',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <YoutubeIcon size={18} color="#FF0000" />
+                        </div>
+                      )}
+
+                      {socialConfig.twitterEnabled && (
+                        <div
+                          title="X / Twitter"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            border: '1.5px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#000000',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <XTwitterIcon size={16} color="#000000" />
+                        </div>
+                      )}
+
+                      {!socialConfig.instagramEnabled &&
+                        !socialConfig.whatsappEnabled &&
+                        !socialConfig.facebookEnabled &&
+                        !socialConfig.youtubeEnabled &&
+                        !socialConfig.twitterEnabled && (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+                            All social icons currently hidden in footer.
+                          </span>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* 2. Floating WhatsApp Widget Preview */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>
+                      FLOATING WHATSAPP BUTTON (BOTTOM-RIGHT):
+                    </span>
+                    <div
+                      style={{
+                        padding: '24px 16px',
+                        backgroundColor: '#1e1b18',
+                        borderRadius: 'var(--radius-md)',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {socialConfig.floatingWhatsappEnabled ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{
+                              backgroundColor: 'rgba(255,255,255,0.95)',
+                              color: '#1e1b18',
+                              padding: '6px 12px',
+                              borderRadius: '20px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            }}
+                          >
+                            Chat on WhatsApp 💬
+                          </div>
+                          <div
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              borderRadius: '50%',
+                              backgroundColor: '#25D366',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 8px 24px rgba(37, 211, 102, 0.4)',
+                              border: '2px solid rgba(255,255,255,0.2)',
+                            }}
+                          >
+                            <WhatsAppIcon size={26} color="#fff" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ width: '100%', textAlign: 'center', color: '#999', fontSize: '0.78rem' }}>
+                          Floating button is disabled (Toggled OFF)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    type="button"
+                    onClick={handleSaveSocialSettings}
+                    disabled={isSavingSocial}
+                    className="btn-primary"
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      fontSize: '0.95rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {isSavingSocial ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
+                    <span>Save to Cloud Database</span>
+                  </button>
+
+                  <p style={{ fontSize: '0.74rem', color: 'var(--muted)', textAlign: 'center', margin: '10px 0 0 0' }}>
+                    ⚡ Changes sync instantly with Supabase Cloud DB and update live on the Storefront.
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
           </div>
         )}
 
