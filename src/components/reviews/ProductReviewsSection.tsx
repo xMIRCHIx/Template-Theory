@@ -6,13 +6,16 @@ import {
   Image as ImageIcon,
   X,
   Plus,
-  Filter,
   Check,
   Upload,
   AlertCircle,
   Sparkles,
   Loader2,
-  ChevronDown,
+  ArrowRight,
+  ArrowLeft,
+  Heart,
+  Smile,
+  Zap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -40,10 +43,58 @@ interface PhotoPreviewItem {
   compressedSizeKb: number;
 }
 
+const RATING_MOODS: Record<number, { label: string; emoji: string; desc: string; bg: string; color: string }> = {
+  5: {
+    label: 'Mind-Blowing / Game Changer!',
+    emoji: '🔥',
+    desc: 'Exceeded all expectations. High-end cinema quality.',
+    bg: '#fef3c7',
+    color: '#b45309',
+  },
+  4: {
+    label: 'Great Toolkit! Loved It',
+    emoji: '✨',
+    desc: 'Very clean color science, saves a ton of post-production time.',
+    bg: '#ecfdf5',
+    color: '#047857',
+  },
+  3: {
+    label: 'Decent / Average',
+    emoji: '👌',
+    desc: 'Good results, but needed slight manual tweaking.',
+    bg: '#f1f5f9',
+    color: '#475569',
+  },
+  2: {
+    label: 'Needs Improvement',
+    emoji: '😐',
+    desc: 'Didn’t fully match my camera/workflow expectations.',
+    bg: '#fff7ed',
+    color: '#c2410c',
+  },
+  1: {
+    label: 'Disappointed',
+    emoji: '👎',
+    desc: 'Did not work for my editing setup.',
+    bg: '#fef2f2',
+    color: '#b91c1c',
+  },
+};
+
+const QUICK_TAG_OPTIONS = [
+  '⚡ 1-Click Perfection',
+  '🎨 True Film Colors',
+  '⏱️ Saved Hours of Work',
+  '🎥 Cinematic Highlight Roll-Off',
+  '💎 Ultra Clean & Organized',
+  '📱 Works Great on Mobile',
+];
+
 export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ product }) => {
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
+  const [modalStep, setModalStep] = useState<1 | 2>(1); // Step 1 = Rating & Micro-Interactions, Step 2 = Details & Name
   const [activePhotoLightbox, setActivePhotoLightbox] = useState<string | null>(null);
 
   // Filter & Sort State
@@ -61,8 +112,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   });
 
   // Write Review Form State
-  const [formRating, setFormRating] = useState(5);
-  const [formHoverRating, setFormHoverRating] = useState(0);
+  const [formRating, setFormRating] = useState<number>(5);
+  const [formHoverRating, setFormHoverRating] = useState<number>(0);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formTitle, setFormTitle] = useState('');
@@ -123,6 +175,35 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     return list;
   }, [reviews, selectedRatingFilter, sortBy]);
 
+  // Open Write Modal Fresh
+  const handleOpenWriteModal = () => {
+    setModalStep(1);
+    setFormRating(5);
+    setFormHoverRating(0);
+    setSelectedTags([]);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    setIsWriteModalOpen(true);
+  };
+
+  // Toggle quick tag in Step 1
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => {
+      const exists = prev.includes(tag);
+      const next = exists ? prev.filter((t) => t !== tag) : [...prev, tag];
+      return next;
+    });
+  };
+
+  // Step 1 -> Step 2 transition
+  const handleProceedToStep2 = () => {
+    // If user selected quick tags, pre-fill title or content if empty
+    if (selectedTags.length > 0 && !formTitle) {
+      setFormTitle(selectedTags.join(', '));
+    }
+    setModalStep(2);
+  };
+
   // Handle image files selection with auto-compression preview
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -137,7 +218,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     try {
       const newItems: PhotoPreviewItem[] = [];
       for (const file of files) {
-        // Compress instantly client-side
+        // Compress instantly client-side to WebP <60KB
         const compressed = await compressImage(file, {
           maxWidth: 1000,
           quality: 0.8,
@@ -168,7 +249,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formEmail.trim() || !formContent.trim()) {
-      setSubmitError('Please fill out your name, email, and review comments.');
+      setSubmitError('Please enter your name, email, and review feedback.');
       return;
     }
 
@@ -182,11 +263,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
           productId: product.id,
           productSlug: product.slug,
           productName: product.title,
-          authorName: formName,
-          authorEmail: formEmail,
+          authorName: formName.trim(),
+          authorEmail: formEmail.trim(),
           rating: formRating,
-          title: formTitle,
-          content: formContent,
+          title: formTitle.trim(),
+          content: formContent.trim(),
           isVerifiedBuyer: true,
         },
         filesToUpload
@@ -201,7 +282,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
           setFormTitle('');
           setFormContent('');
           setPhotoPreviews([]);
-        }, 1800);
+          setSelectedTags([]);
+          setModalStep(1);
+        }, 1900);
       } else {
         setSubmitError(res.message || 'Failed to submit review.');
       }
@@ -230,13 +313,8 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     await likeProductReview(reviewId);
   };
 
-  const ratingDescriptions: Record<number, string> = {
-    5: 'Excellent! Highly recommended',
-    4: 'Good, satisfied with results',
-    3: 'Average, meets basic needs',
-    2: 'Below expectations',
-    1: 'Poor / not satisfied',
-  };
+  const currentDisplayRating = formHoverRating || formRating;
+  const currentMood = RATING_MOODS[currentDisplayRating] || RATING_MOODS[5];
 
   return (
     <section id="product-reviews-section" style={{ padding: '40px 0 60px 0' }}>
@@ -284,12 +362,12 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               Customer Reviews
             </h2>
             <p style={{ fontSize: '0.94rem', color: 'var(--muted)', marginTop: '6px', margin: '6px 0 0 0' }}>
-              Real before/after results and feedback from photographers, filmmakers, and editors.
+              Real before/after results and feedback from photographers, filmmakers, and colorists.
             </p>
           </div>
 
           <button
-            onClick={() => setIsWriteModalOpen(true)}
+            onClick={handleOpenWriteModal}
             className="clay-button"
             style={{
               display: 'inline-flex',
@@ -595,7 +673,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               Be the first to share your experience with this toolkit!
             </p>
             <button
-              onClick={() => setIsWriteModalOpen(true)}
+              onClick={handleOpenWriteModal}
               style={{
                 marginTop: '16px',
                 padding: '8px 18px',
@@ -805,7 +883,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
           </div>
         )}
 
-        {/* Modal: Write a Review */}
+        {/* Multi-Step Animated Write Review Modal */}
         <AnimatePresence>
           {isWriteModalOpen && (
             <div
@@ -816,7 +894,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 right: 0,
                 bottom: 0,
                 backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                backdropFilter: 'blur(5px)',
+                backdropFilter: 'blur(6px)',
                 zIndex: 9999,
                 display: 'flex',
                 alignItems: 'center',
@@ -826,20 +904,21 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               onClick={() => !isSubmitting && setIsWriteModalOpen(false)}
             >
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 onClick={(e) => e.stopPropagation()}
                 className="clay-card"
                 style={{
                   backgroundColor: '#ffffff',
-                  borderRadius: 'var(--radius-lg)',
-                  maxWidth: '560px',
+                  borderRadius: '24px',
+                  maxWidth: '520px',
                   width: '100%',
                   maxHeight: '90vh',
                   overflowY: 'auto',
-                  padding: '32px',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                  padding: '32px 28px',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
                   border: '1.5px solid var(--border)',
                   position: 'relative',
                 }}
@@ -850,70 +929,316 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                   disabled={isSubmitting}
                   style={{
                     position: 'absolute',
-                    top: '20px',
-                    right: '20px',
-                    background: 'none',
-                    border: 'none',
+                    top: '18px',
+                    right: '18px',
+                    background: 'var(--cream-light)',
+                    border: '1px solid var(--border)',
                     cursor: 'pointer',
                     color: 'var(--muted)',
-                    padding: '6px',
+                    padding: '7px',
                     borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s',
                   }}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
 
                 {submitSuccess ? (
-                  <div style={{ textAlign: 'center', padding: '40px 10px' }}>
-                    <div
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    style={{ textAlign: 'center', padding: '40px 10px' }}
+                  >
+                    <motion.div
+                      animate={{ scale: [0.8, 1.15, 1], rotate: [0, 10, 0] }}
+                      transition={{ duration: 0.5 }}
                       style={{
-                        width: '64px',
-                        height: '64px',
+                        width: '72px',
+                        height: '72px',
                         borderRadius: '50%',
                         backgroundColor: 'var(--sage-light, #ecfdf5)',
                         color: 'var(--sage, #059669)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto 16px auto',
+                        margin: '0 auto 18px auto',
+                        boxShadow: '0 8px 24px rgba(5, 150, 105, 0.2)',
                       }}
                     >
-                      <Check size={32} />
-                    </div>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
-                      Review Submitted!
+                      <Check size={36} />
+                    </motion.div>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                      Review Published! 🎉
                     </h3>
                     <p style={{ fontSize: '0.94rem', color: 'var(--muted)', marginTop: '8px' }}>
-                      Thank you for sharing your experience. Your feedback helps the creator community.
+                      Thank you for your feedback! Your review is now live and helping fellow creators.
                     </p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  </motion.div>
+                ) : modalStep === 1 ? (
+                  /* ======================================================== */
+                  /* STEP 1: ANIMATED RATING SELECTION & MICRO-INTERACTIONS */
+                  /* ======================================================== */
+                  <motion.div
+                    key="step-1"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.22 }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}
+                  >
                     <div>
                       <div
                         style={{
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          color: 'var(--terracotta, #c2410c)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(201, 130, 103, 0.12)',
+                          color: 'var(--terracotta-dark, #c2410c)',
+                          fontSize: '0.76rem',
+                          fontWeight: 800,
                           letterSpacing: '0.04em',
-                          marginBottom: '4px',
+                          textTransform: 'uppercase',
+                          marginBottom: '8px',
                         }}
                       >
-                        Share Your Experience
+                        <Sparkles size={12} />
+                        <span>Step 1 of 2 • Rate Your Experience</span>
                       </div>
                       <h3
                         style={{
-                          fontSize: '1.45rem',
-                          fontWeight: 800,
+                          fontSize: '1.5rem',
+                          fontWeight: 900,
                           color: 'var(--brown)',
                           margin: 0,
                           letterSpacing: '-0.02em',
                         }}
                       >
-                        Write a Review
+                        How was your experience?
                       </h3>
                       <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginTop: '4px', margin: '4px 0 0 0' }}>
+                        Tap the stars below to rate <strong style={{ color: 'var(--brown)' }}>{product.title}</strong>
+                      </p>
+                    </div>
+
+                    {/* Big Interactive 5-Star Selector */}
+                    <div
+                      style={{
+                        padding: '24px 20px',
+                        backgroundColor: 'var(--cream-light, #f8f6f0)',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '16px',
+                        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.02)',
+                      }}
+                    >
+                      {/* Animated Stars Row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {[1, 2, 3, 4, 5].map((s) => {
+                          const isActive = currentDisplayRating >= s;
+                          return (
+                            <motion.button
+                              type="button"
+                              key={s}
+                              whileHover={{ scale: 1.25, rotate: [-5, 5, 0] }}
+                              whileTap={{ scale: 0.85 }}
+                              onMouseEnter={() => setFormHoverRating(s)}
+                              onMouseLeave={() => setFormHoverRating(0)}
+                              onClick={() => {
+                                setFormRating(s);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                outline: 'none',
+                                transition: 'transform 0.15s ease',
+                              }}
+                            >
+                              <Star
+                                size={38}
+                                fill={isActive ? '#f59e0b' : '#e2e8f0'}
+                                color={isActive ? '#f59e0b' : '#cbd5e1'}
+                                style={{
+                                  filter: isActive ? 'drop-shadow(0 4px 10px rgba(245, 158, 11, 0.4))' : 'none',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              />
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Dynamic Mood Card Feedback */}
+                      <motion.div
+                        key={currentDisplayRating}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          textAlign: 'center',
+                          padding: '10px 18px',
+                          borderRadius: '12px',
+                          backgroundColor: currentMood.bg,
+                          color: currentMood.color,
+                          width: '100%',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{currentMood.emoji}</span>
+                          <span>{currentMood.label}</span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', opacity: 0.9, marginTop: '2px' }}>
+                          {currentMood.desc}
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Quick Highlight Tags (1-Tap Selection) */}
+                    <div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '10px' }}>
+                        What stood out to you most? (Optional 1-Tap)
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {QUICK_TAG_OPTIONS.map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <motion.button
+                              key={tag}
+                              type="button"
+                              whileTap={{ scale: 0.94 }}
+                              onClick={() => toggleTag(tag)}
+                              style={{
+                                padding: '7px 12px',
+                                borderRadius: '999px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                border: isSelected ? '1.5px solid var(--brown)' : '1px solid var(--border)',
+                                backgroundColor: isSelected ? 'var(--brown)' : '#ffffff',
+                                color: isSelected ? '#ffffff' : 'var(--brown)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              {isSelected && <Check size={12} />}
+                              <span>{tag}</span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Step 1 Continue Button */}
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleProceedToStep2}
+                      className="clay-button"
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        backgroundColor: 'var(--brown)',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: 'var(--shadow-clay-btn)',
+                        marginTop: '4px',
+                      }}
+                    >
+                      <span>Continue to Write Review ({formRating} Stars)</span>
+                      <ArrowRight size={18} />
+                    </motion.button>
+                  </motion.div>
+                ) : (
+                  /* ======================================================== */
+                  /* STEP 2: WRITE REVIEW & CREATOR NAME/EMAIL FORM */
+                  /* ======================================================== */
+                  <motion.form
+                    key="step-2"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.22 }}
+                    onSubmit={handleSubmitReview}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
+                  >
+                    {/* Header with Back Button */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <button
+                        type="button"
+                        onClick={() => setModalStep(1)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          color: 'var(--terracotta)',
+                          fontWeight: 700,
+                          fontSize: '0.84rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <ArrowLeft size={15} />
+                        <span>Change Rating</span>
+                      </button>
+
+                      {/* Selected Rating Pill */}
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          backgroundColor: currentMood.bg,
+                          color: currentMood.color,
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                        }}
+                      >
+                        <span>{formRating} ★</span>
+                        <span>{currentMood.label.split('/')[0]}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: '1.45rem',
+                          fontWeight: 900,
+                          color: 'var(--brown)',
+                          margin: 0,
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        Share your feedback
+                      </h3>
+                      <p style={{ fontSize: '0.86rem', color: 'var(--muted)', marginTop: '4px', margin: '4px 0 0 0' }}>
                         for {product.title}
                       </p>
                     </div>
@@ -928,116 +1253,13 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                           backgroundColor: '#fef2f2',
                           color: '#b91c1c',
                           borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.85rem',
+                          fontSize: '0.84rem',
                         }}
                       >
                         <AlertCircle size={16} />
                         <span>{submitError}</span>
                       </div>
                     )}
-
-                    {/* Star Selection */}
-                    <div>
-                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--brown)', marginBottom: '8px' }}>
-                        Overall Rating *
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <button
-                            type="button"
-                            key={s}
-                            onMouseEnter={() => setFormHoverRating(s)}
-                            onMouseLeave={() => setFormHoverRating(0)}
-                            onClick={() => setFormRating(s)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              transform: (formHoverRating || formRating) >= s ? 'scale(1.15)' : 'scale(1)',
-                              transition: 'transform 0.1s',
-                            }}
-                          >
-                            <Star
-                              size={28}
-                              fill={(formHoverRating || formRating) >= s ? '#f59e0b' : '#e2e8f0'}
-                              color={(formHoverRating || formRating) >= s ? '#f59e0b' : '#cbd5e1'}
-                            />
-                          </button>
-                        ))}
-                        <span style={{ fontSize: '0.86rem', color: 'var(--muted)', fontWeight: 600, marginLeft: '8px' }}>
-                          {ratingDescriptions[formHoverRating || formRating]}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Name & Email Row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                          Your Name *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                          placeholder="e.g. Alex Rivera"
-                          style={{
-                            width: '100%',
-                            padding: '10px 14px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border)',
-                            fontSize: '0.92rem',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                          Email Address *
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={formEmail}
-                          onChange={(e) => setFormEmail(e.target.value)}
-                          placeholder="name@domain.com"
-                          style={{
-                            width: '100%',
-                            padding: '10px 14px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border)',
-                            fontSize: '0.92rem',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Review Title */}
-                    <div>
-                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                        Review Headline (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={formTitle}
-                        onChange={(e) => setFormTitle(e.target.value)}
-                        placeholder="e.g. Best film LUTs I've ever used"
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--border)',
-                          fontSize: '0.92rem',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                        }}
-                      />
-                    </div>
 
                     {/* Review Comments */}
                     <div>
@@ -1046,15 +1268,16 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       </label>
                       <textarea
                         required
-                        rows={4}
+                        autoFocus
+                        rows={3}
                         value={formContent}
                         onChange={(e) => setFormContent(e.target.value)}
-                        placeholder="How did this toolkit improve your editing workflow? Mention any camera bodies or apps you used."
+                        placeholder="What camera/software did you use? How did this look improve your edits?"
                         style={{
                           width: '100%',
                           padding: '12px 14px',
                           borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--border)',
+                          border: '1.5px solid var(--border)',
                           fontSize: '0.92rem',
                           outline: 'none',
                           boxSizing: 'border-box',
@@ -1064,27 +1287,95 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       />
                     </div>
 
+                    {/* Name & Email Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)', marginBottom: '6px' }}>
+                          Your Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formName}
+                          onChange={(e) => setFormName(e.target.value)}
+                          placeholder="e.g. Aryan G."
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            fontSize: '0.9rem',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)', marginBottom: '6px' }}>
+                          Email Address *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={formEmail}
+                          onChange={(e) => setFormEmail(e.target.value)}
+                          placeholder="name@gmail.com"
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            fontSize: '0.9rem',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Review Title (Optional) */}
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '4px' }}>
+                        Headline (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        placeholder="e.g. 1-Click film look on Sony A7IV"
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
                     {/* Photos Upload with Automatic WebP Compression Preview */}
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <label style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)' }}>
                           Attach Photo Results (Optional - Max 4)
                         </label>
-                        <span style={{ fontSize: '0.76rem', color: 'var(--sage, #059669)', fontWeight: 700 }}>
-                          ⚡ Auto-compressed to WebP (&lt;60KB)
+                        <span style={{ fontSize: '0.74rem', color: 'var(--sage, #059669)', fontWeight: 700 }}>
+                          ⚡ WebP auto-compressed (&lt;60KB)
                         </span>
                       </div>
 
                       {/* Thumbnails list */}
                       {photoPreviews.length > 0 && (
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
                           {photoPreviews.map((p, idx) => (
                             <div
                               key={idx}
                               style={{
                                 position: 'relative',
-                                width: '80px',
-                                height: '80px',
+                                width: '70px',
+                                height: '70px',
                                 borderRadius: 'var(--radius-sm)',
                                 border: '1px solid var(--border)',
                                 overflow: 'hidden',
@@ -1101,10 +1392,10 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                                 onClick={() => removePhotoPreview(idx)}
                                 style={{
                                   position: 'absolute',
-                                  top: '3px',
-                                  right: '3px',
-                                  width: '20px',
-                                  height: '20px',
+                                  top: '2px',
+                                  right: '2px',
+                                  width: '18px',
+                                  height: '18px',
                                   borderRadius: '50%',
                                   backgroundColor: 'rgba(0,0,0,0.7)',
                                   color: '#ffffff',
@@ -1115,7 +1406,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                                   cursor: 'pointer',
                                 }}
                               >
-                                <X size={12} />
+                                <X size={11} />
                               </button>
                               <div
                                 style={{
@@ -1125,7 +1416,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                                   right: 0,
                                   backgroundColor: 'rgba(0,0,0,0.65)',
                                   color: '#ffffff',
-                                  fontSize: '0.62rem',
+                                  fontSize: '0.6rem',
                                   textAlign: 'center',
                                   padding: '1px 0',
                                   fontWeight: 600,
@@ -1154,29 +1445,29 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                             disabled={isCompressingPhotos}
                             style={{
                               width: '100%',
-                              padding: '14px',
+                              padding: '10px',
                               borderRadius: 'var(--radius-sm)',
                               border: '1.5px dashed var(--border)',
                               backgroundColor: 'var(--cream-light)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '8px',
+                              gap: '6px',
                               cursor: 'pointer',
                               color: 'var(--brown)',
-                              fontSize: '0.88rem',
+                              fontSize: '0.82rem',
                               fontWeight: 700,
                             }}
                           >
                             {isCompressingPhotos ? (
                               <>
-                                <Loader2 size={16} className="animate-spin" />
+                                <Loader2 size={14} className="animate-spin" />
                                 <span>Optimizing photos...</span>
                               </>
                             ) : (
                               <>
-                                <Upload size={16} />
-                                <span>Add Before/After Photos from Your Device</span>
+                                <Upload size={14} />
+                                <span>Add Photo Results from Device</span>
                               </>
                             )}
                           </button>
@@ -1203,19 +1494,19 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
-                        marginTop: '6px',
+                        marginTop: '4px',
                       }}
                     >
                       {isSubmitting ? (
                         <>
                           <Loader2 size={18} className="animate-spin" />
-                          <span>Submitting Review...</span>
+                          <span>Publishing Review...</span>
                         </>
                       ) : (
-                        <span>Submit Review</span>
+                        <span>Publish Review</span>
                       )}
                     </button>
-                  </form>
+                  </motion.form>
                 )}
               </motion.div>
             </div>
