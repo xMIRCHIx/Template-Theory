@@ -47,15 +47,14 @@ export const Footer: React.FC = () => {
               }}
             >
               <img
-                src="/images/logo-square.png"
+                src="/images/logo-circle.png"
                 alt="Template Theory Logo"
                 style={{
                   width: '34px',
                   height: '34px',
                   borderRadius: '50%',
-                  objectFit: 'cover',
+                  objectFit: 'contain',
                   boxShadow: '0 3px 10px rgba(30, 98, 59, 0.28)',
-                  border: '1px solid rgba(30, 98, 59, 0.18)',
                 }}
               />
               <span

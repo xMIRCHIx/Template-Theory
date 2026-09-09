@@ -81,17 +81,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
           }}
         >
           <img
-            src="/images/logo-square.png"
+            src="/images/logo-circle.png"
             alt="Template Theory Logo"
             className="header-logo-icon"
             style={{
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               flexShrink: 0,
               boxShadow: '0 3px 12px rgba(30, 98, 59, 0.28)',
-              border: '1px solid rgba(30, 98, 59, 0.18)',
             }}
           />
           <span
