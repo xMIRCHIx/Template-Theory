@@ -7,8 +7,15 @@ import {
   Sliders,
   CheckCircle2,
   Mail,
-  Play
+  Play,
+  X,
+  Sparkles,
+  Clock,
+  Bell,
+  Check,
+  Video,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES } from '../data/categories';
 import { ProductCard } from '../components/cards/ProductCard';
 import { SidebarFilters } from '../components/filters/SidebarFilters';
@@ -37,6 +44,11 @@ export const CategoryCollectionPage: React.FC = () => {
   const [minRating, setMinRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState<string>('featured');
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  // Tutorial Coming Soon Modal State
+  const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
+  const [tutorialNotifyEmail, setTutorialNotifyEmail] = useState('');
+  const [tutorialNotified, setTutorialNotified] = useState(false);
 
   const handleToggleCompat = (compat: string) => {
     setSelectedCompat((prev) =>
@@ -158,7 +170,10 @@ export const CategoryCollectionPage: React.FC = () => {
                   Explore {categoryInfo.title}
                 </a>
                 <button
-                  onClick={() => alert(`Tutorial for ${categoryInfo.title} will play in video modal!`)}
+                  onClick={() => {
+                    setTutorialNotified(false);
+                    setIsTutorialModalOpen(true);
+                  }}
                   className="btn-secondary"
                   style={{ padding: '12px 22px' }}
                 >
@@ -391,8 +406,8 @@ export const CategoryCollectionPage: React.FC = () => {
                   className="category-products-grid"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                    gap: '20px',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: '22px',
                   }}
                 >
                   {categoryProducts.map((product) => (
@@ -521,6 +536,255 @@ export const CategoryCollectionPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* TUTORIAL / MASTERCLASS COMING SOON MODAL */}
+      <AnimatePresence>
+        {isTutorialModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 99999,
+              backgroundColor: 'rgba(18, 12, 9, 0.82)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'clamp(14px, 3vw, 28px)',
+              boxSizing: 'border-box',
+            }}
+            onClick={() => setIsTutorialModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: 'var(--cream-light)',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.65)',
+                maxWidth: '560px',
+                width: '100%',
+                padding: '36px 32px',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setIsTutorialModalOpen(false)}
+                aria-label="Close"
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--cream-dark)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--brown)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--terracotta)';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--cream-dark)';
+                  e.currentTarget.style.color = 'var(--brown)';
+                }}
+              >
+                <X size={18} />
+              </button>
+
+              {/* 3D Clay Icon Floating Badge */}
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  width: '85px',
+                  height: '85px',
+                  marginBottom: '16px',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={categoryInfo.iconImage || '/assets/clay/CAMERA.png'}
+                  alt={categoryInfo.title}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 14px 22px rgba(96, 68, 46, 0.25))',
+                  }}
+                />
+              </motion.div>
+
+              {/* Status Badge */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'var(--terracotta-light)',
+                  border: '1px solid rgba(201, 130, 103, 0.35)',
+                  padding: '5px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  marginBottom: '14px',
+                }}
+              >
+                <Clock size={13} color="var(--terracotta-dark)" />
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.05em',
+                    color: 'var(--terracotta-dark)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Uploading Soon • In Production
+                </span>
+              </div>
+
+              {/* Heading */}
+              <h3
+                style={{
+                  fontSize: '1.55rem',
+                  fontWeight: 800,
+                  color: 'var(--brown)',
+                  marginBottom: '8px',
+                  lineHeight: 1.25,
+                }}
+              >
+                {categoryInfo.title} Video Masterclass
+              </h3>
+
+              {/* Description */}
+              <p
+                style={{
+                  fontSize: '0.92rem',
+                  color: 'var(--muted)',
+                  lineHeight: 1.55,
+                  marginBottom: '22px',
+                  maxWidth: '440px',
+                }}
+              >
+                We're currently editing full in-depth video workflows, 1-click installation guides, and grading breakdowns for the <strong>{categoryInfo.title}</strong> pack.
+              </p>
+
+              {/* Feature Highlights Pill List */}
+              <div
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--cream-dark)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '14px 16px',
+                  marginBottom: '22px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: 'var(--brown)', fontWeight: 600 }}>
+                  <CheckCircle2 size={15} color="var(--olive-dark)" />
+                  <span>1-Click Installation & Software Setup Guide</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: 'var(--brown)', fontWeight: 600 }}>
+                  <CheckCircle2 size={15} color="var(--terracotta-dark)" />
+                  <span>Pro Color Grading & Workflow Breakdown</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: 'var(--brown)', fontWeight: 600 }}>
+                  <CheckCircle2 size={15} color="var(--brown)" />
+                  <span>Secret Lighting & Film Texture Techniques</span>
+                </div>
+              </div>
+
+              {/* Email Notification Form / Action Button */}
+              {tutorialNotified ? (
+                <div
+                  style={{
+                    backgroundColor: 'var(--olive-light)',
+                    border: '1px solid var(--olive)',
+                    color: 'var(--olive-dark)',
+                    padding: '10px 18px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Check size={16} />
+                  <span>You're on the early-access list! We'll notify you when it drops.</span>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!tutorialNotifyEmail.trim()) return;
+                    setTutorialNotified(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
+                    width: '100%',
+                    maxWidth: '440px',
+                  }}
+                >
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter email to get notified..."
+                    value={tutorialNotifyEmail}
+                    onChange={(e) => setTutorialNotifyEmail(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '11px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1.5px solid var(--border)',
+                      backgroundColor: '#ffffff',
+                      outline: 'none',
+                      fontSize: '0.86rem',
+                      color: 'var(--brown)',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{ padding: '11px 20px', fontSize: '0.86rem', whiteSpace: 'nowrap' }}
+                  >
+                    <Bell size={14} /> Notify Me
+                  </button>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @media (max-width: 900px) {

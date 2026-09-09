@@ -138,6 +138,7 @@ export const HomePage: React.FC = () => {
   const ugcSpeedSeconds = homepageSettings?.ugcSpeed || 50;
   const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
   const marqueeOffsetRef = useRef<number>(0);
+  const targetOffsetRef = useRef<number>(0);
   const isUgcDraggingRef = useRef<boolean>(false);
   const isUgcHoveredRef = useRef<boolean>(false);
   const ugcDragStartXRef = useRef<number>(0);
@@ -178,7 +179,6 @@ export const HomePage: React.FC = () => {
     lastTimeRef.current = performance.now();
 
     const tick = (now: number) => {
-      // Delta time in seconds (clamped to prevent jumps when tab is inactive)
       const dt = Math.min((now - (lastTimeRef.current || now)) / 1000, 0.08);
       lastTimeRef.current = now;
 
@@ -186,31 +186,42 @@ export const HomePage: React.FC = () => {
       const blockWidth = blockWidthRef.current;
 
       if (track && blockWidth > 0) {
-        if (!isUgcDraggingRef.current) {
-          // Momentum velocity decay after user flick
-          if (Math.abs(ugcDragVelocityRef.current) > 0.08) {
+        if (isUgcDraggingRef.current) {
+          // Instant direct pointer follow with spring-less precision (0ms lag)
+          marqueeOffsetRef.current = targetOffsetRef.current;
+        } else {
+          // Momentum velocity decay after flick
+          if (Math.abs(ugcDragVelocityRef.current) > 0.05) {
             marqueeOffsetRef.current += ugcDragVelocityRef.current * (dt * 60);
             ugcDragVelocityRef.current *= Math.pow(0.92, dt * 60); // frame-rate independent friction
           } else {
             ugcDragVelocityRef.current = 0;
             if (!isUgcHoveredRef.current) {
-              // Smooth constant velocity in px/sec
               const pxPerSecond = blockWidth / Math.max(10, ugcSpeedSeconds);
               marqueeOffsetRef.current -= pxPerSecond * dt;
             }
           }
-
-          // Seamless infinite wrap around in both directions (left & right)
-          while (marqueeOffsetRef.current <= -blockWidth) {
-            marqueeOffsetRef.current += blockWidth;
-          }
-          while (marqueeOffsetRef.current > 0) {
-            marqueeOffsetRef.current -= blockWidth;
-          }
-
-          track.style.transform = `translate3d(${marqueeOffsetRef.current.toFixed(2)}px, 0, 0)`;
         }
+
+        // Seamless infinite wrap around in both directions (left & right)
+        while (marqueeOffsetRef.current <= -blockWidth) {
+          marqueeOffsetRef.current += blockWidth;
+          if (isUgcDraggingRef.current) {
+            targetOffsetRef.current += blockWidth;
+            ugcDragStartOffsetRef.current += blockWidth;
+          }
+        }
+        while (marqueeOffsetRef.current > 0) {
+          marqueeOffsetRef.current -= blockWidth;
+          if (isUgcDraggingRef.current) {
+            targetOffsetRef.current -= blockWidth;
+            ugcDragStartOffsetRef.current -= blockWidth;
+          }
+        }
+
+        track.style.transform = `translate3d(${marqueeOffsetRef.current.toFixed(2)}px, 0, 0)`;
       }
+
       animId = requestAnimationFrame(tick);
     };
 
@@ -219,11 +230,12 @@ export const HomePage: React.FC = () => {
   }, [ugcList, ugcSpeedSeconds]);
 
   const handleUgcPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
     isUgcDraggingRef.current = true;
     setIsUgcGrabbing(true);
     ugcDragStartXRef.current = e.clientX;
     ugcDragStartOffsetRef.current = marqueeOffsetRef.current;
+    targetOffsetRef.current = marqueeOffsetRef.current;
     ugcLastPointerXRef.current = e.clientX;
     ugcLastPointerTimeRef.current = performance.now();
     ugcDragVelocityRef.current = 0;
@@ -237,8 +249,6 @@ export const HomePage: React.FC = () => {
 
   const handleUgcPointerMove = (e: React.PointerEvent) => {
     if (!isUgcDraggingRef.current) return;
-    const track = marqueeTrackRef.current;
-    if (!track) return;
 
     const deltaX = e.clientX - ugcDragStartXRef.current;
     ugcTotalDragDistRef.current = Math.max(ugcTotalDragDistRef.current, Math.abs(deltaX));
@@ -246,23 +256,11 @@ export const HomePage: React.FC = () => {
     const now = performance.now();
     const dt = Math.max(1, now - ugcLastPointerTimeRef.current);
     const instantVelocity = (e.clientX - ugcLastPointerXRef.current) * (16 / dt);
-    ugcDragVelocityRef.current = ugcDragVelocityRef.current * 0.4 + instantVelocity * 0.6;
+    ugcDragVelocityRef.current = ugcDragVelocityRef.current * 0.3 + instantVelocity * 0.7;
     ugcLastPointerXRef.current = e.clientX;
     ugcLastPointerTimeRef.current = now;
 
-    const blockWidth = blockWidthRef.current;
-    let targetOffset = ugcDragStartOffsetRef.current + deltaX;
-    if (blockWidth > 0) {
-      while (targetOffset <= -blockWidth) {
-        targetOffset += blockWidth;
-      }
-      while (targetOffset > 0) {
-        targetOffset -= blockWidth;
-      }
-    }
-
-    marqueeOffsetRef.current = targetOffset;
-    track.style.transform = `translate3d(${targetOffset.toFixed(2)}px, 0, 0)`;
+    targetOffsetRef.current = ugcDragStartOffsetRef.current + deltaX;
   };
 
   const handleUgcPointerUp = (e: React.PointerEvent) => {
@@ -835,8 +833,9 @@ export const HomePage: React.FC = () => {
                       backgroundColor: 'var(--cream-dark)',
                       border: '1.5px solid var(--border)',
                       boxShadow: 'var(--shadow-clay)',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      transition: isUgcGrabbing ? 'none' : 'transform 0.25s ease, box-shadow 0.25s ease',
                       cursor: isUgcGrabbing ? 'grabbing' : 'pointer',
+                      pointerEvents: isUgcGrabbing ? 'none' : 'auto',
                       contain: 'paint',
                       transform: 'translateZ(0)',
                     }}
