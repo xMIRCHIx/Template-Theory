@@ -88,10 +88,355 @@ export async function uploadReviewPhoto(file: File): Promise<string | null> {
 }
 
 /**
- * Fetches all approved reviews specifically for a given product slug.
+ * Normalizes a product slug or title into a standard dashed key
+ */
+export function normalizeReviewKey(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+/**
+ * 100% Unique, Product-Specific Master Dictionary for all 10 Shopify Catalog Items
+ */
+export const STORE_PRODUCT_REVIEWS: Record<string, Array<{
+  authorName: string;
+  authorEmail?: string;
+  rating: number;
+  title: string;
+  content: string;
+  likes: number;
+  createdAt: string;
+}>> = {
+  '20-influencer-style-presets-pack': [
+    {
+      authorName: 'Aarav Singhania (Travel Creator)',
+      authorEmail: 'aarav.vlogs@gmail.com',
+      rating: 5,
+      title: 'Instagram reels aur aesthetic feed ke liye best presets!',
+      content: 'Bhai mere travel aur lifestyle reels ka engagement double ho gaya is pack ke baad! iPhone aur Sony dono photo pe ekdum soft creamy contrast aur clean skin tones aate hain, bilkul fake orange tint nahi aati.',
+      likes: 37,
+      createdAt: '2026-03-06T14:20:00Z',
+    },
+    {
+      authorName: 'Tanvi Kapoor',
+      authorEmail: 'tanvi.lifestyle@gmail.com',
+      rating: 5,
+      title: '1-Click aesthetic cafe & golden hour tones',
+      content: 'DNG files directly Lightroom Mobile me load ho gayi bina kisi problem ke. Cafe aesthetic aur outdoor golden hour pictures look like high-end Pinterest photography.',
+      likes: 25,
+      createdAt: '2026-02-28T11:10:00Z',
+    },
+    {
+      authorName: 'Devansh Malhotra',
+      authorEmail: 'devansh.shoots@outlook.com',
+      rating: 4,
+      title: 'Clean shadows and warm highlights',
+      content: 'Minimal slider tweaking needed. Very balanced color palette for daily creator content and fashion portraits.',
+      likes: 17,
+      createdAt: '2026-02-21T09:40:00Z',
+    },
+  ],
+
+  'wedding-premium-preset-pack': [
+    {
+      authorName: 'Sameer Verma (Wedding Photographer)',
+      authorEmail: 'sameer.photo@gmail.com',
+      rating: 5,
+      title: 'Haldi aur Mehendi shoots pe next level result!',
+      content: 'Haldi aur outdoor golden hour shoots pe ye presets ekdum top tier color dete hain. Skin tone yellow nahi hoti, natural warm glow rehta hai. 1000+ photos ka batch sirf 30 minutes me export ho gaya!',
+      likes: 39,
+      createdAt: '2026-03-05T14:20:00Z',
+    },
+    {
+      authorName: 'Pooja Nair',
+      authorEmail: 'pooja.weddings@gmail.com',
+      rating: 5,
+      title: 'Flawless colors on Canon & Sony RAW files',
+      content: 'Skin tones stay glowing while background reds and lehenga colors pop naturally. Minimal exposure tweaking needed.',
+      likes: 27,
+      createdAt: '2026-02-27T18:05:00Z',
+    },
+    {
+      authorName: 'Manish Gupta',
+      authorEmail: 'manish.gupta@outlook.com',
+      rating: 5,
+      title: 'Client delivery turnaround speed doubled',
+      content: 'Consistency across outdoor day shoots and indoor night banquet lighting. One of the best purchases for wedding season.',
+      likes: 18,
+      createdAt: '2026-02-17T10:15:00Z',
+    },
+  ],
+
+  '30-cinematic-premium-presets-pack': [
+    {
+      authorName: 'Karan Bhasin (Visual Storyteller)',
+      authorEmail: 'karan.bhasin@gmail.com',
+      rating: 5,
+      title: 'Moody contrast aur cinematic teal/earth tones ka best combination!',
+      content: 'Commercial fashion aur automobile shoots pe use kiya tha, results are top notch. Shadows me deep richness aati hai bina dynamic range khoye.',
+      likes: 32,
+      createdAt: '2026-03-06T15:30:00Z',
+    },
+    {
+      authorName: 'Zoya Qureshi',
+      authorEmail: 'zoya.shoots@gmail.com',
+      rating: 5,
+      title: 'Moody shadows without losing subject details',
+      content: 'The tonal curve adjustments are masterfully crafted. Gives that cinematic editorial magazine look instantly on both portraits and landscapes.',
+      likes: 22,
+      createdAt: '2026-02-27T12:10:00Z',
+    },
+    {
+      authorName: 'Arjun Menon',
+      authorEmail: 'arjun.menon@outlook.com',
+      rating: 5,
+      title: 'Consistent color science across Sony & Nikon',
+      content: 'Zero color shift across different sensor profiles. High production value grading in 1 click.',
+      likes: 16,
+      createdAt: '2026-02-19T17:40:00Z',
+    },
+  ],
+
+  'vintage-premium-prese-pack': [
+    {
+      authorName: 'Raghav Bhatia (Street & Film)',
+      authorEmail: 'raghav.grain@gmail.com',
+      rating: 5,
+      title: 'Real 90s analog film look milta hai!',
+      content: 'Bina fake heavy grain ke real Fuji 400H aur Kodak Portra aesthetic perfectly replicate hota hai. Street portraits aur sunset shots pe authentic warmth deta hai.',
+      likes: 28,
+      createdAt: '2026-03-03T13:30:00Z',
+    },
+    {
+      authorName: 'Ishita Roy',
+      authorEmail: 'ishita.visuals@gmail.com',
+      rating: 5,
+      title: 'Dreamy retro warmth without muddy shadows',
+      content: 'Muted greens and warm pastel highlights make ordinary shots look like vintage timeless polaroids. Super easy to sync on mobile.',
+      likes: 19,
+      createdAt: '2026-02-24T18:00:00Z',
+    },
+    {
+      authorName: 'Gaurav Mittal',
+      authorEmail: 'gaurav.photo@gmail.com',
+      rating: 4,
+      title: 'Magical for golden hour portraits',
+      content: 'One of the few vintage presets that does not crush dark shadow areas. Colors feel organic and rich.',
+      likes: 12,
+      createdAt: '2026-02-15T11:20:00Z',
+    },
+  ],
+
+  'signature-lut-s-pack': [
+    {
+      authorName: 'Aman Sharma (Cinematographer)',
+      authorEmail: 'aman.films@gmail.com',
+      rating: 5,
+      title: 'Sony S-Log3 pe 1-click me cinema look aa gaya!',
+      content: 'Bhai Sony A7IV aur FX3 ki S-Log3 footage pe apply kiya tha. Highlight roll-off ekdum smooth Kodak 35mm film jaisa aata hai without green tint. Skin tones natural aate hain!',
+      likes: 35,
+      createdAt: '2026-03-05T12:00:00Z',
+    },
+    {
+      authorName: 'Rohan Mehra',
+      authorEmail: 'rohan.cine@visuals.in',
+      rating: 5,
+      title: 'Works flawlessly in Premiere & DaVinci Resolve',
+      content: 'The .cube conversion is super clean with zero color banding. Kodak 35mm warmth without muddy shadows. Client gave zero revision notes!',
+      likes: 24,
+      createdAt: '2026-02-26T14:40:00Z',
+    },
+    {
+      authorName: 'Devika Patel (Colorist)',
+      authorEmail: 'devika.colorist@outlook.com',
+      rating: 5,
+      title: 'Rich organic warmth and clean contrast',
+      content: 'Saved me hours in node grading. Commercial client reels look extremely cohesive and punchy.',
+      likes: 18,
+      createdAt: '2026-02-17T08:50:00Z',
+    },
+  ],
+
+  'cinematics-premium-luts': [
+    {
+      authorName: 'Sunny Chawla (Wedding Films)',
+      authorEmail: 'sunny.films@gmail.com',
+      rating: 5,
+      title: 'Indian wedding cinematography ke liye benchmark LUTs!',
+      content: 'Varmala, Mandap yellow halogen lighting aur Night reception sabme natural skin tones preserve rehte hain. Highlight roll-off ekdum velvety soft film jaisa hai.',
+      likes: 33,
+      createdAt: '2026-03-04T16:20:00Z',
+    },
+    {
+      authorName: 'Naveen Reddy',
+      authorEmail: 'naveen.cine@gmail.com',
+      rating: 5,
+      title: 'Smooth highlight roll-off under harsh stage lights',
+      content: 'Usually stage lights blow out bride and groom face tones, but these LUTs handle highlights with deep rich color science. Worth every rupee.',
+      likes: 23,
+      createdAt: '2026-02-26T11:45:00Z',
+    },
+    {
+      authorName: 'Kavita Sen',
+      authorEmail: 'kavita.editor@outlook.com',
+      rating: 5,
+      title: 'Instant cinematic mood for wedding teasers',
+      content: 'Converted our flat log clips into rich Kodak film color in 1 click. Zero color banding in sky or background.',
+      likes: 16,
+      createdAt: '2026-02-18T14:10:00Z',
+    },
+  ],
+
+  'preimium-album-psd-pack': [
+    {
+      authorName: 'Kunal Verma (Wedding Studio)',
+      authorEmail: 'kunal.studio@gmail.com',
+      rating: 5,
+      title: 'Bhai pura 3 din ka kaam 2 ghante me ho gaya!',
+      content: 'Bhai sach batau to pehle 40 sheet ki wedding album design karne me 3-4 din nikal jate the. Is PSD collection se bas 2 ghante me poora print-ready album ready ho gaya! Smart objects me photo drop karo aur instant design set. Client bohot khush hua!',
+      likes: 46,
+      createdAt: '2026-03-05T10:15:00Z',
+    },
+    {
+      authorName: 'Ritika Deshmukh',
+      authorEmail: 'ritika.photo@outlook.com',
+      rating: 5,
+      title: 'Crisp 300 DPI Print-Ready Quality',
+      content: 'Best Karizma and modern Canvera album spreads I have used. Layers are super clean and organized. The typography layout and minimal gold frames look ultra luxury in physical photobooks.',
+      likes: 30,
+      createdAt: '2026-02-28T14:40:00Z',
+    },
+    {
+      authorName: 'Rahul Joshi Visuals',
+      authorEmail: 'rahul.visuals@gmail.com',
+      rating: 5,
+      title: 'Perfect for busy Indian wedding season',
+      content: 'Har ek sheet ka color combination aur negative space balance bohot premium hai. Mere junior editor ne bhi easily bina kisi problem ke poora album compile kar liya.',
+      likes: 22,
+      createdAt: '2026-02-22T09:30:00Z',
+    },
+    {
+      authorName: 'Sneha Kulkarni',
+      authorEmail: 'sneha.designs@gmail.com',
+      rating: 4,
+      title: 'Very aesthetic & easy to customize',
+      content: 'Loved the modern editorial layout. Fonts included and layer masks are completely non-destructive.',
+      likes: 14,
+      createdAt: '2026-02-14T16:20:00Z',
+    },
+  ],
+
+  '25-designer-fonts': [
+    {
+      authorName: 'Aditya Sengupta (Brand Designer)',
+      authorEmail: 'aditya.design@gmail.com',
+      rating: 5,
+      title: 'Bhai fonts ka collection ekdum top-notch hai!',
+      content: 'Luxury brand packaging aur client ke streetwear logo ke liye use kiya. The alternate ligatures aur clean vector curves are crazy good. Jo premium aesthetic chahiye thi wo 100% mil gayi.',
+      likes: 31,
+      createdAt: '2026-03-04T12:30:00Z',
+    },
+    {
+      authorName: 'Priya Nambiar',
+      authorEmail: 'priya.type@outlook.com',
+      rating: 5,
+      title: 'Crisp rendering in 4K video titles & thumbnails',
+      content: 'Both the bold display serifs and modern editorial sans fonts look razor sharp on YouTube thumbnails and Premiere titles. Instant commercial license is a big plus.',
+      likes: 22,
+      createdAt: '2026-02-25T15:10:00Z',
+    },
+    {
+      authorName: 'Karan Kapoor',
+      authorEmail: 'karan.studio@gmail.com',
+      rating: 5,
+      title: 'Instant 10-second installation',
+      content: 'OTF & TTF files are well-organized and installed in one click on Mac & Windows. Typographic aesthetic elevated my entire portfolio.',
+      likes: 16,
+      createdAt: '2026-02-18T09:20:00Z',
+    },
+  ],
+
+  '100-luxury-designer-fonts-pack': [
+    {
+      authorName: 'Vikramaditya Roy (Creative Director)',
+      authorEmail: 'vikram.agency@gmail.com',
+      rating: 5,
+      title: '100 fonts ka massive luxury collection!',
+      content: 'High-fashion editorial aur Indian luxury wedding invite cards ke liye go-to typography pack ban chuka hai. Ligatures aur glyph variety behad khoobsurat hai.',
+      likes: 29,
+      createdAt: '2026-03-06T10:45:00Z',
+    },
+    {
+      authorName: 'Megha Jain',
+      authorEmail: 'megha.design@gmail.com',
+      rating: 5,
+      title: 'Ultra luxury serif & script pairing',
+      content: 'The font pairing cheat sheet is brilliant. Every typeface feels like a high-end bespoke foundry creation. Worth 10x the price.',
+      likes: 21,
+      createdAt: '2026-02-27T16:15:00Z',
+    },
+    {
+      authorName: 'Sameer Khan (Agency Lead)',
+      authorEmail: 'sameer.khan@outlook.com',
+      rating: 5,
+      title: 'Saved my team hours of font hunting',
+      content: 'Clean licensing, complete glyph sets and multilingual support. Super happy with this pack.',
+      likes: 15,
+      createdAt: '2026-02-16T13:20:00Z',
+    },
+  ],
+
+  'all-in-one-bundle': [
+    {
+      authorName: 'Harshvardhan Rathi (Production House)',
+      authorEmail: 'harshvardhan.films@gmail.com',
+      rating: 5,
+      title: 'Bhai sabse best investment hai studio ke liye!',
+      content: 'Bhai sach batau to is bundle me LUTs, presets, wedding PSDs aur fonts sab ek sath mil gaya. Alag alag lene ki zarurat hi nahi padi, poora studio setup upgrade ho gaya. Har asset top quality hai!',
+      likes: 38,
+      createdAt: '2026-03-07T11:00:00Z',
+    },
+    {
+      authorName: 'Ananya Roy',
+      authorEmail: 'ananya.roy@outlook.com',
+      rating: 5,
+      title: 'Unbelievable value for money',
+      content: 'Every folder is cleanly organized. The 40+ album PSDs and cinematic LUTs alone saved me weeks of manual post-production. Instant download worked smoothly.',
+      likes: 26,
+      createdAt: '2026-02-28T15:20:00Z',
+    },
+    {
+      authorName: 'Deepak Solanki',
+      authorEmail: 'deepak.creative@gmail.com',
+      rating: 5,
+      title: 'Complete creative toolkit',
+      content: 'Files downloaded immediately after checkout. High quality assets across all creative disciplines. Great commercial license.',
+      likes: 19,
+      createdAt: '2026-02-19T09:15:00Z',
+    },
+  ],
+};
+
+/**
+ * Fetches all approved reviews specifically for a given product slug or ID.
  */
 export async function fetchProductReviews(productSlug: string, productName?: string): Promise<ProductReview[]> {
-  const normalizedSlug = (productSlug || '').toLowerCase().trim();
+  const rawKey = (productSlug || '').toLowerCase().trim();
+  const normalizedSlug = normalizeReviewKey(productSlug);
+  const titleKey = normalizeReviewKey(productName || '');
+  
+  // Build all potential key variants to query
+  const queryKeys = Array.from(new Set([
+    rawKey,
+    normalizedSlug,
+    titleKey,
+    productSlug,
+  ])).filter(Boolean);
+
   const client = getSupabaseClient();
   
   if (!client) {
@@ -99,43 +444,56 @@ export async function fetchProductReviews(productSlug: string, productName?: str
   }
 
   try {
-    const { data, error } = await client
+    // 1. Try querying Supabase by product_slug
+    const { data: slugData, error: slugError } = await client
       .from('product_reviews')
       .select('*')
-      .eq('product_slug', normalizedSlug)
+      .in('product_slug', queryKeys)
       .eq('status', 'approved')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.warn('Error fetching product reviews:', error);
-      return getCategorySpecificFallbackReviews(normalizedSlug, productName);
+    if (!slugError && slugData && slugData.length > 0) {
+      return mapDbRowsToReviews(slugData);
     }
 
-    if (!data || data.length === 0) {
-      return getCategorySpecificFallbackReviews(normalizedSlug, productName);
+    // 2. Try querying Supabase by product_id
+    const { data: idData, error: idError } = await client
+      .from('product_reviews')
+      .select('*')
+      .in('product_id', queryKeys)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    if (!idError && idData && idData.length > 0) {
+      return mapDbRowsToReviews(idData);
     }
 
-    return data.map((row: any) => ({
-      id: row.id,
-      productId: row.product_id,
-      productSlug: row.product_slug,
-      productName: row.product_name,
-      authorName: row.author_name,
-      authorEmail: row.author_email || '',
-      rating: row.rating,
-      title: row.title,
-      content: row.content,
-      photos: Array.isArray(row.photos) ? row.photos : [],
-      isVerifiedBuyer: Boolean(row.is_verified_buyer),
-      status: row.status,
-      likes: row.likes || 0,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    // 3. Fallback to dictionary
+    return getCategorySpecificFallbackReviews(normalizedSlug, productName);
   } catch (err) {
     console.warn('Error in fetchProductReviews:', err);
     return getCategorySpecificFallbackReviews(normalizedSlug, productName);
   }
+}
+
+function mapDbRowsToReviews(rows: any[]): ProductReview[] {
+  return rows.map((row: any) => ({
+    id: row.id,
+    productId: row.product_id,
+    productSlug: row.product_slug,
+    productName: row.product_name,
+    authorName: row.author_name,
+    authorEmail: row.author_email || '',
+    rating: row.rating,
+    title: row.title,
+    content: row.content,
+    photos: Array.isArray(row.photos) ? row.photos : [],
+    isVerifiedBuyer: Boolean(row.is_verified_buyer),
+    status: row.status,
+    likes: row.likes || 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
 
 /**
@@ -146,7 +504,7 @@ export async function submitProductReview(
   photoFiles: File[] = []
 ): Promise<{ success: boolean; message: string; review?: ProductReview }> {
   const client = getSupabaseClient();
-  const normalizedSlug = (payload.productSlug || payload.productId || '').toLowerCase().trim();
+  const normalizedSlug = normalizeReviewKey(payload.productSlug || payload.productId || '');
   const fallbackEmail = payload.authorEmail?.trim() || `${payload.authorName.trim().toLowerCase().replace(/\s+/g, '')}@creator.in`;
 
   try {
@@ -273,23 +631,7 @@ export async function fetchAllReviewsForAdmin(): Promise<ProductReview[]> {
 
     if (error || !data) return [];
 
-    return data.map((row: any) => ({
-      id: row.id,
-      productId: row.product_id,
-      productSlug: row.product_slug,
-      productName: row.product_name,
-      authorName: row.author_name,
-      authorEmail: row.author_email || '',
-      rating: row.rating,
-      title: row.title,
-      content: row.content,
-      photos: Array.isArray(row.photos) ? row.photos : [],
-      isVerifiedBuyer: Boolean(row.is_verified_buyer),
-      status: row.status,
-      likes: row.likes || 0,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    return mapDbRowsToReviews(data);
   } catch (err) {
     console.warn('Failed to fetch admin reviews:', err);
     return [];
@@ -327,7 +669,11 @@ export async function deleteProductReview(reviewId: string): Promise<boolean> {
   if (!client) return false;
 
   try {
-    const { error } = await client.from('product_reviews').delete().eq('id', reviewId);
+    const { error } = await client
+      .from('product_reviews')
+      .delete()
+      .eq('id', reviewId);
+
     return !error;
   } catch (err) {
     console.warn('Failed to delete review:', err);
@@ -369,355 +715,163 @@ export function calculateReviewStats(reviews: ProductReview[]): ReviewStats {
  * Generates humanized, genuine, product-specific reviews with realistic Hinglish remarks.
  */
 function getCategorySpecificFallbackReviews(slug: string, name?: string): ProductReview[] {
-  const s = (slug || '').toLowerCase();
-  const n = (name || slug || '').toLowerCase();
+  const normSlug = normalizeReviewKey(slug);
+  const normName = normalizeReviewKey(name || '');
 
-  // 1. WEDDING ALBUM PSDs & PHOTOSHOP TEMPLATES
-  if (s.includes('psd') || n.includes('psd') || s.includes('album') || n.includes('album')) {
-    return [
-      {
-        id: `fb-psd-1-${slug}`,
+  // 1. Check exact key in STORE_PRODUCT_REVIEWS
+  for (const [key, items] of Object.entries(STORE_PRODUCT_REVIEWS)) {
+    if (
+      key === normSlug ||
+      key === normName ||
+      normSlug.includes(key) ||
+      key.includes(normSlug) ||
+      normName.includes(key) ||
+      key.includes(normName)
+    ) {
+      return items.map((r, idx) => ({
+        id: `fb-${key}-${idx + 1}`,
         productId: slug,
         productSlug: slug,
-        authorName: 'Kunal Verma (Wedding Studio)',
-        authorEmail: 'kunal.studio@gmail.com',
-        rating: 5,
-        title: 'Bhai pura time bacha diya is pack ne!',
-        content: 'Bhai sach batau to pehle 40 sheet ki wedding album design karne me 3-4 din nikal jate the. Is PSD collection se bas 2 ghante me poora print-ready album ready ho gaya! Smart objects me photo drop karo aur instant design set. Client bohot khush hua!',
+        productName: name || slug,
+        authorName: r.authorName,
+        authorEmail: r.authorEmail || `${r.authorName.toLowerCase().replace(/\s+/g, '')}@creator.in`,
+        rating: r.rating,
+        title: r.title,
+        content: r.content,
         photos: [],
         isVerifiedBuyer: true,
         status: 'approved',
-        likes: 28,
-        createdAt: '2026-03-05T10:15:00Z',
-      },
-      {
-        id: `fb-psd-2-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Ritika Deshmukh',
-        authorEmail: 'ritika.photo@outlook.com',
-        rating: 5,
-        title: 'Crisp 300 DPI Print-Ready Quality',
-        content: 'Best Karizma and modern Canvera album spreads I have used. Layers are super clean and organized. The typography layout and minimal gold frames look ultra luxury in physical photobooks.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 19,
-        createdAt: '2026-02-28T14:40:00Z',
-      },
-      {
-        id: `fb-psd-3-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Rahul Joshi Visuals',
-        authorEmail: 'rahul.visuals@gmail.com',
-        rating: 5,
-        title: 'Perfect for busy Indian wedding season',
-        content: 'Har ek sheet ka color combination aur negative space balance bohot premium hai. Mere junior editor ne bhi easily bina kisi problem ke poora album compile kar liya. Must-have investment!',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 15,
-        createdAt: '2026-02-22T09:30:00Z',
-      },
-      {
-        id: `fb-psd-4-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Sneha Kulkarni',
-        authorEmail: 'sneha.designs@gmail.com',
-        rating: 4,
-        title: 'Very aesthetic & easy to customize',
-        content: 'Loved the modern editorial layout. Fonts included and layer masks are completely non-destructive. Saved me tons of layout brainstorming.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 11,
-        createdAt: '2026-02-14T16:20:00Z',
-      },
-    ];
+        likes: r.likes,
+        createdAt: r.createdAt,
+      }));
+    }
   }
 
-  // 2. FONTS & TYPOGRAPHY PRODUCTS
-  if (s.includes('font') || n.includes('font') || s.includes('type') || n.includes('type')) {
-    return [
-      {
-        id: `fb-font-1-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Aditya Sengupta',
-        authorEmail: 'aditya.design@gmail.com',
-        rating: 5,
-        title: 'Bhai fonts ka collection ekdum top-notch hai!',
-        content: 'Luxury brand packaging aur client ke streetwear logo ke liye use kiya. The alternate ligatures aur clean vector curves in Illustrator are crazy good. Jo premium aesthetic chahiye thi wo 100% mil gayi.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 22,
-        createdAt: '2026-03-04T12:30:00Z',
-      },
-      {
-        id: `fb-font-2-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Priya Nambiar',
-        authorEmail: 'priya.type@outlook.com',
-        rating: 5,
-        title: 'Crisp rendering in 4K video titles & thumbnails',
-        content: 'Super versatile collection. Both the bold display serifs and modern editorial sans fonts look razor sharp on YouTube thumbnails and Premiere titles. Instant commercial license is a big plus.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 16,
-        createdAt: '2026-02-26T15:10:00Z',
-      },
-      {
-        id: `fb-font-3-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Karan Kapoor',
-        authorEmail: 'karan.studio@gmail.com',
-        rating: 5,
-        title: 'Instant 10-second installation',
-        content: 'OTF & TTF files are well-organized and installed in one click on Mac & Windows. Typographic aesthetic elevated my entire portfolio.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 12,
-        createdAt: '2026-02-19T09:20:00Z',
-      },
-      {
-        id: `fb-font-4-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Megha Jain',
-        authorEmail: 'megha.creative@gmail.com',
-        rating: 4,
-        title: 'Beautiful type pairing guide',
-        content: 'The fonts are distinctive without being unreadable. Perfect for invitation cards and magazine headers.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 9,
-        createdAt: '2026-02-11T13:45:00Z',
-      },
-    ];
-  }
-
-  // 3. LUTS & COLOR GRADING
-  if (s.includes('lut') || n.includes('lut') || s.includes('color') || n.includes('cinema')) {
-    return [
-      {
-        id: `fb-lut-1-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Aman Sharma (Films)',
-        authorEmail: 'aman.films@gmail.com',
-        rating: 5,
-        title: 'Sony S-Log3 pe 1-click me cinema look aa gaya!',
-        content: 'Bhai Sony A7IV aur FX3 ki S-Log3 footage pe apply kiya tha. Highlight roll-off ekdum smooth Kodak 35mm film jaisa aata hai without breaking dynamic range. Greenish tint bilkul nahi aati, skin tone mast aati hai.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 31,
-        createdAt: '2026-03-02T11:15:00Z',
-      },
-      {
-        id: `fb-lut-2-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Rohan Mehra',
-        authorEmail: 'rohan.cine@visuals.in',
-        rating: 5,
-        title: 'Works flawlessly in Premiere & DaVinci Resolve',
-        content: 'The .cube conversion is super clean with zero color banding. It instantly brings that high-budget cinematic depth to flat log footage in one click. Client gave zero revision notes!',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 21,
-        createdAt: '2026-02-22T14:40:00Z',
-      },
-      {
-        id: `fb-lut-3-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Devika Patel (Colorist)',
-        authorEmail: 'devika.colorist@outlook.com',
-        rating: 5,
-        title: 'Rich organic warmth and clean contrast',
-        content: 'One of the best color toolkits I have purchased this year. Saved me hours in node grading and commercial reels look very cohesive.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 14,
-        createdAt: '2026-02-15T08:50:00Z',
-      },
-      {
-        id: `fb-lut-4-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Harshil Shah',
-        authorEmail: 'harshil.edit@gmail.com',
-        rating: 4,
-        title: 'Natural skin tones on Canon C-Log',
-        content: 'Very balanced saturation. Does not overcrush the shadows and highlights stay velvety soft.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 8,
-        createdAt: '2026-02-09T18:10:00Z',
-      },
-    ];
-  }
-
-  // 4. SOUND EFFECTS (SFX)
-  if (s.includes('sound') || n.includes('sound') || s.includes('sfx') || n.includes('sfx') || s.includes('audio')) {
-    return [
-      {
-        id: `fb-sfx-1-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Nikhil Rao (Sound Designer)',
-        authorEmail: 'nikhil.audio@gmail.com',
-        rating: 5,
-        title: 'Studio punch & ultra-crisp 24-bit WAVs!',
-        content: 'Bhai cinematic risers, sub-bass drops aur organic whooshes reel aur trailer me energy bhar dete hain. Mastered with perfect headroom and zero distortion.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 25,
-        createdAt: '2026-03-01T10:00:00Z',
-      },
-      {
-        id: `fb-sfx-2-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Siddharth Roy',
-        authorEmail: 'sid.edits@gmail.com',
-        rating: 5,
-        title: 'Clean stereo imaging for reels & trailers',
-        content: 'Every sound file is cleanly labeled and categorized. Slotted right into my timeline without needing heavy EQing or compression.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 17,
-        createdAt: '2026-02-20T16:30:00Z',
-      },
-      {
-        id: `fb-sfx-3-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Tarun Mehta',
-        authorEmail: 'tarun.prod@gmail.com',
-        rating: 5,
-        title: 'Essential audio toolkit for content creators',
-        content: 'Makes video cuts feel 10x more impactful. Instant download with lifetime license is amazing.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 12,
-        createdAt: '2026-02-12T11:10:00Z',
-      },
-    ];
-  }
-
-  // 5. OVERLAYS, GRAIN & TEXTURES
-  if (s.includes('overlay') || n.includes('overlay') || s.includes('grain') || n.includes('grain') || s.includes('texture')) {
-    return [
-      {
-        id: `fb-overlay-1-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Harsh Vardhan',
-        authorEmail: 'harsh.vfx@gmail.com',
-        rating: 5,
-        title: 'Authentic 4K film scan texture',
-        content: 'Just set blend mode to Screen or Overlay in Premiere and it instantly gives clinical digital footage a tactile analog warmth. 4K ProRes scans look gorgeous.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 20,
-        createdAt: '2026-03-03T09:45:00Z',
-      },
-      {
-        id: `fb-overlay-2-${slug}`,
-        productId: slug,
-        productSlug: slug,
-        authorName: 'Simran Kaur',
-        authorEmail: 'simran.art@outlook.com',
-        rating: 5,
-        title: 'Zero timeline lag, high resolution',
-        content: 'Light leaks, halation, and dust elements are so natural. It adds that vintage nostalgic charm without feeling fake or overdone.',
-        photos: [],
-        isVerifiedBuyer: true,
-        status: 'approved',
-        likes: 14,
-        createdAt: '2026-02-23T11:20:00Z',
-      },
-    ];
-  }
-
-  // 6. LIGHTROOM PRESETS & DEFAULT PRODUCT REVIEWS
-  return [
-    {
-      id: `fb-preset-1-${slug}`,
+  // 2. Semantic fallback if novel product created in future
+  const s = normSlug + ' ' + normName;
+  if (s.includes('influencer') || s.includes('reels') || s.includes('creator') || s.includes('lifestyle')) {
+    return (STORE_PRODUCT_REVIEWS['20-influencer-style-presets-pack'] || []).map((r, idx) => ({
+      id: `fb-inf-${idx + 1}`,
       productId: slug,
       productSlug: slug,
-      authorName: 'Sameer Verma (Wedding Photographer)',
-      authorEmail: 'sameer.photo@gmail.com',
-      rating: 5,
-      title: 'Haldi aur Mehendi shoots pe next level result!',
-      content: 'Haldi aur outdoor golden hour shoots pe ye presets ekdum top tier color dete hain. Skin tone yellow nahi hoti, natural warm glow rehta hai. 1000+ photos ka batch sirf 30 minutes me export ho gaya!',
+      authorName: r.authorName,
+      authorEmail: r.authorEmail || '',
+      rating: r.rating,
+      title: r.title,
+      content: r.content,
       photos: [],
       isVerifiedBuyer: true,
       status: 'approved',
-      likes: 27,
-      createdAt: '2026-03-05T14:20:00Z',
-    },
-    {
-      id: `fb-preset-2-${slug}`,
+      likes: r.likes,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  if (s.includes('psd') || s.includes('album') || s.includes('karizma') || s.includes('canvera')) {
+    return (STORE_PRODUCT_REVIEWS['preimium-album-psd-pack'] || []).map((r, idx) => ({
+      id: `fb-psd-${idx + 1}`,
       productId: slug,
       productSlug: slug,
-      authorName: 'Ananya Roy',
-      authorEmail: 'ananya.visuals@gmail.com',
-      rating: 5,
-      title: 'Works seamlessly on Lightroom Mobile & Desktop',
-      content: 'DNG files synced straight to Lightroom Mobile with zero hassle. The subtle matte shadows and warm highlights make my feed look like an editorial magazine.',
+      authorName: r.authorName,
+      authorEmail: r.authorEmail || '',
+      rating: r.rating,
+      title: r.title,
+      content: r.content,
       photos: [],
       isVerifiedBuyer: true,
       status: 'approved',
-      likes: 19,
-      createdAt: '2026-02-27T18:05:00Z',
-    },
-    {
-      id: `fb-preset-3-${slug}`,
+      likes: r.likes,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  if (s.includes('vintage') || s.includes('retro') || s.includes('film') || s.includes('grain')) {
+    return (STORE_PRODUCT_REVIEWS['vintage-premium-prese-pack'] || []).map((r, idx) => ({
+      id: `fb-vnt-${idx + 1}`,
       productId: slug,
       productSlug: slug,
-      authorName: 'Vikram Singhania',
-      authorEmail: 'vikram.candid@gmail.com',
-      rating: 5,
-      title: 'Flawless colors with minimal slider adjustment',
-      content: 'Bohot hi balanced color grading hai. Sony aur Canon dono raw files pe bina kisi highlight clipping ke smooth tone aata hai.',
+      authorName: r.authorName,
+      authorEmail: r.authorEmail || '',
+      rating: r.rating,
+      title: r.title,
+      content: r.content,
       photos: [],
       isVerifiedBuyer: true,
       status: 'approved',
-      likes: 14,
-      createdAt: '2026-02-18T10:15:00Z',
-    },
-    {
-      id: `fb-preset-4-${slug}`,
+      likes: r.likes,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  if (s.includes('wedding')) {
+    return (STORE_PRODUCT_REVIEWS['wedding-premium-preset-pack'] || []).map((r, idx) => ({
+      id: `fb-wed-${idx + 1}`,
       productId: slug,
       productSlug: slug,
-      authorName: 'Varun Joshi',
-      authorEmail: 'varun.creatives@outlook.com',
-      rating: 4,
-      title: 'Clean & well organized folder structure',
-      content: 'Instantly improved my client delivery turnaround time. Solid 5-star value for money.',
+      authorName: r.authorName,
+      authorEmail: r.authorEmail || '',
+      rating: r.rating,
+      title: r.title,
+      content: r.content,
       photos: [],
       isVerifiedBuyer: true,
       status: 'approved',
-      likes: 10,
-      createdAt: '2026-02-10T12:30:00Z',
-    },
-  ];
+      likes: r.likes,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  if (s.includes('lut') || s.includes('cube') || s.includes('log')) {
+    return (STORE_PRODUCT_REVIEWS['signature-lut-s-pack'] || []).map((r, idx) => ({
+      id: `fb-lut-${idx + 1}`,
+      productId: slug,
+      productSlug: slug,
+      authorName: r.authorName,
+      authorEmail: r.authorEmail || '',
+      rating: r.rating,
+      title: r.title,
+      content: r.content,
+      photos: [],
+      isVerifiedBuyer: true,
+      status: 'approved',
+      likes: r.likes,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  if (s.includes('font') || s.includes('typeface') || s.includes('otf') || s.includes('serif')) {
+    return (STORE_PRODUCT_REVIEWS['25-designer-fonts'] || []).map((r, idx) => ({
+      id: `fb-fnt-${idx + 1}`,
+      productId: slug,
+      productSlug: slug,
+      authorName: r.authorName,
+      authorEmail: r.authorEmail || '',
+      rating: r.rating,
+      title: r.title,
+      content: r.content,
+      photos: [],
+      isVerifiedBuyer: true,
+      status: 'approved',
+      likes: r.likes,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  // Fallback to cinematic presets
+  return (STORE_PRODUCT_REVIEWS['30-cinematic-premium-presets-pack'] || []).map((r, idx) => ({
+    id: `fb-cin-${idx + 1}`,
+    productId: slug,
+    productSlug: slug,
+    authorName: r.authorName,
+    authorEmail: r.authorEmail || '',
+    rating: r.rating,
+    title: r.title,
+    content: r.content,
+    photos: [],
+    isVerifiedBuyer: true,
+    status: 'approved',
+    likes: r.likes,
+    createdAt: r.createdAt,
+  }));
 }
+
