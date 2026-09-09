@@ -1,0 +1,40 @@
+# Template Theory — Production Robots.txt
+# https://templatetheory.com
+
+User-agent: *
+Allow: /
+Allow: /shop
+Allow: /collections
+Allow: /collections/*
+Allow: /product/*
+Allow: /about
+Allow: /faq
+Allow: /contact
+Allow: /assets/*
+Allow: /images/*
+
+# Disallow Private & Administrative Paths
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /checkout
+Disallow: /checkout/*
+Disallow: /order-success
+Disallow: /order-success/*
+Disallow: /api/*
+Disallow: /*.json$
+
+# Social Media Crawlers Optimization
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Pinterestbot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+# Sitemap Index
+Sitemap: https://templatetheory.com/sitemap.xml

@@ -21,6 +21,8 @@ import { ProductCard } from '../components/cards/ProductCard';
 import { SidebarFilters } from '../components/filters/SidebarFilters';
 import { ProductCategory } from '../types';
 import { useShopify } from '../context/ShopifyContext';
+import { SEOHead } from '../components/common/SEOHead';
+import { CATEGORY_SEO, generateCollectionSchema, generateBreadcrumbSchema } from '../utils/seoConfig';
 
 export const CategoryCollectionPage: React.FC = () => {
   const { category: categorySlug } = useParams<{ category: string }>();
@@ -101,8 +103,31 @@ export const CategoryCollectionPage: React.FC = () => {
     });
   }, [categoryInfo, maxPrice, minRating, selectedTag, selectedCompat, sortBy]);
 
+  const currentCatKey = categoryInfo.slug || 'presets';
+  const currentCatSEO = CATEGORY_SEO[currentCatKey] || {
+    title: `${categoryInfo.title} — Digital Asset Toolkit | Template Theory`,
+    description: categoryInfo.description,
+    keywords: [categoryInfo.title, 'digital asset', 'Template Theory'],
+    hashtags: [],
+    canonicalPath: `/collections/${currentCatKey}`,
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '60px' }}>
+      <SEOHead
+        title={currentCatSEO.title}
+        description={currentCatSEO.description}
+        keywords={currentCatSEO.keywords}
+        canonicalPath={currentCatSEO.canonicalPath}
+        jsonLd={[
+          generateCollectionSchema(categoryInfo.title, categoryProducts),
+          generateBreadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Collections', path: '/collections' },
+            { name: categoryInfo.title, path: `/collections/${currentCatKey}` },
+          ]),
+        ]}
+      />
       
       {/* 1. BREADCRUMBS & CATEGORY HERO */}
       <section style={{ paddingTop: '10px' }}>

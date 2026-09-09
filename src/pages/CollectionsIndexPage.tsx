@@ -3,11 +3,23 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
 import { useShopify } from '../context/ShopifyContext';
+import { SEOHead } from '../components/common/SEOHead';
+import { CORE_PAGES_SEO, generateBreadcrumbSchema } from '../utils/seoConfig';
 
 export const CollectionsIndexPage: React.FC = () => {
   const { products } = useShopify();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '80px' }}>
+      <SEOHead
+        title={CORE_PAGES_SEO.collections.title}
+        description={CORE_PAGES_SEO.collections.description}
+        keywords={CORE_PAGES_SEO.collections.keywords}
+        canonicalPath={CORE_PAGES_SEO.collections.canonicalPath}
+        jsonLd={generateBreadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Collections', path: '/collections' },
+        ])}
+      />
       
       {/* Header Banner */}
       <section style={{ paddingTop: '20px' }}>

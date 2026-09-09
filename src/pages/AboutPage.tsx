@@ -1,10 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Award, ShieldCheck, Heart, Layers } from 'lucide-react';
+import { SEOHead } from '../components/common/SEOHead';
+import { CORE_PAGES_SEO, generateBreadcrumbSchema } from '../utils/seoConfig';
 
 export const AboutPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '70px', paddingBottom: '80px' }}>
+      <SEOHead
+        title={CORE_PAGES_SEO.about.title}
+        description={CORE_PAGES_SEO.about.description}
+        keywords={CORE_PAGES_SEO.about.keywords}
+        canonicalPath={CORE_PAGES_SEO.about.canonicalPath}
+        jsonLd={generateBreadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'About Us', path: '/about' },
+        ])}
+      />
       
       {/* Hero Header */}
       <section style={{ paddingTop: '30px' }}>

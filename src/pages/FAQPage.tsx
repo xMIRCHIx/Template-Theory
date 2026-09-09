@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, HelpCircle, FileText, ShoppingBag, ShieldCheck, Wrench } from 'lucide-react';
 import { FAQS_DATA } from '../data/faqs';
+import { SEOHead } from '../components/common/SEOHead';
+import { CORE_PAGES_SEO, generateFAQSchema, generateBreadcrumbSchema } from '../utils/seoConfig';
 
 export const FAQPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -12,6 +14,19 @@ export const FAQPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '80px' }}>
+      <SEOHead
+        title={CORE_PAGES_SEO.faq.title}
+        description={CORE_PAGES_SEO.faq.description}
+        keywords={CORE_PAGES_SEO.faq.keywords}
+        canonicalPath={CORE_PAGES_SEO.faq.canonicalPath}
+        jsonLd={[
+          generateFAQSchema(FAQS_DATA),
+          generateBreadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'FAQ & Help', path: '/faq' },
+          ]),
+        ]}
+      />
       
       {/* Header Banner */}
       <section style={{ paddingTop: '20px' }}>

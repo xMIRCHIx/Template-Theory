@@ -30,6 +30,8 @@ import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getYouTubeEmbedUrl, getYouTubeThumbnailUrl, getInstagramPostId } from '../services/db';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
+import { SEOHead } from '../components/common/SEOHead';
+import { CORE_PAGES_SEO, generateOrganizationSchema, generateWebSiteSchema } from '../utils/seoConfig';
 
 const YoutubeIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -339,6 +341,13 @@ export const HomePage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '80px', overflowX: 'hidden', position: 'relative' }}>
+      <SEOHead
+        title={CORE_PAGES_SEO.home.title}
+        description={CORE_PAGES_SEO.home.description}
+        keywords={CORE_PAGES_SEO.home.keywords}
+        canonicalPath={CORE_PAGES_SEO.home.canonicalPath}
+        jsonLd={[generateOrganizationSchema(), generateWebSiteSchema()]}
+      />
       
       {/* 1. HERO SECTION */}
       <section className="hero-section" style={{ paddingTop: 'clamp(24px, 4vh, 44px)', paddingBottom: '30px', position: 'relative' }}>

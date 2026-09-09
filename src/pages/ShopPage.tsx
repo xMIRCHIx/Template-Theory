@@ -3,6 +3,8 @@ import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
 import { ProductCard } from '../components/cards/ProductCard';
 import { useShopify } from '../context/ShopifyContext';
+import { SEOHead } from '../components/common/SEOHead';
+import { CORE_PAGES_SEO, generateBreadcrumbSchema } from '../utils/seoConfig';
 
 export const ShopPage: React.FC = () => {
   const { products, isLoading } = useShopify();
@@ -45,6 +47,16 @@ export const ShopPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px' }}>
+      <SEOHead
+        title={CORE_PAGES_SEO.shop.title}
+        description={CORE_PAGES_SEO.shop.description}
+        keywords={CORE_PAGES_SEO.shop.keywords}
+        canonicalPath={CORE_PAGES_SEO.shop.canonicalPath}
+        jsonLd={generateBreadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Shop All', path: '/shop' },
+        ])}
+      />
       
       {/* Header Banner */}
       <section style={{ paddingTop: '20px' }}>

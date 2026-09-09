@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MessageSquare, Send, CheckCircle2, HelpCircle } from 'lucide-react';
+import { SEOHead } from '../components/common/SEOHead';
+import { CORE_PAGES_SEO, generateBreadcrumbSchema } from '../utils/seoConfig';
 
 export const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -20,6 +22,16 @@ export const ContactPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '50px', paddingBottom: '80px' }}>
+      <SEOHead
+        title={CORE_PAGES_SEO.contact.title}
+        description={CORE_PAGES_SEO.contact.description}
+        keywords={CORE_PAGES_SEO.contact.keywords}
+        canonicalPath={CORE_PAGES_SEO.contact.canonicalPath}
+        jsonLd={generateBreadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Contact Us', path: '/contact' },
+        ])}
+      />
       
       {/* Header Banner */}
       <section style={{ paddingTop: '20px' }}>

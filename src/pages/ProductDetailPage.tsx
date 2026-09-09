@@ -37,6 +37,8 @@ import { MobileStickyBuyBar } from '../components/pdp/MobileStickyBuyBar';
 import { ProductReviewsSection } from '../components/reviews/ProductReviewsSection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
+import { SEOHead } from '../components/common/SEOHead';
+import { generateProductSchema, generateBreadcrumbSchema, HASHTAG_BANKS } from '../utils/seoConfig';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -441,6 +443,31 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px', paddingTop: '20px' }}>
+      <SEOHead
+        title={`${product.name} — Instant Download`}
+        description={product.description || `Get ${product.name} with instant digital download, commercial usage rights, and lifetime access from Template Theory.`}
+        keywords={[
+          product.name,
+          product.category,
+          `${product.name} download`,
+          'digital asset',
+          'Template Theory',
+          ...(HASHTAG_BANKS[product.category as keyof typeof HASHTAG_BANKS] || []),
+        ]}
+        canonicalPath={`/product/${product.slug || product.id}`}
+        ogTitle={`${product.name} | Template Theory`}
+        ogDescription={product.description}
+        ogImage={product.thumbnail}
+        ogType="product"
+        jsonLd={[
+          generateProductSchema(product),
+          generateBreadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Shop', path: '/shop' },
+            { name: product.name, path: `/product/${product.slug || product.id}` },
+          ]),
+        ]}
+      />
       
       {/* Fullscreen High-Resolution Lightbox Modal with Smooth Slider & Touch Support */}
       {isLightboxOpen && (

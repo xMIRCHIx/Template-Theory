@@ -47,6 +47,7 @@ import { useShopify } from '../context/ShopifyContext';
 import { CATEGORIES } from '../data/categories';
 import { ProductCategory, Product, UGCItem, UGCMediaType } from '../types';
 import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
+import { SEOHead } from '../components/common/SEOHead';
 
 const YoutubeIcon: React.FC<{ size?: number; color?: string }> = ({ size = 14, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1650,6 +1651,7 @@ export const AdminPage: React.FC = () => {
           padding: '24px',
         }}
       >
+        <SEOHead title="Admin Studio | Template Theory" noIndex={true} />
         <div
           style={{
             width: '100%',
@@ -1747,6 +1749,7 @@ export const AdminPage: React.FC = () => {
   // =========================================================================
   return (
     <div style={{ paddingBottom: '90px', paddingTop: '20px' }}>
+      <SEOHead title="Admin Studio | Template Theory" noIndex={true} />
       {/* Toast Notification */}
       {toastMessage && (
         <div
