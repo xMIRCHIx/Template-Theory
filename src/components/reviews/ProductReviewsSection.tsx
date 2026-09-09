@@ -13,9 +13,6 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
-  Heart,
-  Smile,
-  Zap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -54,7 +51,7 @@ const RATING_MOODS: Record<number, { label: string; emoji: string; desc: string;
   4: {
     label: 'Great Toolkit! Loved It',
     emoji: '✨',
-    desc: 'Very clean color science, saves a ton of post-production time.',
+    desc: 'Very clean results, saves a ton of post-production time.',
     bg: '#ecfdf5',
     color: '#047857',
   },
@@ -111,13 +108,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     }
   });
 
-  // Write Review Form State
+  // Write Review Form State (Super simplified: Rating + Name + Review Feedback)
   const [formRating, setFormRating] = useState<number>(5);
   const [formHoverRating, setFormHoverRating] = useState<number>(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [formName, setFormName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
   const [photoPreviews, setPhotoPreviews] = useState<PhotoPreviewItem[]>([]);
   const [isCompressingPhotos, setIsCompressingPhotos] = useState(false);
@@ -126,13 +121,14 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load reviews on mount or when product slug changes
+  // Load reviews specifically for this product slug
   useEffect(() => {
     let isMounted = true;
     async function loadReviews() {
       setIsLoading(true);
       try {
-        const data = await fetchProductReviews(product.slug || product.id);
+        const productKey = product.slug || product.id;
+        const data = await fetchProductReviews(productKey, product.title);
         if (isMounted) {
           setReviews(data);
         }
@@ -146,7 +142,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     return () => {
       isMounted = false;
     };
-  }, [product.slug, product.id]);
+  }, [product.slug, product.id, product.title]);
 
   // Review statistics
   const stats: ReviewStats = useMemo(() => calculateReviewStats(reviews), [reviews]);
@@ -197,10 +193,6 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
 
   // Step 1 -> Step 2 transition
   const handleProceedToStep2 = () => {
-    // If user selected quick tags, pre-fill title or content if empty
-    if (selectedTags.length > 0 && !formTitle) {
-      setFormTitle(selectedTags.join(', '));
-    }
     setModalStep(2);
   };
 
@@ -245,11 +237,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Submit Review Form
+  // Submit Review Form (Frictionless: Just Name + Review)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formEmail.trim() || !formContent.trim()) {
-      setSubmitError('Please enter your name, email, and review feedback.');
+    if (!formName.trim() || !formContent.trim()) {
+      setSubmitError('Please enter your name and review feedback.');
       return;
     }
 
@@ -258,15 +250,17 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
 
     try {
       const filesToUpload = photoPreviews.map((p) => p.file);
+      const productSlug = product.slug || product.id;
+      const cleanTitle = selectedTags.length > 0 ? selectedTags.join(' • ') : '';
+
       const res = await submitProductReview(
         {
           productId: product.id,
-          productSlug: product.slug,
+          productSlug: productSlug,
           productName: product.title,
           authorName: formName.trim(),
-          authorEmail: formEmail.trim(),
           rating: formRating,
-          title: formTitle.trim(),
+          title: cleanTitle,
           content: formContent.trim(),
           isVerifiedBuyer: true,
         },
@@ -279,7 +273,6 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
         setTimeout(() => {
           setIsWriteModalOpen(false);
           setSubmitSuccess(false);
-          setFormTitle('');
           setFormContent('');
           setPhotoPreviews([]);
           setSelectedTags([]);
@@ -913,11 +906,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 style={{
                   backgroundColor: '#ffffff',
                   borderRadius: '24px',
-                  maxWidth: '520px',
+                  maxWidth: '480px',
                   width: '100%',
                   maxHeight: '90vh',
                   overflowY: 'auto',
-                  padding: '32px 28px',
+                  padding: '28px 24px',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
                   border: '1.5px solid var(--border)',
                   position: 'relative',
@@ -935,7 +928,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     border: '1px solid var(--border)',
                     cursor: 'pointer',
                     color: 'var(--muted)',
-                    padding: '7px',
+                    padding: '6px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -950,31 +943,31 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    style={{ textAlign: 'center', padding: '40px 10px' }}
+                    style={{ textAlign: 'center', padding: '36px 10px' }}
                   >
                     <motion.div
                       animate={{ scale: [0.8, 1.15, 1], rotate: [0, 10, 0] }}
                       transition={{ duration: 0.5 }}
                       style={{
-                        width: '72px',
-                        height: '72px',
+                        width: '68px',
+                        height: '68px',
                         borderRadius: '50%',
                         backgroundColor: 'var(--sage-light, #ecfdf5)',
                         color: 'var(--sage, #059669)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto 18px auto',
+                        margin: '0 auto 16px auto',
                         boxShadow: '0 8px 24px rgba(5, 150, 105, 0.2)',
                       }}
                     >
-                      <Check size={36} />
+                      <Check size={34} />
                     </motion.div>
-                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--brown)', margin: 0 }}>
                       Review Published! 🎉
                     </h3>
-                    <p style={{ fontSize: '0.94rem', color: 'var(--muted)', marginTop: '8px' }}>
-                      Thank you for your feedback! Your review is now live and helping fellow creators.
+                    <p style={{ fontSize: '0.92rem', color: 'var(--muted)', marginTop: '8px' }}>
+                      Thank you! Your feedback is now live on this product page.
                     </p>
                   </motion.div>
                 ) : modalStep === 1 ? (
@@ -987,7 +980,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.22 }}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
                   >
                     <div>
                       <div
@@ -999,11 +992,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                           borderRadius: '999px',
                           backgroundColor: 'rgba(201, 130, 103, 0.12)',
                           color: 'var(--terracotta-dark, #c2410c)',
-                          fontSize: '0.76rem',
+                          fontSize: '0.74rem',
                           fontWeight: 800,
                           letterSpacing: '0.04em',
                           textTransform: 'uppercase',
-                          marginBottom: '8px',
+                          marginBottom: '6px',
                         }}
                       >
                         <Sparkles size={12} />
@@ -1011,7 +1004,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       </div>
                       <h3
                         style={{
-                          fontSize: '1.5rem',
+                          fontSize: '1.45rem',
                           fontWeight: 900,
                           color: 'var(--brown)',
                           margin: 0,
@@ -1020,28 +1013,27 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       >
                         How was your experience?
                       </h3>
-                      <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginTop: '4px', margin: '4px 0 0 0' }}>
-                        Tap the stars below to rate <strong style={{ color: 'var(--brown)' }}>{product.title}</strong>
+                      <p style={{ fontSize: '0.86rem', color: 'var(--muted)', marginTop: '4px', margin: '4px 0 0 0' }}>
+                        Rate <strong style={{ color: 'var(--brown)' }}>{product.title}</strong>
                       </p>
                     </div>
 
                     {/* Big Interactive 5-Star Selector */}
                     <div
                       style={{
-                        padding: '24px 20px',
+                        padding: '22px 18px',
                         backgroundColor: 'var(--cream-light, #f8f6f0)',
                         border: '1.5px solid var(--border)',
-                        borderRadius: '20px',
+                        borderRadius: '18px',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '16px',
-                        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.02)',
+                        gap: '14px',
                       }}
                     >
                       {/* Animated Stars Row */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {[1, 2, 3, 4, 5].map((s) => {
                           const isActive = currentDisplayRating >= s;
                           return (
@@ -1061,11 +1053,10 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                                 cursor: 'pointer',
                                 padding: '4px',
                                 outline: 'none',
-                                transition: 'transform 0.15s ease',
                               }}
                             >
                               <Star
-                                size={38}
+                                size={36}
                                 fill={isActive ? '#f59e0b' : '#e2e8f0'}
                                 color={isActive ? '#f59e0b' : '#cbd5e1'}
                                 style={{
@@ -1088,7 +1079,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                           flexDirection: 'column',
                           alignItems: 'center',
                           textAlign: 'center',
-                          padding: '10px 18px',
+                          padding: '10px 16px',
                           borderRadius: '12px',
                           backgroundColor: currentMood.bg,
                           color: currentMood.color,
@@ -1096,11 +1087,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                           boxSizing: 'border-box',
                         }}
                       >
-                        <div style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span>{currentMood.emoji}</span>
                           <span>{currentMood.label}</span>
                         </div>
-                        <div style={{ fontSize: '0.78rem', opacity: 0.9, marginTop: '2px' }}>
+                        <div style={{ fontSize: '0.76rem', opacity: 0.9, marginTop: '2px' }}>
                           {currentMood.desc}
                         </div>
                       </motion.div>
@@ -1108,10 +1099,10 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
 
                     {/* Quick Highlight Tags (1-Tap Selection) */}
                     <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '10px' }}>
-                        What stood out to you most? (Optional 1-Tap)
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '8px' }}>
+                        Quick Highlights (Optional 1-Tap):
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {QUICK_TAG_OPTIONS.map((tag) => {
                           const isSelected = selectedTags.includes(tag);
                           return (
@@ -1121,9 +1112,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                               whileTap={{ scale: 0.94 }}
                               onClick={() => toggleTag(tag)}
                               style={{
-                                padding: '7px 12px',
+                                padding: '6px 11px',
                                 borderRadius: '999px',
-                                fontSize: '0.8rem',
+                                fontSize: '0.78rem',
                                 fontWeight: 700,
                                 border: isSelected ? '1.5px solid var(--brown)' : '1px solid var(--border)',
                                 backgroundColor: isSelected ? 'var(--brown)' : '#ffffff',
@@ -1156,7 +1147,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                         backgroundColor: 'var(--brown)',
                         color: '#ffffff',
                         fontWeight: 800,
-                        fontSize: '1rem',
+                        fontSize: '0.98rem',
                         borderRadius: 'var(--radius-md)',
                         border: 'none',
                         cursor: 'pointer',
@@ -1165,16 +1156,16 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                         justifyContent: 'center',
                         gap: '8px',
                         boxShadow: 'var(--shadow-clay-btn)',
-                        marginTop: '4px',
+                        marginTop: '2px',
                       }}
                     >
-                      <span>Continue to Write Review ({formRating} Stars)</span>
-                      <ArrowRight size={18} />
+                      <span>Continue ({formRating} Stars)</span>
+                      <ArrowRight size={17} />
                     </motion.button>
                   </motion.div>
                 ) : (
                   /* ======================================================== */
-                  /* STEP 2: WRITE REVIEW & CREATOR NAME/EMAIL FORM */
+                  /* STEP 2: SIMPLE & FRICTIONLESS REVIEW WRITING FORM */
                   /* ======================================================== */
                   <motion.form
                     key="step-2"
@@ -1183,9 +1174,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.22 }}
                     onSubmit={handleSubmitReview}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
                   >
-                    {/* Header with Back Button */}
+                    {/* Header with Back Button & Rating Badge */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <button
                         type="button"
@@ -1229,16 +1220,16 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     <div>
                       <h3
                         style={{
-                          fontSize: '1.45rem',
+                          fontSize: '1.4rem',
                           fontWeight: 900,
                           color: 'var(--brown)',
                           margin: 0,
                           letterSpacing: '-0.02em',
                         }}
                       >
-                        Share your feedback
+                        Write your review
                       </h3>
-                      <p style={{ fontSize: '0.86rem', color: 'var(--muted)', marginTop: '4px', margin: '4px 0 0 0' }}>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '3px', margin: '3px 0 0 0' }}>
                         for {product.title}
                       </p>
                     </div>
@@ -1264,7 +1255,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     {/* Review Comments */}
                     <div>
                       <label style={{ display: 'block', fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                        Your Review *
+                        Your Feedback *
                       </label>
                       <textarea
                         required
@@ -1272,7 +1263,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                         rows={3}
                         value={formContent}
                         onChange={(e) => setFormContent(e.target.value)}
-                        placeholder="What camera/software did you use? How did this look improve your edits?"
+                        placeholder="What did you love most about this toolkit? Mention any software or workflow details."
                         style={{
                           width: '100%',
                           padding: '12px 14px',
@@ -1287,68 +1278,23 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       />
                     </div>
 
-                    {/* Name & Email Row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                          Your Name *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                          placeholder="e.g. Aryan G."
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border)',
-                            fontSize: '0.9rem',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                          Email Address *
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={formEmail}
-                          onChange={(e) => setFormEmail(e.target.value)}
-                          placeholder="name@gmail.com"
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border)',
-                            fontSize: '0.9rem',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Review Title (Optional) */}
+                    {/* Name Input */}
                     <div>
-                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '4px' }}>
-                        Headline (Optional)
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)', marginBottom: '6px' }}>
+                        Your Name (or Creator Handle) *
                       </label>
                       <input
                         type="text"
-                        value={formTitle}
-                        onChange={(e) => setFormTitle(e.target.value)}
-                        placeholder="e.g. 1-Click film look on Sony A7IV"
+                        required
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        placeholder="e.g. Aryan G."
                         style={{
                           width: '100%',
-                          padding: '8px 12px',
+                          padding: '11px 14px',
                           borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--border)',
-                          fontSize: '0.88rem',
+                          border: '1.5px solid var(--border)',
+                          fontSize: '0.92rem',
                           outline: 'none',
                           boxSizing: 'border-box',
                         }}
@@ -1358,8 +1304,8 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     {/* Photos Upload with Automatic WebP Compression Preview */}
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <label style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)' }}>
-                          Attach Photo Results (Optional - Max 4)
+                        <label style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--brown)' }}>
+                          Attach Photo Results (Optional)
                         </label>
                         <span style={{ fontSize: '0.74rem', color: 'var(--sage, #059669)', fontWeight: 700 }}>
                           ⚡ WebP auto-compressed (&lt;60KB)
@@ -1374,8 +1320,8 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                               key={idx}
                               style={{
                                 position: 'relative',
-                                width: '70px',
-                                height: '70px',
+                                width: '68px',
+                                height: '68px',
                                 borderRadius: 'var(--radius-sm)',
                                 border: '1px solid var(--border)',
                                 overflow: 'hidden',
