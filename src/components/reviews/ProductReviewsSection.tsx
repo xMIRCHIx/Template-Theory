@@ -13,6 +13,9 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
+  Search,
+  ChevronRight,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -91,12 +94,14 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
+  const [isAllReviewsModalOpen, setIsAllReviewsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<1 | 2>(1); // Step 1 = Rating & Micro-Interactions, Step 2 = Details & Name
   const [activePhotoLightbox, setActivePhotoLightbox] = useState<string | null>(null);
 
-  // Filter & Sort State
+  // Filter, Sort & Search State
   const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | 'all' | 'photos'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'highest' | 'helpful'>('recent');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Liked review IDs saved in local storage to prevent duplicate clicks
   const [likedReviews, setLikedReviews] = useState<Record<string, boolean>>(() => {
@@ -147,7 +152,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   // Review statistics
   const stats: ReviewStats = useMemo(() => calculateReviewStats(reviews), [reviews]);
 
-  // Filtered & Sorted Reviews
+  // Filtered, Sorted & Searched Reviews
   const filteredReviews = useMemo(() => {
     let list = [...reviews];
 
@@ -156,6 +161,17 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
       list = list.filter((r) => r.photos && r.photos.length > 0);
     } else if (typeof selectedRatingFilter === 'number') {
       list = list.filter((r) => Math.round(r.rating) === selectedRatingFilter);
+    }
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (r) =>
+          r.authorName.toLowerCase().includes(q) ||
+          r.content.toLowerCase().includes(q) ||
+          (r.title && r.title.toLowerCase().includes(q))
+      );
     }
 
     // Sort
@@ -169,7 +185,12 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     }
 
     return list;
-  }, [reviews, selectedRatingFilter, sortBy]);
+  }, [reviews, selectedRatingFilter, sortBy, searchQuery]);
+
+  // Initial preview reviews displayed directly on page (top 3)
+  const initialDisplayReviews = useMemo(() => {
+    return filteredReviews.slice(0, 3);
+  }, [filteredReviews]);
 
   // Open Write Modal Fresh
   const handleOpenWriteModal = () => {
@@ -309,6 +330,197 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   const currentDisplayRating = formHoverRating || formRating;
   const currentMood = RATING_MOODS[currentDisplayRating] || RATING_MOODS[5];
 
+  // Helper renderer for a single review card
+  const renderReviewCard = (review: ProductReview) => {
+    const hasLiked = Boolean(likedReviews[review.id]);
+    const formattedDate = new Date(review.createdAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    return (
+      <div
+        key={review.id}
+        className="clay-card"
+        style={{
+          padding: '24px 28px',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: '#ffffff',
+          border: '1px solid var(--border)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+        }}
+      >
+        {/* Top Row: User Avatar, Name, Badge, Date & Stars */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Avatar Circle */}
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--cream-light, #f1efe7)',
+                border: '1.5px solid var(--border)',
+                color: 'var(--brown)',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textTransform: 'uppercase',
+              }}
+            >
+              {review.authorName ? review.authorName.slice(0, 2) : 'CR'}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.98rem', color: 'var(--brown)' }}>
+                  {review.authorName}
+                </span>
+                {review.isVerifiedBuyer && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      backgroundColor: 'var(--sage-light, #ecfdf5)',
+                      color: 'var(--sage, #059669)',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <CheckCircle2 size={11} />
+                    <span>Verified Buyer</span>
+                  </span>
+                )}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '2px' }}>
+                {formattedDate}
+              </span>
+            </div>
+          </div>
+
+          {/* Star Rating */}
+          <div style={{ display: 'flex', gap: '2px' }}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                size={16}
+                fill={s <= review.rating ? '#f59e0b' : '#e2e8f0'}
+                color={s <= review.rating ? '#f59e0b' : '#cbd5e1'}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Review Title & Content */}
+        <div>
+          {review.title && (
+            <h4
+              style={{
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                color: 'var(--brown)',
+                margin: '0 0 6px 0',
+              }}
+            >
+              {review.title}
+            </h4>
+          )}
+          <p
+            style={{
+              fontSize: '0.93rem',
+              color: 'var(--charcoal, #374151)',
+              lineHeight: 1.65,
+              margin: 0,
+            }}
+          >
+            {review.content}
+          </p>
+        </div>
+
+        {/* Review Photos Gallery */}
+        {review.photos && review.photos.length > 0 && (
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
+            {review.photos.map((photoUrl, pIdx) => (
+              <button
+                key={pIdx}
+                onClick={() => setActivePhotoLightbox(photoUrl)}
+                style={{
+                  padding: 0,
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  overflow: 'hidden',
+                  width: '80px',
+                  height: '80px',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  backgroundColor: 'var(--cream-light)',
+                }}
+              >
+                <img
+                  src={photoUrl}
+                  alt={`Review photo ${pIdx + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  loading="lazy"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Bottom Row: Helpful button */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            borderTop: '1px solid var(--border-light)',
+            paddingTop: '10px',
+          }}
+        >
+          <button
+            onClick={() => handleLike(review.id)}
+            disabled={hasLiked}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-sm)',
+              border: hasLiked ? '1px solid var(--sage)' : '1px solid var(--border)',
+              backgroundColor: hasLiked ? 'var(--sage-light, #ecfdf5)' : '#ffffff',
+              color: hasLiked ? 'var(--sage, #059669)' : 'var(--muted)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: hasLiked ? 'default' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            <ThumbsUp size={13} fill={hasLiked ? 'currentColor' : 'none'} />
+            <span>{hasLiked ? 'Helpful' : 'Helpful?'}</span>
+            <span>({review.likes || 0})</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section id="product-reviews-section" style={{ padding: '40px 0 60px 0' }}>
       <div className="container">
@@ -355,32 +567,55 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               Customer Reviews
             </h2>
             <p style={{ fontSize: '0.94rem', color: 'var(--muted)', marginTop: '6px', margin: '6px 0 0 0' }}>
-              Real before/after results and feedback from photographers, filmmakers, and colorists.
+              Real before/after results and feedback from photographers, filmmakers, and creators.
             </p>
           </div>
 
-          <button
-            onClick={handleOpenWriteModal}
-            className="clay-button"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 22px',
-              backgroundColor: 'var(--brown)',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: '0.92rem',
-              borderRadius: 'var(--radius-md)',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-clay-btn, 0 4px 14px rgba(0,0,0,0.12))',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Plus size={16} />
-            <span>Write a Review</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setIsAllReviewsModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '12px 18px',
+                backgroundColor: 'var(--cream-light)',
+                border: '1.5px solid var(--border)',
+                color: 'var(--brown)',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              <SlidersHorizontal size={15} />
+              <span>View All ({reviews.length})</span>
+            </button>
+
+            <button
+              onClick={handleOpenWriteModal}
+              className="clay-button"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 22px',
+                backgroundColor: 'var(--brown)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-clay-btn, 0 4px 14px rgba(0,0,0,0.12))',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Plus size={16} />
+              <span>Write a Review</span>
+            </button>
+          </div>
         </div>
 
         {/* Rating Breakdown & Summary Grid */}
@@ -460,9 +695,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               return (
                 <button
                   key={starNum}
-                  onClick={() =>
-                    setSelectedRatingFilter((prev) => (prev === starNum ? 'all' : starNum))
-                  }
+                  onClick={() => {
+                    setSelectedRatingFilter((prev) => (prev === starNum ? 'all' : starNum));
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -640,7 +875,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
           </div>
         </div>
 
-        {/* Reviews List */}
+        {/* Clean Initial Reviews List (Top 3) */}
         {isLoading ? (
           <div style={{ padding: '60px 0', textAlign: 'center' }}>
             <Loader2 size={32} className="animate-spin" style={{ color: 'var(--brown)', margin: '0 auto' }} />
@@ -648,7 +883,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               Loading creator reviews...
             </p>
           </div>
-        ) : filteredReviews.length === 0 ? (
+        ) : initialDisplayReviews.length === 0 ? (
           <div
             style={{
               padding: '50px 20px',
@@ -684,199 +919,312 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {filteredReviews.map((review) => {
-              const hasLiked = Boolean(likedReviews[review.id]);
-              const formattedDate = new Date(review.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
+            {initialDisplayReviews.map((review) => renderReviewCard(review))}
 
-              return (
-                <div
-                  key={review.id}
-                  className="clay-card"
+            {/* "View More / All Reviews" Button */}
+            {filteredReviews.length > 3 && (
+              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                <button
+                  onClick={() => setIsAllReviewsModalOpen(true)}
+                  className="clay-button"
                   style={{
-                    padding: '24px 28px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '14px 28px',
+                    backgroundColor: 'var(--cream-light)',
+                    color: 'var(--brown)',
+                    border: '1.5px solid var(--border)',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid var(--border)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '14px',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow-sm)',
+                    transition: 'all 0.2s ease',
                   }}
                 >
-                  {/* Top Row: User Avatar, Name, Badge, Date & Stars */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {/* Avatar Circle */}
-                      <div
-                        style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--cream-light, #f1efe7)',
-                          border: '1.5px solid var(--border)',
-                          color: 'var(--brown)',
-                          fontWeight: 800,
-                          fontSize: '0.95rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {review.authorName ? review.authorName.slice(0, 2) : 'CR'}
-                      </div>
+                  <span>View All {filteredReviews.length} Reviews with Photos</span>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontWeight: 800, fontSize: '0.98rem', color: 'var(--brown)' }}>
-                            {review.authorName}
-                          </span>
-                          {review.isVerifiedBuyer && (
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                padding: '2px 8px',
-                                borderRadius: '999px',
-                                backgroundColor: 'var(--sage-light, #ecfdf5)',
-                                color: 'var(--sage, #059669)',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                              }}
-                            >
-                              <CheckCircle2 size={11} />
-                              <span>Verified Buyer</span>
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '2px' }}>
-                          {formattedDate}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Star Rating */}
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          size={16}
-                          fill={s <= review.rating ? '#f59e0b' : '#e2e8f0'}
-                          color={s <= review.rating ? '#f59e0b' : '#cbd5e1'}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Review Title & Content */}
+        {/* ========================================================================= */}
+        {/* DEDICATED FULL "ALL CUSTOMER REVIEWS" MODAL POPUP */}
+        {/* ========================================================================= */}
+        <AnimatePresence>
+          {isAllReviewsModalOpen && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                backdropFilter: 'blur(6px)',
+                zIndex: 9998,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '16px',
+              }}
+              onClick={() => setIsAllReviewsModalOpen(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                onClick={(e) => e.stopPropagation()}
+                className="clay-card"
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '24px',
+                  maxWidth: '780px',
+                  width: '100%',
+                  maxHeight: '92vh',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
+                  border: '1.5px solid var(--border)',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Sticky Header */}
+                <div
+                  style={{
+                    padding: '24px 28px 18px 28px',
+                    borderBottom: '1.5px solid var(--border-light)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    backgroundColor: '#ffffff',
+                  }}
+                >
                   <div>
-                    {review.title && (
-                      <h4
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--brown)', margin: 0 }}>
+                        All Reviews ({reviews.length})
+                      </h3>
+                      <span
                         style={{
-                          fontSize: '1.05rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          backgroundColor: '#fef3c7',
+                          color: '#b45309',
+                          fontSize: '0.78rem',
                           fontWeight: 800,
-                          color: 'var(--brown)',
-                          margin: '0 0 6px 0',
                         }}
                       >
-                        {review.title}
-                      </h4>
-                    )}
-                    <p
-                      style={{
-                        fontSize: '0.93rem',
-                        color: 'var(--charcoal, #374151)',
-                        lineHeight: 1.65,
-                        margin: 0,
-                      }}
-                    >
-                      {review.content}
+                        <Star size={11} fill="#f59e0b" color="#f59e0b" />
+                        {stats.averageRating.toFixed(1)} / 5.0
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--muted)', margin: '4px 0 0 0' }}>
+                      Verified creator reviews for {product.title}
                     </p>
                   </div>
 
-                  {/* Review Photos Gallery */}
-                  {review.photos && review.photos.length > 0 && (
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {review.photos.map((photoUrl, pIdx) => (
-                        <button
-                          key={pIdx}
-                          onClick={() => setActivePhotoLightbox(photoUrl)}
-                          style={{
-                            padding: 0,
-                            border: '1.5px solid var(--border)',
-                            borderRadius: 'var(--radius-sm)',
-                            overflow: 'hidden',
-                            width: '80px',
-                            height: '80px',
-                            cursor: 'pointer',
-                            position: 'relative',
-                            backgroundColor: 'var(--cream-light)',
-                          }}
-                        >
-                          <img
-                            src={photoUrl}
-                            alt={`Review photo ${pIdx + 1}`}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            loading="lazy"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Bottom Row: Helpful button */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      borderTop: '1px solid var(--border-light)',
-                      paddingTop: '10px',
-                    }}
-                  >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <button
-                      onClick={() => handleLike(review.id)}
-                      disabled={hasLiked}
+                      onClick={() => {
+                        setIsAllReviewsModalOpen(false);
+                        handleOpenWriteModal();
+                      }}
+                      className="clay-button"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
-                        padding: '6px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        border: hasLiked ? '1px solid var(--sage)' : '1px solid var(--border)',
-                        backgroundColor: hasLiked ? 'var(--sage-light, #ecfdf5)' : '#ffffff',
-                        color: hasLiked ? 'var(--sage, #059669)' : 'var(--muted)',
-                        fontSize: '0.8rem',
+                        padding: '9px 16px',
+                        backgroundColor: 'var(--brown)',
+                        color: '#ffffff',
                         fontWeight: 700,
-                        cursor: hasLiked ? 'default' : 'pointer',
-                        transition: 'all 0.15s',
+                        fontSize: '0.84rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: 'none',
+                        cursor: 'pointer',
                       }}
                     >
-                      <ThumbsUp size={13} fill={hasLiked ? 'currentColor' : 'none'} />
-                      <span>{hasLiked ? 'Helpful' : 'Helpful?'}</span>
-                      <span>({review.likes || 0})</span>
+                      <Plus size={14} />
+                      <span>Write Review</span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsAllReviewsModalOpen(false)}
+                      style={{
+                        background: 'var(--cream-light)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--muted)',
+                        cursor: 'pointer',
+                        padding: '6px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <X size={18} />
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Multi-Step Animated Write Review Modal */}
+                {/* Search & Filter Bar in Modal */}
+                <div
+                  style={{
+                    padding: '14px 28px',
+                    backgroundColor: 'var(--cream-light, #f8f6f0)',
+                    borderBottom: '1px solid var(--border-light)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  {/* Search Input */}
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <Search
+                      size={16}
+                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }}
+                    />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search reviews by keyword (e.g. 'wedding', 'tones', 'fast', 's-log')..."
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px 9px 36px',
+                        borderRadius: 'var(--radius-full)',
+                        border: '1px solid var(--border)',
+                        fontSize: '0.86rem',
+                        backgroundColor: '#ffffff',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--muted)',
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Pills Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setSelectedRatingFilter('all')}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        border: selectedRatingFilter === 'all' ? '1.5px solid var(--brown)' : '1px solid var(--border)',
+                        backgroundColor: selectedRatingFilter === 'all' ? 'var(--brown)' : '#ffffff',
+                        color: selectedRatingFilter === 'all' ? '#ffffff' : 'var(--brown)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      All ({reviews.length})
+                    </button>
+
+                    <button
+                      onClick={() => setSelectedRatingFilter('photos')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 12px',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        border: selectedRatingFilter === 'photos' ? '1.5px solid var(--brown)' : '1px solid var(--border)',
+                        backgroundColor: selectedRatingFilter === 'photos' ? 'var(--brown)' : '#ffffff',
+                        color: selectedRatingFilter === 'photos' ? '#ffffff' : 'var(--brown)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <ImageIcon size={12} />
+                      <span>With Photos</span>
+                    </button>
+
+                    {[5, 4, 3].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setSelectedRatingFilter(star)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '5px 12px',
+                          borderRadius: '9999px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          border: selectedRatingFilter === star ? '1.5px solid var(--brown)' : '1px solid var(--border)',
+                          backgroundColor: selectedRatingFilter === star ? 'var(--brown)' : '#ffffff',
+                          color: selectedRatingFilter === star ? '#ffffff' : 'var(--brown)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span>{star} Stars</span>
+                        <Star
+                          size={11}
+                          fill={selectedRatingFilter === star ? '#ffffff' : '#f59e0b'}
+                          color={selectedRatingFilter === star ? '#ffffff' : '#f59e0b'}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scrollable Reviews List Body */}
+                <div
+                  style={{
+                    padding: '24px 28px',
+                    overflowY: 'auto',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                  }}
+                >
+                  {filteredReviews.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 10px', color: 'var(--muted)' }}>
+                      <Star size={32} style={{ color: '#cbd5e1', margin: '0 auto 8px auto' }} />
+                      <div style={{ fontWeight: 700, color: 'var(--brown)' }}>No matching reviews found</div>
+                      <div style={{ fontSize: '0.84rem', marginTop: '4px' }}>Try searching another keyword or clearing filters.</div>
+                    </div>
+                  ) : (
+                    filteredReviews.map((review) => renderReviewCard(review))
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ========================================================================= */}
+        {/* MULTI-STEP ANIMATED WRITE REVIEW MODAL */}
+        {/* ========================================================================= */}
         <AnimatePresence>
           {isWriteModalOpen && (
             <div
