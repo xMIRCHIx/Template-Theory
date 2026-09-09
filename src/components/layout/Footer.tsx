@@ -337,6 +337,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div
+          className="footer-bottom-bar"
           style={{
             borderTop: '1px solid var(--border)',
             paddingTop: '24px',
@@ -346,21 +347,129 @@ export const Footer: React.FC = () => {
             fontSize: '0.85rem',
             color: 'var(--muted)',
             flexWrap: 'wrap',
-            gap: '12px',
+            gap: '16px',
           }}
         >
+          {/* Left: Brand info */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Made with</span>
+            <span>© {new Date().getFullYear()} Template Theory. Made with</span>
             <span style={{ color: 'var(--terracotta)' }}>♥</span>
             <span>for creators.</span>
+          </div>
+
+          {/* Mid: Created by synchAD Interactive Brand Badge */}
+          <a
+            href="https://synchad.online/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="synchad-badge-link"
+            aria-label="Created by synchAD - Web Development & Social Media Agency"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '7px 16px',
+              backgroundColor: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(8px)',
+              border: '1.5px solid rgba(229, 213, 193, 0.9)',
+              borderRadius: 'var(--radius-full)',
+              textDecoration: 'none',
+              color: 'var(--brown)',
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              boxShadow: '0 2px 10px rgba(91, 64, 42, 0.06)',
+              transition: 'all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              position: 'relative',
+            }}
+          >
+            <span style={{ color: 'var(--muted)', fontSize: '0.78rem', fontWeight: 600 }}>Created by</span>
+            
+            <div
+              className="synchad-logo-wrap"
+              style={{
+                width: '22px',
+                height: '22px',
+                borderRadius: '6px',
+                backgroundColor: '#ffffff',
+                border: '1px solid rgba(26, 26, 26, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2px',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
+                transition: 'transform 0.3s ease, border-color 0.3s ease',
+              }}
+            >
+              <img
+                src="/images/synchad-logo.png"
+                alt="synchAD Logo"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            </div>
+
+            <span
+              style={{
+                fontFamily: 'var(--font-display, "Plus Jakarta Sans")',
+                fontWeight: 800,
+                fontSize: '0.92rem',
+                letterSpacing: '-0.02em',
+                color: '#1a1a1a',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              synch<span style={{ color: '#f5b02e', fontWeight: 900 }}>AD</span>
+            </span>
+
+            <span
+              className="synchad-arrow"
+              style={{
+                fontSize: '0.78rem',
+                color: 'var(--muted)',
+                transition: 'transform 0.25s ease, color 0.25s ease',
+                marginLeft: '1px',
+              }}
+            >
+              ↗
+            </span>
+          </a>
+
+          {/* Right: Tagline */}
+          <div style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
+            <span>Digital Assets & Toolkits for Creators</span>
           </div>
         </div>
       </div>
 
       <style>{`
+        .synchad-badge-link {
+          transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        .synchad-badge-link:hover {
+          transform: translateY(-2px) scale(1.05) !important;
+          background-color: #ffffff !important;
+          border-color: #f5b02e !important;
+          box-shadow: 0 8px 24px rgba(245, 176, 46, 0.25), 0 2px 8px rgba(26, 26, 26, 0.08) !important;
+        }
+        .synchad-badge-link:hover .synchad-logo-wrap {
+          transform: rotate(10deg) scale(1.12) !important;
+          border-color: #f5b02e !important;
+        }
+        .synchad-badge-link:hover .synchad-arrow {
+          transform: translate(2px, -2px) !important;
+          color: #f5b02e !important;
+        }
         @media (max-width: 1024px) {
           .footer-grid {
             grid-template-columns: 1fr 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .footer-bottom-bar {
+            flex-direction: column !important;
+            text-align: center !important;
+            gap: 16px !important;
+            justify-content: center !important;
           }
         }
         @media (max-width: 640px) {
