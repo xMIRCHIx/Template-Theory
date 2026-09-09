@@ -150,6 +150,30 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     };
   }, [product.slug, product.id, product.title]);
 
+  // Prevent background scrolling when any modal or lightbox is active
+  useEffect(() => {
+    const isModalOpen = isAllReviewsModalOpen || isWriteModalOpen || Boolean(activePhotoLightbox);
+    if (!isModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    const originalTouchAction = document.body.style.touchAction;
+
+    // Compensate scrollbar width to prevent page shift
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow || '';
+      document.body.style.paddingRight = originalPaddingRight || '';
+      document.body.style.touchAction = originalTouchAction || '';
+    };
+  }, [isAllReviewsModalOpen, isWriteModalOpen, activePhotoLightbox]);
+
   // Review statistics
   const stats: ReviewStats = useMemo(() => calculateReviewStats(reviews), [reviews]);
 
@@ -972,15 +996,18 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                backgroundColor: 'rgba(0, 0, 0, 0.72)',
                 backdropFilter: 'blur(6px)',
                 zIndex: 9998,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '16px',
+                overscrollBehavior: 'contain',
+                touchAction: 'none',
               }}
               onClick={() => setIsAllReviewsModalOpen(false)}
+              onWheel={(e) => e.stopPropagation()}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.94, y: 20 }}
@@ -988,6 +1015,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 exit={{ opacity: 0, scale: 0.94, y: 20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 onClick={(e) => e.stopPropagation()}
+                onWheel={(e) => e.stopPropagation()}
                 className="clay-card"
                 style={{
                   backgroundColor: '#ffffff',
@@ -1000,6 +1028,8 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                   boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
                   border: '1.5px solid var(--border)',
                   overflow: 'hidden',
+                  overscrollBehavior: 'contain',
+                  touchAction: 'auto',
                 }}
               >
                 {/* Sticky Header */}
@@ -1214,7 +1244,10 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '16px',
+                    overscrollBehavior: 'contain',
+                    WebkitOverflowScrolling: 'touch',
                   }}
+                  onWheel={(e) => e.stopPropagation()}
                 >
                   {filteredReviews.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 10px', color: 'var(--muted)' }}>
@@ -1243,15 +1276,18 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                backgroundColor: 'rgba(0, 0, 0, 0.68)',
                 backdropFilter: 'blur(6px)',
                 zIndex: 9999,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '20px',
+                overscrollBehavior: 'contain',
+                touchAction: 'none',
               }}
               onClick={() => !isSubmitting && setIsWriteModalOpen(false)}
+              onWheel={(e) => e.stopPropagation()}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -1259,6 +1295,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 exit={{ opacity: 0, scale: 0.92, y: 20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 onClick={(e) => e.stopPropagation()}
+                onWheel={(e) => e.stopPropagation()}
                 className="clay-card"
                 style={{
                   backgroundColor: '#ffffff',
@@ -1271,6 +1308,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
                   border: '1.5px solid var(--border)',
                   position: 'relative',
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'auto',
                 }}
               >
                 {/* Close Button */}
@@ -1884,8 +1924,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '24px',
+                overscrollBehavior: 'contain',
+                touchAction: 'none',
               }}
               onClick={() => setActivePhotoLightbox(null)}
+              onWheel={(e) => e.stopPropagation()}
             >
               <div style={{ position: 'relative', maxWidth: '900px', maxHeight: '90vh' }}>
                 <button
