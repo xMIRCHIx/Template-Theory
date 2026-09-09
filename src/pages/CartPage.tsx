@@ -71,15 +71,72 @@ export const CartPage: React.FC = () => {
             </Link>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.4fr 1fr',
-              gap: '40px',
-              alignItems: 'flex-start',
-            }}
-            className="cart-split-grid"
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Dynamic Bundle Savings Progress Bar */}
+            <div
+              style={{
+                padding: '16px 22px',
+                backgroundColor: totalItems >= 3 ? 'var(--olive-light)' : 'var(--cream-light)',
+                border: '1.5px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-clay)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.92rem', fontWeight: 700 }}>
+                {totalItems === 1 && (
+                  <span style={{ color: 'var(--terracotta-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={16} /> Add 1 more product to unlock <strong>20% OFF Bundle Discount</strong>!
+                  </span>
+                )}
+                {totalItems === 2 && (
+                  <span style={{ color: 'var(--terracotta-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={16} /> <strong>20% OFF Unlocked!</strong> Add 1 more item for <strong>25% Mega Bundle Savings</strong>!
+                  </span>
+                )}
+                {totalItems >= 3 && (
+                  <span style={{ color: 'var(--olive-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={16} /> <strong>Mega Bundle Unlocked!</strong> 25% OFF discount applied across all items 🎉
+                  </span>
+                )}
+                <span style={{ color: 'var(--brown)', fontSize: '0.84rem' }}>
+                  {Math.min(totalItems, 3)}/3 bundle items
+                </span>
+              </div>
+              
+              {/* Progress Track */}
+              <div
+                style={{
+                  width: '100%',
+                  height: '8px',
+                  backgroundColor: 'rgba(0,0,0,0.08)',
+                  borderRadius: 'var(--radius-full)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: totalItems >= 3 ? '100%' : totalItems === 2 ? '66%' : '33%',
+                    height: '100%',
+                    backgroundColor: totalItems >= 3 ? 'var(--olive)' : 'var(--terracotta)',
+                    borderRadius: 'var(--radius-full)',
+                    transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.4fr 1fr',
+                gap: '40px',
+                alignItems: 'flex-start',
+              }}
+              className="cart-split-grid"
+            >
             {/* Left: Cart Items List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {cart.map(({ product, quantity }) => (
@@ -285,6 +342,7 @@ export const CartPage: React.FC = () => {
                 Continue Shopping
               </Link>
             </div>
+          </div>
           </div>
         )}
 

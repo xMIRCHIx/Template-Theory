@@ -110,6 +110,62 @@ export const CartDrawer: React.FC = () => {
           </button>
         </div>
 
+        {/* Dynamic Bundle Savings Progress Bar */}
+        {cart.length > 0 && (
+          <div
+            style={{
+              padding: '12px 24px',
+              backgroundColor: totalItems >= 3 ? 'var(--olive-light)' : 'var(--cream-dark)',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', fontWeight: 700 }}>
+              {totalItems === 1 && (
+                <span style={{ color: 'var(--terracotta-dark)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Sparkles size={14} /> Add 1 more item to unlock <strong>20% OFF</strong>!
+                </span>
+              )}
+              {totalItems === 2 && (
+                <span style={{ color: 'var(--terracotta-dark)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Sparkles size={14} /> <strong>20% OFF Unlocked!</strong> Add 1 more for <strong>25% OFF</strong>!
+                </span>
+              )}
+              {totalItems >= 3 && (
+                <span style={{ color: 'var(--olive-dark)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Sparkles size={14} /> <strong>Mega Bundle Unlocked!</strong> 25% OFF applied 🎉
+                </span>
+              )}
+              <span style={{ color: 'var(--brown)', fontSize: '0.78rem' }}>
+                {Math.min(totalItems, 3)}/3 items
+              </span>
+            </div>
+            
+            {/* Progress Track */}
+            <div
+              style={{
+                width: '100%',
+                height: '6px',
+                backgroundColor: 'rgba(0,0,0,0.08)',
+                borderRadius: 'var(--radius-full)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: totalItems >= 3 ? '100%' : totalItems === 2 ? '66%' : '33%',
+                  height: '100%',
+                  backgroundColor: totalItems >= 3 ? 'var(--olive)' : 'var(--terracotta)',
+                  borderRadius: 'var(--radius-full)',
+                  transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Cart Item List */}
         <div
           style={{
