@@ -1447,6 +1447,62 @@ export const ProductDetailPage: React.FC = () => {
                   </button>
                 </div>
               )}
+
+              {/* Trust Guarantee Card on Left Column */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px',
+                  marginTop: '16px',
+                  padding: '16px 18px',
+                  backgroundColor: 'var(--cream-light)',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-clay)',
+                }}
+                className="pdp-left-trust-card"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--terracotta-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <DownloadCloud size={16} color="var(--terracotta-dark)" />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', display: 'block', lineHeight: 1.2 }}>Instant Download</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>Direct access via email</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--cream-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <InfinityIcon size={16} color="var(--clay-dark)" />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', display: 'block', lineHeight: 1.2 }}>Lifetime Updates</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>Free future releases</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--olive-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ShieldCheck size={16} color="var(--olive-dark)" />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', display: 'block', lineHeight: 1.2 }}>Commercial License</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>Client & commercial use</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(96, 68, 46, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <CheckCircle2 size={16} color="var(--brown)" />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', display: 'block', lineHeight: 1.2 }}>100% Satisfaction</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>Tested by 10k+ creators</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* RIGHT COLUMN: PRODUCT METADATA & PURCHASE BOX */}
@@ -1709,39 +1765,6 @@ export const ProductDetailPage: React.FC = () => {
                     <span>⚡ Test Live Font Ligatures & Weights</span>
                   </button>
                 )}
-              </div>
-
-              {/* Trust Guarantee List */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                  gap: '8px',
-                  paddingTop: '12px',
-                  borderTop: '1px solid var(--border)',
-                  fontSize: '0.8rem',
-                  color: 'var(--muted)',
-                  fontWeight: 600,
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <DownloadCloud size={16} color="var(--terracotta)" />
-                  <span>Instant Download</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <InfinityIcon size={16} color="var(--clay-dark)" />
-                  <span>Lifetime Free Updates</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={16} color="var(--olive-dark)" />
-                  <span>Commercial License</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckCircle2 size={16} color="var(--brown)" />
-                  <span>100% Satisfaction Guarantee</span>
-                </div>
               </div>
 
             </div>
