@@ -166,13 +166,9 @@ export const ProductDetailPage: React.FC = () => {
   }, [product?.fontPreviewText]);
 
   useEffect(() => {
-    if (hasBeforeAfter) {
-      setActiveTab('beforeAfter');
-      setActiveBAIndex(0);
-    } else {
-      setActiveTab('preview');
-    }
-  }, [product?.slug, hasBeforeAfter]);
+    setActiveTab('preview');
+    setActiveBAIndex(0);
+  }, [product?.slug]);
 
   // Efficiently preload adjacent looks at optimal 900px WebP resolution to eliminate network congestion
   useEffect(() => {
