@@ -40,6 +40,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { optimizeImageUrl } from '../utils/imageOptimizer';
 import { SEOHead } from '../components/common/SEOHead';
 import { generateProductSchema, generateBreadcrumbSchema, HASHTAG_BANKS } from '../utils/seoConfig';
+import { ProductDetailSkeleton } from '../components/common/Skeleton';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -401,38 +402,7 @@ export const ProductDetailPage: React.FC = () => {
 
   // 1. Shimmer Loading Skeleton State (prevents flashing of Product Not Found during initial load)
   if (!product && (isLoading || products.length === 0)) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px', paddingTop: '28px' }}>
-        <div className="container">
-          <div style={{ width: '220px', height: '18px', backgroundColor: 'var(--cream-dark)', borderRadius: '6px', marginBottom: '24px', animation: 'pulse 1.5s infinite ease-in-out' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1.18fr 1fr', gap: '44px' }} className="pdp-split-grid">
-            <div
-              style={{
-                width: '100%',
-                aspectRatio: '1 / 1',
-                maxHeight: 'min(90vw, 520px)',
-                backgroundColor: '#ffffff',
-                borderRadius: 'var(--radius-xl)',
-                border: '1.5px solid var(--border)',
-                animation: 'pulse 1.5s infinite ease-in-out',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <div style={{ width: '42px', height: '42px', borderRadius: '50%', border: '3px solid var(--clay)', borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ width: '100px', height: '26px', backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-full)' }} />
-              <div style={{ width: '85%', height: '44px', backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-md)' }} />
-              <div style={{ width: '60%', height: '22px', backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-sm)' }} />
-              <div style={{ width: '140px', height: '42px', backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-md)', marginTop: '16px' }} />
-              <div style={{ width: '100%', height: '54px', backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-full)', marginTop: '18px' }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   // 2. Fallback Not Found state

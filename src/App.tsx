@@ -10,6 +10,7 @@ import { SearchModal } from './components/layout/SearchModal';
 import { WishlistDrawer } from './components/layout/WishlistDrawer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
+import { RouteLoadingBar, ProductDetailSkeleton } from './components/common/Skeleton';
 
 // Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
@@ -75,7 +76,16 @@ const AppContent: React.FC = () => {
       />
 
       <main style={{ flex: 1 }}>
-        <Suspense fallback={<div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />}>
+        <Suspense
+          fallback={
+            <div>
+              <RouteLoadingBar />
+              <div className="container" style={{ paddingTop: '28px', minHeight: '60vh' }}>
+                <ProductDetailSkeleton />
+              </div>
+            </div>
+          }
+        >
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ShopPage />} />

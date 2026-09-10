@@ -175,4 +175,28 @@
   }
 }
 
+/* ========================================================================= */
+/* CLAY SHIMMER SKELETON EFFECT                                              */
+/* ========================================================================= */
+@keyframes shimmerPulse {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--cream-dark, #ede3d4) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    var(--cream-dark, #ede3d4) 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: shimmerPulse 1.5s ease-in-out infinite !important;
+  will-change: background-position;
+}
+
 

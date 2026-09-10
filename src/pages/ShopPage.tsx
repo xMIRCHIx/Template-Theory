@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
 import { ProductCard } from '../components/cards/ProductCard';
+import { ProductGridSkeleton } from '../components/common/Skeleton';
 import { useShopify } from '../context/ShopifyContext';
 import { SEOHead } from '../components/common/SEOHead';
 import { CORE_PAGES_SEO, generateBreadcrumbSchema } from '../utils/seoConfig';
@@ -225,36 +226,8 @@ export const ShopPage: React.FC = () => {
       {/* Product Catalog Grid */}
       <section>
         <div className="container">
-          {isLoading ? (
-            <div
-              className="shop-catalog-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: '22px',
-              }}
-            >
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    backgroundColor: 'var(--cream-light)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-lg)',
-                    aspectRatio: '3 / 4',
-                    animation: 'pulse 1.5s infinite ease-in-out',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '16px',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ width: '100%', flex: 1, backgroundColor: 'var(--cream-dark)', borderRadius: 'var(--radius-md)' }} />
-                  <div style={{ width: '70%', height: '20px', backgroundColor: 'var(--cream-dark)', borderRadius: '4px' }} />
-                  <div style={{ width: '40%', height: '16px', backgroundColor: 'var(--cream-dark)', borderRadius: '4px' }} />
-                </div>
-              ))}
-            </div>
+          {isLoading && products.length === 0 ? (
+            <ProductGridSkeleton count={8} />
           ) : filteredProducts.length === 0 ? (
             <div
               style={{

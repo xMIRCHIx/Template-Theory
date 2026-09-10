@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, Heart, ShoppingBag } from 'lucide-react';
 import { Product } from '../../types';
@@ -18,6 +18,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
   const isSaved = isInWishlist(product.id);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   return (
     <div
@@ -35,14 +36,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       }}
       className="product-card"
     >
-      {/* Top Preview Area */}
+      {/* Top Preview Area with Shimmer Preloader */}
       <div style={{ position: 'relative', overflow: 'hidden', backgroundColor: 'var(--cream-dark)' }}>
-        <Link to={`/product/${product.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1', overflow: 'hidden', backgroundColor: 'var(--cream-dark)' }}>
+        <Link to={`/product/${product.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1', overflow: 'hidden', position: 'relative', backgroundColor: 'var(--cream-dark)' }}>
+          {!imgLoaded && (
+            <div className="skeleton-shimmer" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }} />
+          )}
           <img
             src={optimizeImageUrl(product.thumbnail, 600)}
             alt={product.name}
             loading="lazy"
             decoding="async"
+            onLoad={() => setImgLoaded(true)}
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = 'none';
             }}
@@ -50,7 +55,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               width: '100%',
               height: '100%',
               objectFit: 'contain',
-              transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: imgLoaded ? 1 : 0,
+              transition: 'opacity 0.3s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+              position: 'relative',
+              zIndex: 2,
             }}
             className="card-thumb"
           />

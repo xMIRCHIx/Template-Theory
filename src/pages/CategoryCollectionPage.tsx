@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES } from '../data/categories';
 import { ProductCard } from '../components/cards/ProductCard';
+import { ProductGridSkeleton } from '../components/common/Skeleton';
 import { SidebarFilters } from '../components/filters/SidebarFilters';
 import { ProductCategory } from '../types';
 import { useShopify } from '../context/ShopifyContext';
@@ -406,7 +407,9 @@ export const CategoryCollectionPage: React.FC = () => {
               </div>
 
               {/* Product Grid */}
-              {categoryProducts.length === 0 ? (
+              {isLoading && products.length === 0 ? (
+                <ProductGridSkeleton count={6} />
+              ) : categoryProducts.length === 0 ? (
                 <div
                   style={{
                     padding: '60px 20px',
