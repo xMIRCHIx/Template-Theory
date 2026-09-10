@@ -1664,6 +1664,9 @@ export const ProductDetailPage: React.FC = () => {
                   </button>
                 )}
 
+                {/* ⚡ Compact Mini Bundle & Save Upsell Widget */}
+                <ProductBundleUpsell currentProduct={product} allProducts={products} />
+
                 {product.category === 'fonts' && (
                   <button
                     onClick={() => {
@@ -1744,13 +1747,6 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-        </div>
-      </section>
-
-      {/* 2. FREQUENTLY BOUGHT TOGETHER BUNDLE & SAVE UPSELL SECTION */}
-      <section id="pdp-bundle-upsell-section" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
-        <div className="container">
-          <ProductBundleUpsell currentProduct={product} allProducts={products} />
         </div>
       </section>
 
