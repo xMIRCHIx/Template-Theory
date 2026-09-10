@@ -173,22 +173,32 @@ export const ProductDetailPage: React.FC = () => {
     }
   }, [product?.slug, hasBeforeAfter]);
 
-  // Preload all look images in the background so switching between Look #1, #2, #8 is 100% instant (0ms delay)
+  // Efficiently preload adjacent looks at optimal 900px WebP resolution to eliminate network congestion
   useEffect(() => {
     if (!beforeAfterPairs || beforeAfterPairs.length === 0) return;
-    beforeAfterPairs.forEach((pair) => {
-      if (pair.before) {
-        const img = new Image();
-        img.decoding = 'async';
-        img.src = optimizeImageUrl(pair.before, 1200);
-      }
-      if (pair.after) {
-        const img = new Image();
-        img.decoding = 'async';
-        img.src = optimizeImageUrl(pair.after, 1200);
+    // Preload next and previous look relative to activeBAIndex
+    const indicesToPreload = [
+      activeBAIndex,
+      (activeBAIndex + 1) % beforeAfterPairs.length,
+      (activeBAIndex - 1 + beforeAfterPairs.length) % beforeAfterPairs.length,
+    ];
+
+    indicesToPreload.forEach((idx) => {
+      const pair = beforeAfterPairs[idx];
+      if (pair) {
+        if (pair.before) {
+          const img = new Image();
+          img.decoding = 'async';
+          img.src = optimizeImageUrl(pair.before, 900);
+        }
+        if (pair.after) {
+          const img = new Image();
+          img.decoding = 'async';
+          img.src = optimizeImageUrl(pair.after, 900);
+        }
       }
     });
-  }, [beforeAfterPairs]);
+  }, [beforeAfterPairs, activeBAIndex]);
 
   const mediaList = useMemo<ProductMediaItem[]>(() => {
     if (!product) return [];
@@ -680,7 +690,7 @@ export const ProductDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <img
-                      src={optimizeImageUrl(mediaItem.url, 1400)}
+                      src={optimizeImageUrl(mediaItem.url, 1000)}
                       alt={`${product.name} ${idx + 1}`}
                       draggable={false}
                       decoding="async"

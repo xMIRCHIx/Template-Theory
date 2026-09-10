@@ -53,9 +53,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const rawBefore = beforeError ? (fallbackImage || afterImage) : (beforeImage || fallbackImage);
   const rawAfter = afterError ? (fallbackImage || beforeImage) : (afterImage || fallbackImage);
 
-  const activeBefore = optimizeImageUrl(rawBefore, 1400);
-  const activeAfter = optimizeImageUrl(rawAfter, 1400);
-  const backdropAfter = optimizeImageUrl(rawAfter, 200); // lightweight 200px thumb for Gaussian blur layer
+  const activeBefore = optimizeImageUrl(rawBefore, 900);
+  const activeAfter = optimizeImageUrl(rawAfter, 900);
+  const backdropAfter = optimizeImageUrl(rawAfter, 160); // lightweight 160px thumb for Gaussian blur layer
 
   // Automatically detect the image's original dimensions so no cropping occurs
   useEffect(() => {

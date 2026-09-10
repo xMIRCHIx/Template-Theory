@@ -47,6 +47,22 @@ const AppContent: React.FC = () => {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    // Preload critical secondary routes in the background during idle time
+    const preloadRoutes = () => {
+      import('./pages/ProductDetailPage');
+      import('./pages/ShopPage');
+      import('./pages/CategoryCollectionPage');
+      import('./pages/CartPage');
+      import('./pages/CollectionsIndexPage');
+    };
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(preloadRoutes);
+    } else {
+      setTimeout(preloadRoutes, 800);
+    }
+
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
