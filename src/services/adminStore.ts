@@ -189,6 +189,8 @@ export function getAdminCustomizations(): AdminCustomizations {
       productOrder: Array.isArray(parsed.productOrder) ? parsed.productOrder : [],
       collectionOverrides: parsed.collectionOverrides || {},
       ugcItems: Array.isArray(parsed.ugcItems) ? parsed.ugcItems : [],
+      ugcSpeed: parsed.ugcSpeed,
+      socialSettings: parsed.socialSettings,
     });
     inMemoryCustomizations = cleaned;
     return cleaned;
@@ -293,12 +295,30 @@ export function saveSavedUGCSpeed(speed: number): void {
   saveAdminCustomizations(custom);
 }
 
+const SOCIAL_STORAGE_KEY = 'cinevo_social_settings_v1';
+
 export function getSavedSocialSettings(): SocialSettings {
+  try {
+    const direct = localStorage.getItem(SOCIAL_STORAGE_KEY);
+    if (direct) {
+      const parsed = JSON.parse(direct);
+      if (parsed && typeof parsed.whatsappNumber === 'string') {
+        return { ...DEFAULT_SOCIAL_SETTINGS, ...parsed };
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
   const custom = getAdminCustomizations();
   return custom.socialSettings || DEFAULT_SOCIAL_SETTINGS;
 }
 
 export function saveSavedSocialSettings(settings: SocialSettings): void {
+  try {
+    localStorage.setItem(SOCIAL_STORAGE_KEY, JSON.stringify(settings));
+  } catch (e) {
+    // ignore
+  }
   const custom = getAdminCustomizations();
   custom.socialSettings = settings;
   saveAdminCustomizations(custom);
