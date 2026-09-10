@@ -41,6 +41,7 @@ import { optimizeImageUrl } from '../utils/imageOptimizer';
 import { SEOHead } from '../components/common/SEOHead';
 import { generateProductSchema, generateBreadcrumbSchema, HASHTAG_BANKS } from '../utils/seoConfig';
 import { ProductDetailSkeleton } from '../components/common/Skeleton';
+import { trackMetaViewContent } from '../utils/metaPixel';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -378,6 +379,13 @@ export const ProductDetailPage: React.FC = () => {
     setDragOffset(0);
     setLightboxDragOffset(0);
   }, [slug]);
+
+  // Track Meta Pixel ViewContent event
+  useEffect(() => {
+    if (product) {
+      trackMetaViewContent(product);
+    }
+  }, [product?.id]);
 
   const isSaved = product ? isInWishlist(product.id) : false;
 

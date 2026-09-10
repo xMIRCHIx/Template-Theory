@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { CheckCircle2, DownloadCloud, Key, Copy, Check, ArrowRight, ShieldCheck, FileArchive } from 'lucide-react';
 import { getLastOrder } from '../services/paymentMock';
 import { OrderDetails } from '../types';
+import { trackMetaPurchase } from '../utils/metaPixel';
 
 export const OrderSuccessPage: React.FC = () => {
   const [order, setOrder] = useState<OrderDetails | null>(null);
@@ -24,6 +25,9 @@ export const OrderSuccessPage: React.FC = () => {
 
     const last = getLastOrder();
     setOrder(last);
+    if (last) {
+      trackMetaPurchase(last.orderId, last.total);
+    }
   }, []);
 
   const handleCopyLicense = (key: string) => {

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem } from '../types';
 import { createShopifyCheckoutSession } from '../services/shopify';
+import { trackMetaAddToCart, trackMetaInitiateCheckout } from '../utils/metaPixel';
 
 interface CartContextType {
   cart: CartItem[];
@@ -45,6 +46,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart]);
 
   const addToCart = (product: Product, quantity = 1) => {
+    trackMetaAddToCart(product);
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -90,9 +92,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const finalTotal = subtotal - bundleDiscountAmount;
   const bundleDiscountCode = bundleDiscountPercent === 25 ? 'BUNDLE25' : bundleDiscountPercent === 20 ? 'BUNDLE20' : '';
 
-    const checkoutWithShopify = async (singleProduct?: Product) => {
+  const checkoutWithShopify = async (singleProduct?: Product) => {
     setIsCheckingOut(true);
     try {
+      const checkoutTotal = singleProduct ? singleProduct.price : finalTotal;
+      const checkoutCount = singleProduct ? 1 : totalItems;
+      trackMetaInitiateCheckout(checkoutTotal, checkoutCount);
+
       const itemsToCheckout = singleProduct
         ? [{ shopifyVariantId: singleProduct.shopifyVariantId, quantity: 1 }]
         : cart.map((item) => ({

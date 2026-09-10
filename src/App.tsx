@@ -11,6 +11,7 @@ import { WishlistDrawer } from './components/layout/WishlistDrawer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
 import { RouteLoadingBar, ProductDetailSkeleton } from './components/common/Skeleton';
+import { trackMetaPageView } from './utils/metaPixel';
 
 // Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
@@ -32,6 +33,7 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+    trackMetaPageView();
   }, [pathname]);
   return null;
 };
