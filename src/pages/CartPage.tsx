@@ -173,7 +173,7 @@ export const CartPage: React.FC = () => {
                       {product.name}
                     </h3>
                     <p style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
-                      {product.itemCount} • Commercial License
+                      {product.itemCount} • Creator License
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px' }}>
@@ -263,7 +263,7 @@ export const CartPage: React.FC = () => {
                   <span style={{ fontWeight: 700, color: 'var(--olive-dark)' }}>FREE (Instant)</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--muted)' }}>
-                  <span>Commercial License</span>
+                  <span>Creator License</span>
                   <span style={{ fontWeight: 700, color: 'var(--olive-dark)' }}>Included</span>
                 </div>
 

@@ -142,10 +142,10 @@ export const OrderSuccessPage: React.FC = () => {
             </div>
             <div>
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--brown)' }}>
-                Your Commercial License Key
+                Your Creator License Key
               </h4>
               <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
-                Valid for unlimited personal & commercial client deliverables.
+                Valid for unlimited personal & client projects. Resale strictly prohibited.
               </span>
             </div>
           </div>

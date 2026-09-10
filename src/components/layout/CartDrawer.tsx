@@ -332,7 +332,7 @@ export const CartDrawer: React.FC = () => {
               }}
             >
               <DownloadCloud size={16} />
-              <span>Instant digital delivery & commercial license included.</span>
+              <span>Instant digital delivery & Creator License included.</span>
             </div>
 
             {/* Pricing Summary */}

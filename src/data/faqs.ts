@@ -15,8 +15,8 @@ export const FAQS_DATA: FAQItem[] = [
   },
   {
     id: 'faq-3',
-    question: 'Is commercial usage allowed with my purchase?',
-    answer: 'Yes! Every purchase includes our standard Commercial License. You are allowed to use our presets, LUTs, templates, fonts, and assets in client work, commercial video productions, branded social media posts, advertising, and digital products without attribution.',
+    question: 'Can I use these assets for client projects & commercial work?',
+    answer: 'Yes! Every purchase includes our Single-User Creator License. You are free to use our presets, LUTs, templates, and fonts in personal projects, client shoots, commercial video deliverables, Instagram reels, and YouTube videos. However, reselling, sharing, repackaging, or redistributing the original asset files is strictly prohibited.',
     category: 'license'
   },
   {

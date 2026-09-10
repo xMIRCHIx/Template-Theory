@@ -1488,8 +1488,8 @@ export const ProductDetailPage: React.FC = () => {
                     <ShieldCheck size={16} color="var(--olive-dark)" />
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', display: 'block', lineHeight: 1.2 }}>Commercial License</span>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>Client & commercial use</span>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--brown)', display: 'block', lineHeight: 1.2 }}>Creator License</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>Personal & client projects</span>
                   </div>
                 </div>
 
@@ -2122,7 +2122,7 @@ export const ProductDetailPage: React.FC = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>
                   <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>License Type</span>
-                  <span style={{ fontWeight: 700, color: 'var(--olive-dark)', fontSize: '0.9rem' }}>Commercial Use Included</span>
+                  <span style={{ fontWeight: 700, color: 'var(--olive-dark)', fontSize: '0.9rem' }}>Creator & Client Projects</span>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>

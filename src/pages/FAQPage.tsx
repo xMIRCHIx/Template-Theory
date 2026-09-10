@@ -72,7 +72,7 @@ export const FAQPage: React.FC = () => {
               { id: 'all', label: 'All Questions', icon: HelpCircle },
               { id: 'products', label: 'Products & Formats', icon: FileText },
               { id: 'orders', label: 'Orders & Downloads', icon: ShoppingBag },
-              { id: 'license', label: 'Commercial License', icon: ShieldCheck },
+              { id: 'license', label: 'Licensing & Usage', icon: ShieldCheck },
               { id: 'technical', label: 'Technical & Compatibility', icon: Wrench },
             ].map((tab) => {
               const Icon = tab.icon;

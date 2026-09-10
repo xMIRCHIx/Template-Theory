@@ -451,7 +451,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldCheck size={16} color="var(--olive-dark)" />
-                  <span>Commercial License</span>
+                  <span>Creator License</span>
                 </div>
               </div>
             </div>
@@ -516,7 +516,7 @@ export const HomePage: React.FC = () => {
                 <ShieldCheck size={18} />
               </div>
               <div>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--brown)' }}>Commercial License</h4>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--brown)' }}>Creator License</h4>
                 <p style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Personal & client work</p>
               </div>
             </motion.div>

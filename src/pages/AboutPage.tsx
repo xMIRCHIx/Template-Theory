@@ -140,10 +140,10 @@ export const AboutPage: React.FC = () => {
                 <ShieldCheck size={22} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brown)', marginBottom: '8px' }}>
-                Commercial Freedom
+                Creator & Client License
               </h3>
               <p style={{ fontSize: '0.9rem', color: 'var(--muted)', lineHeight: 1.6 }}>
-                Every asset comes with full commercial rights for client deliverables, videos, and products.
+                Use in unlimited personal, social, and client projects. Reselling or file sharing is strictly prohibited.
               </p>
             </div>
 
