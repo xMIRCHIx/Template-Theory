@@ -71,7 +71,7 @@ export const KwikPassAuthModal: React.FC<KwikPassAuthModalProps> = ({ isOpen, on
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
-  // Handle Send OTP
+  // Handle Send OTP via GoKwik KwikPass Backend API
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanPhone = phone.replace(/\D/g, '');
@@ -82,30 +82,42 @@ export const KwikPassAuthModal: React.FC<KwikPassAuthModalProps> = ({ isOpen, on
 
     setIsLoading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
-    const formattedPhone = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
+    const formattedPhone = cleanPhone.length === 10 ? `+91 ${cleanPhone}` : `+${cleanPhone}`;
+    const mid = '19ie4pp15340';
 
     try {
-      // 1. Try KwikPass Headless SDK if available
-      const kpSdk = (window as any).__KP_LOGIN_SDK_INSTANCE__;
-      if (kpSdk && typeof kpSdk.kpSendOTP === 'function') {
-        try {
-          await kpSdk.kpSendOTP(cleanPhone);
-        } catch (sdkErr) {
-          console.warn('KwikPass SDK sendOTP callback:', sdkErr);
-        }
+      // Direct GoKwik Backend Send OTP API Call
+      const res = await fetch('https://gkx.gokwik.co/v3/gkstrict/auth/otp/send', {
+        method: 'POST',
+        headers: {
+          'gk-merchant-id': mid,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          country: 'in',
+          country_code: '+91',
+          mid: mid,
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok || (resData.success === false && resData.error)) {
+        throw new Error(resData.error?.message || resData.data?.error || 'Failed to send OTP.');
       }
 
       setStep('OTP');
       setResendTimer(30);
       setCanResend(false);
-      setSuccessMsg(`OTP sent to ${formattedPhone} via SMS & WhatsApp!`);
+      setSuccessMsg(`✓ OTP sent to ${formattedPhone} via SMS & WhatsApp!`);
       setTimeout(() => {
         otpInputsRef.current[0]?.focus();
       }, 150);
     } catch (err: any) {
-      console.error('Error sending OTP:', err);
-      setErrorMsg(err?.message || 'Failed to send OTP. Please try again.');
+      console.error('Error sending OTP via GoKwik:', err);
+      setErrorMsg(err?.message || 'Failed to send OTP. Please check your phone number.');
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +148,7 @@ export const KwikPassAuthModal: React.FC<KwikPassAuthModalProps> = ({ isOpen, on
     }
   };
 
-  // Handle Verify OTP
+  // Handle Verify OTP via GoKwik KwikPass Backend API
   const handleVerifyOtp = async (codeToVerify?: string) => {
     const enteredCode = codeToVerify || otp.join('');
     if (enteredCode.length < 4) {
@@ -147,23 +159,35 @@ export const KwikPassAuthModal: React.FC<KwikPassAuthModalProps> = ({ isOpen, on
     setIsLoading(true);
     setErrorMsg(null);
 
+    const mid = '19ie4pp15340';
+    const cleanPhone = phone.replace(/\D/g, '');
+
     try {
-      // 1. Call KwikPass SDK verification if present
-      const kpSdk = (window as any).__KP_LOGIN_SDK_INSTANCE__;
-      let token = 'kp_session_' + Date.now();
-      if (kpSdk && typeof kpSdk.kpVerifyOTP === 'function') {
-        try {
-          const res = await kpSdk.kpVerifyOTP(enteredCode);
-          if (res && res.token) token = res.token;
-        } catch (sdkErr) {
-          console.warn('KwikPass SDK verifyOTP callback:', sdkErr);
-        }
+      // Direct GoKwik Backend Verify OTP API Call
+      const res = await fetch('https://gkx.gokwik.co/v3/auth/otp/verify', {
+        method: 'POST',
+        headers: {
+          'gk-merchant-id': mid,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          country: 'in',
+          country_code: '+91',
+          otp: Number(enteredCode),
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok || resData.success === false) {
+        const errorText = resData.data?.error || resData.error?.message || 'Invalid or expired OTP. Please try again.';
+        throw new Error(errorText);
       }
 
-      const cleanPhone = phone.replace(/\D/g, '');
       const userObj: KwikPassUser = {
-        phone: cleanPhone.length === 10 ? `+91 ${cleanPhone}` : phone,
-        token,
+        phone: `+91 ${cleanPhone}`,
+        token: resData.data?.token || 'kp_token_' + Date.now(),
+        customerId: resData.data?.customer_id,
         loggedInAt: new Date().toISOString(),
       };
 
@@ -172,8 +196,8 @@ export const KwikPassAuthModal: React.FC<KwikPassAuthModalProps> = ({ isOpen, on
       setSuccessMsg('✓ Verified successfully! Welcome back.');
       setStep('ACCOUNT');
     } catch (err: any) {
-      console.error('Error verifying OTP:', err);
-      setErrorMsg('Invalid OTP. Please check the code and try again.');
+      console.error('Error verifying OTP via GoKwik:', err);
+      setErrorMsg(err?.message || 'Invalid OTP. Please check the code and try again.');
     } finally {
       setIsLoading(false);
     }
