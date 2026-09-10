@@ -1741,12 +1741,16 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* ⚡ High-Converting Bundle & Save Cross-Sell / Upsell */}
-              <ProductBundleUpsell currentProduct={product} allProducts={products} />
-
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* 2. FREQUENTLY BOUGHT TOGETHER BUNDLE & SAVE UPSELL SECTION */}
+      <section id="pdp-bundle-upsell-section" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
+        <div className="container">
+          <ProductBundleUpsell currentProduct={product} allProducts={products} />
         </div>
       </section>
 
@@ -2271,6 +2275,15 @@ export const ProductDetailPage: React.FC = () => {
           width: 100% !important;
           max-width: 100% !important;
           box-sizing: border-box !important;
+          align-items: flex-start !important;
+        }
+
+        @media (min-width: 901px) {
+          #product-preview-section {
+            position: sticky !important;
+            top: 88px !important;
+            align-self: flex-start !important;
+          }
         }
 
         .pdp-preview-wrapper {
