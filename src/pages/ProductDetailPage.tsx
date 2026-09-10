@@ -399,8 +399,8 @@ export const ProductDetailPage: React.FC = () => {
     if (product) checkoutWithShopify(product);
   };
 
-  // 1. Shimmer Loading Skeleton State (prevents flashing of old mock items during page navigation/refresh)
-  if (isLoading && !product) {
+  // 1. Shimmer Loading Skeleton State (prevents flashing of Product Not Found during initial load)
+  if (!product && (isLoading || products.length === 0)) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px', paddingTop: '28px' }}>
         <div className="container">
