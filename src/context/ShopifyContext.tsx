@@ -100,24 +100,23 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (forceRefresh = false) => {
     setError(null);
     try {
-      // Parallel non-blocking background revalidation
-      const [cloudRes, liveProductsRes] = await Promise.allSettled([
-        syncWithCloud(),
-        fetchLiveShopifyProducts(),
-      ]);
-
-      if (liveProductsRes.status === 'fulfilled' && liveProductsRes.value && liveProductsRes.value.length > 0) {
-        setRawProducts(liveProductsRes.value);
+      // 1. Fetch live products with zero-wait in-memory SWR cache
+      const liveProducts = await fetchLiveShopifyProducts(forceRefresh);
+      if (liveProducts && liveProducts.length > 0) {
+        setRawProducts(liveProducts);
         setCustomizationVersion((v) => v + 1);
         try {
-          localStorage.setItem(CACHED_PRODUCTS_KEY, JSON.stringify(liveProductsRes.value));
+          localStorage.setItem(CACHED_PRODUCTS_KEY, JSON.stringify(liveProducts));
         } catch {
           // ignore quota error
         }
       }
+
+      // 2. Run cloud sync silently in the background
+      syncWithCloud().catch(() => {});
     } catch (err: any) {
       console.warn('Could not load live Shopify products:', err);
       setError(err?.message || 'Failed to refresh products');

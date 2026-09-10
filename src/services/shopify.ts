@@ -70,7 +70,7 @@ export const GET_ALL_PRODUCTS_QUERY = `
             url
             altText
           }
-          images(first: 20) {
+          images(first: 8) {
             edges {
               node {
                 url
@@ -78,7 +78,7 @@ export const GET_ALL_PRODUCTS_QUERY = `
               }
             }
           }
-          media(first: 35) {
+          media(first: 10) {
             edges {
               node {
                 mediaContentType
@@ -113,7 +113,7 @@ export const GET_ALL_PRODUCTS_QUERY = `
           metafield(namespace: "custom", key: "before_after_looks") {
             value
           }
-          variants(first: 10) {
+          variants(first: 3) {
             edges {
               node {
                 id
@@ -327,21 +327,45 @@ export function mapShopifyProductToAppProduct(node: any): Product {
   };
 }
 
+// In-memory caching and request deduplication for sub-millisecond data access
+let memoryProductCache: Product[] | null = null;
+let lastFetchTimestamp = 0;
+let pendingFetchPromise: Promise<Product[]> | null = null;
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes in-memory freshness
+
 // Fetch live products
-export async function fetchLiveShopifyProducts(): Promise<Product[]> {
-  try {
-    const data = await shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY });
-
-    const productEdges = data?.products?.edges || [];
-    if (productEdges.length === 0) {
-      return [];
-    }
-
-    return productEdges.map((edge: any) => mapShopifyProductToAppProduct(edge.node));
-  } catch (err) {
-    console.warn('Shopify product fetch error:', err);
-    return [];
+export async function fetchLiveShopifyProducts(forceRefresh = false): Promise<Product[]> {
+  const now = Date.now();
+  if (!forceRefresh && memoryProductCache && memoryProductCache.length > 0 && now - lastFetchTimestamp < CACHE_TTL_MS) {
+    return memoryProductCache;
   }
+
+  if (pendingFetchPromise) {
+    return pendingFetchPromise;
+  }
+
+  pendingFetchPromise = (async () => {
+    try {
+      const data = await shopifyFetch<any>({ query: GET_ALL_PRODUCTS_QUERY });
+
+      const productEdges = data?.products?.edges || [];
+      if (productEdges.length === 0) {
+        return memoryProductCache || [];
+      }
+
+      const products = productEdges.map((edge: any) => mapShopifyProductToAppProduct(edge.node));
+      memoryProductCache = products;
+      lastFetchTimestamp = Date.now();
+      return products;
+    } catch (err) {
+      console.warn('Shopify product fetch error:', err);
+      return memoryProductCache || [];
+    } finally {
+      pendingFetchPromise = null;
+    }
+  })();
+
+  return pendingFetchPromise;
 }
 
 // Create Shopify Checkout Session URL
