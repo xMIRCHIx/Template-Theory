@@ -10,9 +10,10 @@ import { Magnetic } from '../ui/Magnetic';
 interface HeaderProps {
   onOpenSearch: () => void;
   onOpenWishlist: () => void;
+  onOpenAuth: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, onOpenAuth }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
@@ -375,10 +376,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
 
           {/* Account / My Orders Trigger */}
           <Magnetic intensity={0.4} range={60}>
-            <a
-              href="https://template-theory-2.myshopify.com/account"
+            <button
+              onClick={onOpenAuth}
               aria-label="My Orders & Account"
-              title="My Orders & Account (OTP Login)"
+              title="My Orders & Account (KwikPass OTP)"
               className="nav-action-btn account-btn"
               style={{
                 borderRadius: '50%',
@@ -390,13 +391,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
                 border: '1px solid rgba(229, 213, 193, 0.4)',
                 transition: 'all 0.2s',
                 cursor: 'pointer',
-                textDecoration: 'none',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--white)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(237, 227, 212, 0.5)')}
             >
               <User size={18} />
-            </a>
+            </button>
           </Magnetic>
 
           {/* Cart Trigger */}
@@ -717,9 +717,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
             </div>
 
             {/* Mobile My Orders / Account Button */}
-            <a
-              href="https://template-theory-2.myshopify.com/account"
-              onClick={() => setIsMobileMenuOpen(false)}
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onOpenAuth();
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -732,14 +734,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
                 color: '#ffffff',
                 backgroundColor: 'var(--brown-dark)',
                 border: '1px solid rgba(0,0,0,0.1)',
-                textDecoration: 'none',
+                cursor: 'pointer',
                 boxShadow: '0 4px 12px rgba(62, 42, 27, 0.2)',
                 marginTop: '4px',
               }}
             >
               <User size={16} color="var(--terracotta-light)" />
-              <span>My Orders & Downloads (OTP Login)</span>
-            </a>
+              <span>My Orders & Downloads (KwikPass OTP)</span>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
