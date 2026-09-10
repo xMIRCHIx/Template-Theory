@@ -64,6 +64,35 @@
       }
     }
     </script>
+
+    <!-- KwikPass Headless SDK Configuration (Merchant ID: 19ie4pp15340) -->
+    <script>
+      window.merchantInfo = {
+        ...window.merchantInfo,
+        environment: "production",
+        mid: "19ie4pp15340",
+        type: "merchantInfo",
+        integrationType: "CUSTOM_HEADLESS"
+      };
+    </script>
+    <script>
+      (function () {
+        window.__KP_LOGIN_SDK_INSTANCE__ = window.__KP_LOGIN_SDK_INSTANCE__ || {};
+        window.__KP_LOGIN_SDK_INSTANCE__.logEvents = window.__KP_LOGIN_SDK_INSTANCE__.logEvents || function(event) {
+          window.kpqueue = window.kpqueue || [];
+          window.kpqueue.push(event);
+        };
+        var s = document.createElement('script');
+        s.type = 'text/javascript';
+        s.defer = true;
+        s.src = 'https://pdp.gokwik.co/kwikpass/plugin/build/kp-custom-merchant.js';
+        s.onload = function() {
+          console.log("✓ KwikPass SDK loaded for Template Theory (19ie4pp15340)");
+        };
+        var x = document.getElementsByTagName('script')[0];
+        x.parentNode.insertBefore(s, x);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
