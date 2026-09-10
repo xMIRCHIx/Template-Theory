@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, Heart, User, ChevronDown, ChevronRight, Sparkles, Compass, FolderKanban, Info, MessageSquare } from 'lucide-react';
+import { Search, ShoppingBag, Heart, ChevronDown, ChevronRight, Sparkles, Compass, FolderKanban, Info, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
@@ -10,10 +10,9 @@ import { Magnetic } from '../ui/Magnetic';
 interface HeaderProps {
   onOpenSearch: () => void;
   onOpenWishlist: () => void;
-  onOpenAuth: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, onOpenAuth }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
@@ -374,31 +373,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, on
             </button>
           </Magnetic>
 
-          {/* Account / My Orders Trigger */}
-          <Magnetic intensity={0.4} range={60}>
-            <button
-              onClick={onOpenAuth}
-              aria-label="My Orders & Account"
-              title="My Orders & Account (KwikPass OTP)"
-              className="nav-action-btn account-btn"
-              style={{
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--brown)',
-                backgroundColor: 'rgba(237, 227, 212, 0.5)',
-                border: '1px solid rgba(229, 213, 193, 0.4)',
-                transition: 'all 0.2s',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--white)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(237, 227, 212, 0.5)')}
-            >
-              <User size={18} />
-            </button>
-          </Magnetic>
-
           {/* Cart Trigger */}
           <Magnetic intensity={0.35} range={70}>
             <button
@@ -715,33 +689,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, on
                 <span>Contact</span>
               </Link>
             </div>
-
-            {/* Mobile My Orders / Account Button */}
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onOpenAuth();
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '11px 14px',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.9rem',
-                fontWeight: 700,
-                color: '#ffffff',
-                backgroundColor: 'var(--brown-dark)',
-                border: '1px solid rgba(0,0,0,0.1)',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(62, 42, 27, 0.2)',
-                marginTop: '4px',
-              }}
-            >
-              <User size={16} color="var(--terracotta-light)" />
-              <span>My Orders & Downloads (KwikPass OTP)</span>
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -758,8 +705,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, on
           padding-right: 16px;
         }
         .nav-action-btn.search-btn,
-        .nav-action-btn.wishlist-btn,
-        .nav-action-btn.account-btn {
+        .nav-action-btn.wishlist-btn {
           width: 40px;
           height: 40px;
         }
@@ -801,14 +747,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, on
             gap: 5px !important;
           }
           .nav-action-btn.search-btn,
-          .nav-action-btn.wishlist-btn,
-          .nav-action-btn.account-btn {
+          .nav-action-btn.wishlist-btn {
             width: 32px !important;
             height: 32px !important;
           }
           .nav-action-btn.search-btn svg,
-          .nav-action-btn.wishlist-btn svg,
-          .nav-action-btn.account-btn svg {
+          .nav-action-btn.wishlist-btn svg {
             width: 15px !important;
             height: 15px !important;
           }

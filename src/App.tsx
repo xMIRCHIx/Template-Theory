@@ -10,7 +10,6 @@ import { SearchModal } from './components/layout/SearchModal';
 import { WishlistDrawer } from './components/layout/WishlistDrawer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
-import { KwikPassAuthModal } from './components/auth/KwikPassAuthModal';
 
 // Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
@@ -39,7 +38,6 @@ const ScrollToTop = () => {
 const AppContent: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,7 +56,6 @@ const AppContent: React.FC = () => {
       <Header
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenAuth={() => setIsAuthOpen(true)}
       />
 
       <main style={{ flex: 1 }}>
@@ -82,13 +79,12 @@ const AppContent: React.FC = () => {
         </Suspense>
       </main>
 
-      <Footer onOpenAuth={() => setIsAuthOpen(true)} />
+      <Footer />
 
       {/* Global Modals & Drawers */}
       <CartDrawer />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
-      <KwikPassAuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       
       {/* Floating WhatsApp Action Widget */}
       <FloatingWhatsApp />

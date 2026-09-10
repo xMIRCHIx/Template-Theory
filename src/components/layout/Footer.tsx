@@ -3,11 +3,7 @@ import { Link } from 'react-router-dom';
 import { useShopify } from '../../context/ShopifyContext';
 import { DEFAULT_SOCIAL_SETTINGS } from '../../services/adminStore';
 
-interface FooterProps {
-  onOpenAuth?: () => void;
-}
-
-export const Footer: React.FC<FooterProps> = ({ onOpenAuth }) => {
+export const Footer: React.FC = () => {
   const { socialSettings: contextSocial } = useShopify();
   const social = contextSocial || DEFAULT_SOCIAL_SETTINGS;
 
@@ -330,38 +326,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAuth }) => {
           <div>
             <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '16px' }}>Support</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
-              <button
-                type="button"
-                onClick={onOpenAuth}
-                style={{
-                  color: 'var(--brown-dark)',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontSize: 'inherit',
-                }}
-              >
-                <span>My Orders & Downloads</span>
-                <span
-                  style={{
-                    fontSize: '0.66rem',
-                    backgroundColor: 'var(--terracotta)',
-                    color: '#ffffff',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontWeight: 800,
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  OTP
-                </span>
-              </button>
               <Link to="/faq" style={{ color: 'var(--muted)' }}>FAQ</Link>
               <Link to="/faq" style={{ color: 'var(--muted)' }}>Refund Policy</Link>
               <Link to="/faq" style={{ color: 'var(--muted)' }}>Terms of Use</Link>
