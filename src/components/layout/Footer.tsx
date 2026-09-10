@@ -326,6 +326,32 @@ export const Footer: React.FC = () => {
           <div>
             <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--brown)', marginBottom: '16px' }}>Support</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+              <a
+                href="https://template-theory-2.myshopify.com/account"
+                style={{
+                  color: 'var(--brown-dark)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>My Orders & Downloads</span>
+                <span
+                  style={{
+                    fontSize: '0.66rem',
+                    backgroundColor: 'var(--terracotta)',
+                    color: '#ffffff',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontWeight: 800,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  OTP
+                </span>
+              </a>
               <Link to="/faq" style={{ color: 'var(--muted)' }}>FAQ</Link>
               <Link to="/faq" style={{ color: 'var(--muted)' }}>Refund Policy</Link>
               <Link to="/faq" style={{ color: 'var(--muted)' }}>Terms of Use</Link>
