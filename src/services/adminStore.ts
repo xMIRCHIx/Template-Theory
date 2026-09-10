@@ -220,6 +220,13 @@ export function saveSavedHomepageSettings(settings: HomepageSettings): void {
 
 export function saveAdminCustomizations(data: AdminCustomizations): void {
   inMemoryCustomizations = data;
+  if (data.socialSettings) {
+    try {
+      localStorage.setItem(SOCIAL_STORAGE_KEY, JSON.stringify(data.socialSettings));
+    } catch (e) {
+      // ignore
+    }
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (err) {
