@@ -369,18 +369,20 @@ export const LaunchOfferModal: React.FC = () => {
             }}
           >
             <span
+              className="green-dot"
               style={{
                 width: '7px',
                 height: '7px',
                 borderRadius: '50%',
                 backgroundColor: '#22c55e',
-                boxShadow: '0 0 6px #22c55e',
+                boxShadow: '0 0 8px #22c55e',
                 display: 'inline-block',
                 flexShrink: 0,
               }}
             />
             <Tag size={13} color="#d4a373" />
             <span>Claim 10% OFF</span>
+            <ChevronRight size={13} className="pill-arrow" style={{ opacity: 0.7 }} />
           </button>
 
           {/* Divider */}

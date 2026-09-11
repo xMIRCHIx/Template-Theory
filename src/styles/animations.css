@@ -254,15 +254,70 @@
   max-width: 140px;
   transform: translateX(0);
 }
-/* Floating Launch Discount Launcher Trigger */
+/* Floating Launch Discount Launcher Trigger with 21st.dev style Hover Micro-Interactions */
 .floating-discount-launcher {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.floating-discount-launcher::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transition: all 0.55s ease;
+  pointer-events: none;
+}
+
+.floating-discount-launcher:hover::before {
+  left: 120%;
 }
 
 .floating-discount-launcher:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65) !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(212, 163, 115, 0.3) !important;
+  border-color: rgba(212, 163, 115, 0.6) !important;
+}
+
+.floating-discount-launcher .pill-arrow {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  transform: translateX(0);
+}
+
+.floating-discount-launcher:hover .pill-arrow {
+  transform: translateX(3px);
+  opacity: 1 !important;
+  color: #d4a373 !important;
+}
+
+.floating-discount-launcher .green-dot {
+  position: relative;
+}
+
+.floating-discount-launcher .green-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.5);
+  animation: pulseRadar 2s ease-out infinite;
+}
+
+@keyframes pulseRadar {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 768px) {
