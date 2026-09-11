@@ -4,80 +4,158 @@
 
   <!-- Core Store Pages -->
   <url>
-    <loc>https://templatetheory.com/</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/shop</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/shop</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/collections</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/collections</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <!-- Category Collections -->
   <url>
-    <loc>https://templatetheory.com/collections/presets</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/collections/presets</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/collections/luts</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/collections/luts</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/collections/psds</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/collections/psds</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/collections/fonts</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/collections/fonts</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/collections/assets</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/collections/assets</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
+  </url>
+
+  <!-- Featured & High Converting Products -->
+  <url>
+    <loc>https://templatetheory.in/product/signature-lut-s-pack</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/preimium-album-psd-pack</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/all-in-one-bundle</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/25-designer-fonts</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/100-luxury-designer-fonts-pack</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/master-film-presets-pack</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/signature-wedding-preset-pack</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/vintage-film-lightroom-presets</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/cinematic-moody-lightroom-presets</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/1200-influencer-presets-mega-bundle</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://templatetheory.in/product/wedding-lightroom-presets-master-pack</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 
   <!-- Informational Pages -->
   <url>
-    <loc>https://templatetheory.com/about</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/about</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/faq</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/faq</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://templatetheory.com/contact</loc>
-    <lastmod>2026-09-10</lastmod>
+    <loc>https://templatetheory.in/contact</loc>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
