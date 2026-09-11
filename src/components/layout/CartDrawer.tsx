@@ -14,6 +14,10 @@ export const CartDrawer: React.FC = () => {
     subtotal,
     bundleDiscountPercent,
     bundleDiscountAmount,
+    appliedCoupon,
+    couponDiscountPercent,
+    couponDiscountAmount,
+    removeCoupon,
     finalTotal,
     totalItems,
     checkoutWithShopify,
@@ -352,6 +356,41 @@ export const CartDrawer: React.FC = () => {
                     </span>
                     <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>
                       -{currencySymbol}{bundleDiscountAmount}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      paddingTop: '8px',
+                      borderTop: '1px dashed var(--border)',
+                    }}
+                  >
+                    <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--brown)' }}>Final Total</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--brown-dark)' }}>
+                        {currencySymbol}{finalTotal}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : couponDiscountPercent > 0 ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.92rem', color: 'var(--muted)', fontWeight: 500 }}>Original Price</span>
+                    <span style={{ fontSize: '0.96rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                      {currencySymbol}{subtotal}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#16a34a' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Tag size={13} /> 10% Off ({appliedCoupon})
+                    </span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                      -{currencySymbol}{couponDiscountAmount}
                     </span>
                   </div>
 

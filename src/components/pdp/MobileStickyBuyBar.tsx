@@ -17,8 +17,10 @@ export const MobileStickyBuyBar: React.FC<MobileStickyBuyBarProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
-  const { addToCart, checkoutWithShopify, isCheckingOut } = useCart();
+  const { addToCart, checkoutWithShopify, isCheckingOut, appliedCoupon } = useCart();
   const { currencySymbol } = useShopify();
+  const isCouponActive = appliedCoupon?.toLowerCase() === 'template-10';
+  const effectivePrice = isCouponActive ? Math.round(product.price * 0.9) : product.price;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -96,13 +98,17 @@ export const MobileStickyBuyBar: React.FC<MobileStickyBuyBarProps> = ({
             </h4>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
               <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--brown-dark)' }}>
-                {currencySymbol}{product.price}
+                {currencySymbol}{effectivePrice}
               </span>
-              {product.compareAtPrice && (
+              {isCouponActive ? (
+                <span style={{ fontSize: '0.75rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                  {currencySymbol}{product.price}
+                </span>
+              ) : product.compareAtPrice ? (
                 <span style={{ fontSize: '0.75rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
                   {currencySymbol}{product.compareAtPrice}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

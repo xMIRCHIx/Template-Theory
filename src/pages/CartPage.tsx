@@ -12,6 +12,9 @@ export const CartPage: React.FC = () => {
     subtotal,
     bundleDiscountPercent,
     bundleDiscountAmount,
+    appliedCoupon,
+    couponDiscountPercent,
+    couponDiscountAmount,
     finalTotal,
     totalItems,
     clearCart,
@@ -244,19 +247,26 @@ export const CartPage: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--muted)' }}>
                   <span>Items Subtotal ({totalItems})</span>
-                  <span style={{ fontWeight: 700, color: 'var(--brown)', textDecoration: bundleDiscountPercent > 0 ? 'line-through' : 'none' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--brown)', textDecoration: (bundleDiscountPercent > 0 || couponDiscountPercent > 0) ? 'line-through' : 'none' }}>
                     {currencySymbol}{subtotal}
                   </span>
                 </div>
 
-                {bundleDiscountPercent > 0 && (
+                {bundleDiscountPercent > 0 ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--terracotta-dark)' }}>
                     <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Tag size={14} /> Bundle Savings ({bundleDiscountPercent}% OFF)
                     </span>
                     <span style={{ fontWeight: 800 }}>-{currencySymbol}{bundleDiscountAmount}</span>
                   </div>
-                )}
+                ) : couponDiscountPercent > 0 ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: '#16a34a' }}>
+                    <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Tag size={14} /> 10% Off ({appliedCoupon})
+                    </span>
+                    <span style={{ fontWeight: 800 }}>-{currencySymbol}{couponDiscountAmount}</span>
+                  </div>
+                ) : null}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--muted)' }}>
                   <span>Digital Delivery</span>

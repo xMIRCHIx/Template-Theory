@@ -24,6 +24,7 @@ import {
   Check,
   Play,
   Video,
+  Tag,
 } from 'lucide-react';
 import { PRODUCTS } from '../data/products';
 import { FAQS_DATA } from '../data/faqs';
@@ -46,7 +47,7 @@ import { trackMetaViewContent } from '../utils/metaPixel';
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { addToCart, checkoutWithShopify, isCheckingOut, setIsCartOpen, totalItems } = useCart();
+  const { addToCart, checkoutWithShopify, isCheckingOut, setIsCartOpen, totalItems, appliedCoupon } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { getProductBySlug, products, currencySymbol, isLoading } = useShopify();
 
@@ -55,6 +56,9 @@ export const ProductDetailPage: React.FC = () => {
     if (!slug) return products[0];
     return getProductBySlug(slug) || products.find((p) => p.id === slug || p.slug === slug);
   }, [slug, getProductBySlug, products]);
+
+  const isCouponActive = Boolean(product && appliedCoupon?.toLowerCase() === 'template-10');
+  const discountedPrice = product && isCouponActive ? Math.round(product.price * 0.9) : product?.price || 0;
 
   const beforeAfterPairs = useMemo(() => {
     if (!product) return [];
@@ -1578,11 +1582,34 @@ export const ProductDetailPage: React.FC = () => {
               </button>
 
               {/* Price & Discount */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--brown)' }}>
-                  {currencySymbol}{product.price}
+                  {currencySymbol}{discountedPrice}
                 </span>
-                {product.compareAtPrice && (
+
+                {isCouponActive ? (
+                  <>
+                    <span style={{ fontSize: '1.2rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                      {currencySymbol}{product.price}
+                    </span>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        color: '#15803d',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Tag size={13} /> 10% Coupon Applied ({appliedCoupon})
+                    </span>
+                  </>
+                ) : product.compareAtPrice ? (
                   <>
                     <span style={{ fontSize: '1.2rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
                       {currencySymbol}{product.compareAtPrice}
@@ -1600,7 +1627,7 @@ export const ProductDetailPage: React.FC = () => {
                       Save {currencySymbol}{product.compareAtPrice - product.price}
                     </span>
                   </>
-                )}
+                ) : null}
               </div>
 
               {/* Compatibility Strip */}
@@ -1655,7 +1682,13 @@ export const ProductDetailPage: React.FC = () => {
                   style={{ padding: '16px 24px', fontSize: '1.05rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
                   <Zap size={19} />
-                  <span>{isCheckingOut ? 'Redirecting to Shopify Checkout...' : 'Buy Now — Instant Checkout'}</span>
+                  <span>
+                    {isCheckingOut
+                      ? 'Redirecting to Shopify Checkout...'
+                      : isCouponActive
+                        ? `Buy Now (${currencySymbol}${discountedPrice}) — Instant Checkout`
+                        : 'Buy Now — Instant Checkout'}
+                  </span>
                 </button>
 
                 {/* Shortcut Button to View Before & After / Interactive Preview */}

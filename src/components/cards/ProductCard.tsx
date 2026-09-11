@@ -13,12 +13,15 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { addToCart } = useCart();
+  const { addToCart, appliedCoupon } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
   const isSaved = isInWishlist(product.id);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  const isCouponActive = appliedCoupon?.toLowerCase() === 'template-10';
+  const displayPrice = isCouponActive ? Math.round(product.price * 0.9) : product.price;
 
   return (
     <div
@@ -77,6 +80,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             pointerEvents: 'none',
           }}
         >
+          {isCouponActive && (
+            <span
+              className="card-badge-coupon"
+              style={{
+                backgroundColor: 'rgba(22, 163, 74, 0.95)',
+                color: '#ffffff',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-full)',
+                letterSpacing: '0.02em',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+              }}
+            >
+              10% OFF
+            </span>
+          )}
           {product.bestseller && (
             <span
               className="card-badge-bestseller"
@@ -241,13 +261,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px', flexWrap: 'wrap' }}>
               <span className="card-price" style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--brown)' }}>
-                {currencySymbol}{product.price}
+                {currencySymbol}{displayPrice}
               </span>
-              {product.compareAtPrice && (
+              {isCouponActive ? (
+                <span className="card-compare-price" style={{ fontSize: '0.78rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                  {currencySymbol}{product.price}
+                </span>
+              ) : product.compareAtPrice ? (
                 <span className="card-compare-price" style={{ fontSize: '0.78rem', color: 'var(--muted)', textDecoration: 'line-through' }}>
                   {currencySymbol}{product.compareAtPrice}
                 </span>
-              )}
+              ) : null}
             </div>
 
             {/* Rating */}

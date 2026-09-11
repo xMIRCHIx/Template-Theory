@@ -6,7 +6,7 @@ import { useShopify } from '../context/ShopifyContext';
 import { processMockCheckout } from '../services/paymentMock';
 
 export const CheckoutPage: React.FC = () => {
-  const { cart, subtotal, clearCart, checkoutWithShopify, isCheckingOut } = useCart();
+  const { cart, subtotal, clearCart, checkoutWithShopify, isCheckingOut, appliedCoupon } = useCart();
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
 
@@ -19,19 +19,23 @@ export const CheckoutPage: React.FC = () => {
     country: 'India',
   });
 
-  const [couponCode, setCouponCode] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [couponApplied, setCouponApplied] = useState(false);
+  const isInitialCoupon = appliedCoupon?.toUpperCase() === 'TEMPLATE-10';
+  const [couponCode, setCouponCode] = useState(appliedCoupon || '');
+  const [discount, setDiscount] = useState(isInitialCoupon ? Math.round(subtotal * 0.1) : 0);
+  const [couponApplied, setCouponApplied] = useState(isInitialCoupon);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const applyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
     const code = couponCode.trim().toUpperCase();
-    if (code === 'CREATOR10' || code === 'THEORY10' || code === 'TEMPLATETHEORY' || code === 'CINEVO') {
+    if (code === 'TEMPLATE-10') {
+      setDiscount(Math.round(subtotal * 0.1));
+      setCouponApplied(true);
+    } else if (code === 'CREATOR10' || code === 'THEORY10' || code === 'TEMPLATETHEORY' || code === 'CINEVO') {
       setDiscount(50);
       setCouponApplied(true);
     } else {
-      alert('Invalid code! Try "THEORY10" for discount.');
+      alert('Invalid code! Try "Template-10" for 10% discount.');
     }
   };
 

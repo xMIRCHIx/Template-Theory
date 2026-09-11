@@ -15,6 +15,11 @@ interface CartContextType {
   subtotal: number;
   bundleDiscountPercent: number;
   bundleDiscountAmount: number;
+  appliedCoupon: string | null;
+  couponDiscountPercent: number;
+  couponDiscountAmount: number;
+  applyCoupon: (code: string) => void;
+  removeCoupon: () => void;
   finalTotal: number;
   isCheckingOut: boolean;
   checkoutWithShopify: (singleProduct?: Product) => Promise<void>;
@@ -81,6 +86,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
+  const [appliedCoupon, setAppliedCouponState] = useState<string | null>(() => {
+    return localStorage.getItem('tt_applied_coupon') || null;
+  });
+
+  const applyCoupon = (code: string) => {
+    localStorage.setItem('tt_applied_coupon', code);
+    setAppliedCouponState(code);
+  };
+
+  const removeCoupon = () => {
+    localStorage.removeItem('tt_applied_coupon');
+    setAppliedCouponState(null);
+  };
+
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
 
@@ -89,13 +108,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 2 items = 20% OFF (Code: BUNDLE20)
   const bundleDiscountPercent = totalItems >= 3 ? 25 : totalItems === 2 ? 20 : 0;
   const bundleDiscountAmount = Math.round((subtotal * bundleDiscountPercent) / 100);
-  const finalTotal = subtotal - bundleDiscountAmount;
   const bundleDiscountCode = bundleDiscountPercent === 25 ? 'BUNDLE25' : bundleDiscountPercent === 20 ? 'BUNDLE20' : '';
+
+  // Single Coupon Protection: If bundle tier is active, bundle discount takes precedence (higher savings).
+  // Otherwise, if launch coupon (Template-10) is applied, apply 10% discount. No double stacking!
+  const isCouponActive = !bundleDiscountPercent && Boolean(appliedCoupon);
+  const couponDiscountPercent = isCouponActive && appliedCoupon?.toLowerCase() === 'template-10' ? 10 : 0;
+  const couponDiscountAmount = Math.round((subtotal * couponDiscountPercent) / 100);
+
+  const activeDiscountAmount = bundleDiscountAmount || couponDiscountAmount;
+  const finalTotal = Math.max(0, subtotal - activeDiscountAmount);
 
   const checkoutWithShopify = async (singleProduct?: Product) => {
     setIsCheckingOut(true);
     try {
-      const checkoutTotal = singleProduct ? singleProduct.price : finalTotal;
+      let checkoutTotal = finalTotal;
+      let discountToApply: string | undefined = bundleDiscountCode || appliedCoupon || undefined;
+
+      if (singleProduct) {
+        const singleDiscount = appliedCoupon?.toLowerCase() === 'template-10' ? 10 : 0;
+        checkoutTotal = singleDiscount ? Math.round(singleProduct.price * 0.9) : singleProduct.price;
+        discountToApply = appliedCoupon || undefined;
+      }
+
       const checkoutCount = singleProduct ? 1 : totalItems;
       trackMetaInitiateCheckout(checkoutTotal, checkoutCount);
 
@@ -106,16 +141,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             quantity: item.quantity,
           }));
 
-      const savedCoupon = localStorage.getItem('tt_applied_coupon');
-      const discountToApply = bundleDiscountCode || savedCoupon || undefined;
-
       const checkoutUrl = await createShopifyCheckoutSession(itemsToCheckout, discountToApply);
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       }
     } catch (error) {
       console.error('Failed to start Shopify checkout:', error);
-      // Fallback redirect to store checkout
       const fallbackUrl = 'https://template-theory-2.myshopify.com/checkout';
       window.location.href = fallbackUrl;
     } finally {
@@ -137,6 +168,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subtotal,
         bundleDiscountPercent,
         bundleDiscountAmount,
+        appliedCoupon,
+        couponDiscountPercent,
+        couponDiscountAmount,
+        applyCoupon,
+        removeCoupon,
         finalTotal,
         isCheckingOut,
         checkoutWithShopify,
