@@ -1277,26 +1277,23 @@ export const HomePage: React.FC = () => {
                 overflow: 'hidden',
               }}
             >
-              <AnimatePresence mode="wait" custom={homeSlideDirection}>
-                <motion.div
-                  key={`home-look-slide-${activeHomeLookIndex}`}
-                  custom={homeSlideDirection}
-                  initial={{ opacity: 0, x: homeSlideDirection > 0 ? 55 : -55 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: homeSlideDirection > 0 ? -55 : 55 }}
-                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ width: '100%', height: '100%' }}
-                >
-                  <BeforeAfterSlider
-                    key={`home-showcase-slider-${activeHomeLookIndex}`}
-                    beforeImage={currentHomeLook.before}
-                    afterImage={currentHomeLook.after}
-                    beforeLabel="BEFORE"
-                    afterLabel="AFTER"
-                    aspectRatio="auto"
-                  />
-                </motion.div>
-              </AnimatePresence>
+              <BeforeAfterSlider
+                key="home-showcase-slider"
+                beforeImage={currentHomeLook.before}
+                afterImage={currentHomeLook.after}
+                beforeLabel="BEFORE"
+                afterLabel="AFTER"
+                aspectRatio={typeof window !== 'undefined' && window.innerWidth <= 768 ? '4 / 5' : '16 / 10'}
+                fitMode="contain"
+                fallbackImage={products[0]?.thumbnail}
+                style={{
+                  border: 'none',
+                  borderRadius: 0,
+                  boxShadow: 'none',
+                  width: '100%',
+                  height: '100%',
+                }}
+              />
 
               {/* Translucent Left Arrow Button */}
               {homeLooks.length > 1 && (

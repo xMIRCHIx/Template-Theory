@@ -208,32 +208,27 @@ export const ProductDetailPage: React.FC = () => {
     }
   }, [product?.id, isMobileScreen]);
 
-  // Efficiently preload adjacent looks only when Before & After tab is active
+  // Preload all before/after looks for this product so switching looks is instant with zero reload
   useEffect(() => {
-    if (activeTab !== 'beforeAfter' || !beforeAfterPairs || beforeAfterPairs.length === 0) return;
-    // Preload next and previous look relative to activeBAIndex
-    const indicesToPreload = [
-      activeBAIndex,
-      (activeBAIndex + 1) % beforeAfterPairs.length,
-      (activeBAIndex - 1 + beforeAfterPairs.length) % beforeAfterPairs.length,
-    ];
+    if (!beforeAfterPairs || beforeAfterPairs.length === 0) return;
 
-    indicesToPreload.forEach((idx) => {
-      const pair = beforeAfterPairs[idx];
-      if (pair) {
+    const timer = setTimeout(() => {
+      beforeAfterPairs.forEach((pair) => {
         if (pair.before) {
-          const img = new Image();
-          img.decoding = 'async';
-          img.src = optimizeImageUrl(pair.before, 900);
+          const imgB = new Image();
+          imgB.decoding = 'async';
+          imgB.src = optimizeImageUrl(pair.before, isMobileScreen ? 650 : 900);
         }
         if (pair.after) {
-          const img = new Image();
-          img.decoding = 'async';
-          img.src = optimizeImageUrl(pair.after, 900);
+          const imgA = new Image();
+          imgA.decoding = 'async';
+          imgA.src = optimizeImageUrl(pair.after, isMobileScreen ? 650 : 900);
         }
-      }
-    });
-  }, [activeTab, beforeAfterPairs, activeBAIndex]);
+      });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [beforeAfterPairs, isMobileScreen]);
 
   const mediaList = useMemo<ProductMediaItem[]>(() => {
     if (!product) return [];
@@ -942,7 +937,7 @@ export const ProductDetailPage: React.FC = () => {
                       afterImage={currentBAPair.after}
                       beforeLabel="BEFORE"
                       afterLabel="AFTER"
-                      aspectRatio="auto"
+                      aspectRatio={isMobileScreen ? '4 / 5' : '16 / 10'}
                       fitMode="contain"
                       fallbackImage={product.thumbnail}
                       style={{
@@ -1988,32 +1983,23 @@ export const ProductDetailPage: React.FC = () => {
                   touchAction: 'pan-y',
                 }}
               >
-                <AnimatePresence mode="wait" custom={slideDirection}>
-                  <motion.div
-                    key={`pdp-look-slide-${activeBAIndex}`}
-                    custom={slideDirection}
-                    initial={{ opacity: 0, x: slideDirection > 0 ? 55 : -55 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: slideDirection > 0 ? -55 : 55 }}
-                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    <BeforeAfterSlider
-                      key={`pdp-showcase-slider-${activeBAIndex}`}
-                      beforeImage={currentBAPair?.before || ''}
-                      afterImage={currentBAPair?.after || ''}
-                      beforeLabel="ORIGINAL RAW"
-                      afterLabel="PRO GRADED"
-                      aspectRatio="auto"
-                      fallbackImage={product.thumbnail}
-                      style={{
-                        border: 'none',
-                        borderRadius: 0,
-                        boxShadow: 'none',
-                      }}
-                    />
-                  </motion.div>
-                </AnimatePresence>
+                <BeforeAfterSlider
+                  key="pdp-showcase-slider"
+                  beforeImage={currentBAPair?.before || ''}
+                  afterImage={currentBAPair?.after || ''}
+                  beforeLabel="ORIGINAL RAW"
+                  afterLabel="PRO GRADED"
+                  aspectRatio={isMobileScreen ? '4 / 5' : '16 / 10'}
+                  fitMode="contain"
+                  fallbackImage={product.thumbnail}
+                  style={{
+                    border: 'none',
+                    borderRadius: 0,
+                    boxShadow: 'none',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
 
                 {/* Translucent Left Arrow Button */}
                 {beforeAfterPairs.length > 1 && (
