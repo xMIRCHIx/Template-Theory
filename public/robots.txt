@@ -1,5 +1,5 @@
 # Template Theory — Production Robots.txt
-# https://templatetheory.com
+# https://templatetheory.in
 
 User-agent: *
 Allow: /
@@ -37,4 +37,4 @@ User-agent: WhatsApp
 Allow: /
 
 # Sitemap Index
-Sitemap: https://templatetheory.com/sitemap.xml
+Sitemap: https://templatetheory.in/sitemap.xml

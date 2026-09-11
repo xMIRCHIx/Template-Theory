@@ -13,8 +13,8 @@ export const SITE_SEO_CONFIG = {
   titleTemplate: '%s | Template Theory',
   defaultDescription:
     'Handcrafted Lightroom presets, cinematic video LUTs, Photoshop album PSDs, luxury display fonts, and creative 3D assets. Instant digital download, commercial license & lifetime access.',
-  siteUrl: 'https://templatetheory.com',
-  defaultOgImage: 'https://templatetheory.com/images/logo-square.png',
+  siteUrl: 'https://templatetheory.in',
+  defaultOgImage: 'https://templatetheory.in/images/logo-square.png',
   locale: 'en_US',
   author: 'Template Theory & synchAD',
   twitterHandle: '@template_theory_',
