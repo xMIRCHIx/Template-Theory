@@ -118,9 +118,6 @@ const AppContent: React.FC = () => {
       {/* Floating WhatsApp Action Widget */}
       <FloatingWhatsApp />
 
-      {/* Luxury Launch Discount Popup */}
-      <LaunchOfferModal />
-
       {/* Mobile Floating Action Dock */}
       <MobileBottomNav
         onOpenSearch={() => setIsSearchOpen(true)}
