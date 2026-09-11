@@ -10,6 +10,13 @@ export const LaunchOfferModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
+  const [isLauncherDismissed, setIsLauncherDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('tt_launcher_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const { applyCoupon, appliedCoupon } = useCart();
 
   useEffect(() => {
@@ -314,18 +321,14 @@ export const LaunchOfferModal: React.FC = () => {
         </div>
       )}
 
-      {/* Persistent Floating 10% OFF launcher trigger if modal is closed and coupon not applied yet */}
-      {!isOpen && !appliedCoupon && (
-        <motion.button
-          key="floating-launch-offer-btn"
-          initial={{ opacity: 0, scale: 0.8, y: 16 }}
+      {/* Persistent Floating 10% OFF launcher trigger if modal is closed, coupon not applied, and launcher not dismissed */}
+      {!isOpen && !appliedCoupon && !isLauncherDismissed && (
+        <motion.div
+          key="floating-launch-offer-pill"
+          initial={{ opacity: 0, scale: 0.85, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 16 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(true)}
+          exit={{ opacity: 0, scale: 0.85, y: 16 }}
           className="floating-discount-launcher"
-          aria-label="Claim 10% Launch Discount"
           style={{
             position: 'fixed',
             bottom: '24px',
@@ -335,31 +338,100 @@ export const LaunchOfferModal: React.FC = () => {
             color: '#ffffff',
             border: '1px solid rgba(255, 255, 255, 0.22)',
             borderRadius: '999px',
-            padding: '10px 16px',
+            padding: '5px 6px 5px 12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.55)',
             fontSize: '13px',
             fontWeight: 700,
             letterSpacing: '-0.01em',
             transition: 'all 0.2s ease',
+            boxSizing: 'border-box',
           }}
         >
+          {/* Main Action area: Open Modal */}
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '2px 0',
+              cursor: 'pointer',
+              fontSize: 'inherit',
+              fontWeight: 'inherit',
+              letterSpacing: 'inherit',
+            }}
+          >
+            <span
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                backgroundColor: '#22c55e',
+                boxShadow: '0 0 6px #22c55e',
+                display: 'inline-block',
+                flexShrink: 0,
+              }}
+            />
+            <Tag size={13} color="#d4a373" />
+            <span>Claim 10% OFF</span>
+          </button>
+
+          {/* Divider */}
           <span
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#22c55e',
-              boxShadow: '0 0 8px #22c55e',
-              display: 'inline-block',
+              width: '1px',
+              height: '14px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              margin: '0 1px',
             }}
           />
-          <Tag size={14} color="#d4a373" />
-          <span>Claim 10% OFF</span>
-        </motion.button>
+
+          {/* Cross (X) Dismiss Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLauncherDismissed(true);
+              try {
+                localStorage.setItem('tt_launcher_dismissed', 'true');
+              } catch {}
+            }}
+            aria-label="Dismiss discount pill"
+            title="Dismiss"
+            style={{
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+            }}
+          >
+            <X size={12} strokeWidth={2.5} />
+          </button>
+        </motion.div>
       )}
     </AnimatePresence>
   );

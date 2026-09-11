@@ -254,19 +254,23 @@
   max-width: 140px;
   transform: translateX(0);
 }
+/* Floating Launch Discount Launcher Trigger */
+.floating-discount-launcher {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
 
-/* Floating Launch Discount Launcher Trigger */
 .floating-discount-launcher:hover {
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
-  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }
 
 @media (max-width: 768px) {
   .floating-discount-launcher {
-    bottom: 84px !important;
-    left: 14px !important;
-    padding: 8px 14px !important;
-    font-size: 12px !important;
+    bottom: 82px !important;
+    left: 12px !important;
+    padding: 4px 6px 4px 10px !important;
+    font-size: 11.5px !important;
   }
 }
+
