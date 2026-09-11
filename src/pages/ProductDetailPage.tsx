@@ -183,6 +183,9 @@ export const ProductDetailPage: React.FC = () => {
   }, [product?.fontPreviewText]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     setActiveTab('preview');
     setActiveBAIndex(0);
     setActiveImageIndex(0);
@@ -367,22 +370,26 @@ export const ProductDetailPage: React.FC = () => {
     };
   }, [isLightboxOpen, mediaList]);
 
-  // Auto-scroll Lightbox thumbnails to active index
+  // Auto-scroll Lightbox thumbnails to active index (container-only, never scroll the window)
   useEffect(() => {
     if (isLightboxOpen && lightboxThumbsRowRef.current) {
-      const activeBtn = lightboxThumbsRowRef.current.children[activeImageIndex] as HTMLElement;
+      const container = lightboxThumbsRowRef.current;
+      const activeBtn = container.children[activeImageIndex] as HTMLElement;
       if (activeBtn) {
-        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const targetScrollLeft = activeBtn.offsetLeft - (container.clientWidth / 2) + (activeBtn.clientWidth / 2);
+        container.scrollTo({ left: Math.max(0, targetScrollLeft), behavior: 'smooth' });
       }
     }
   }, [activeImageIndex, isLightboxOpen]);
 
-  // Auto-scroll main PDP thumbnails to active index
+  // Auto-scroll main PDP thumbnails to active index (container-only, never scroll the window)
   useEffect(() => {
     if (mainThumbsRowRef.current) {
-      const activeBtn = mainThumbsRowRef.current.children[activeImageIndex] as HTMLElement;
+      const container = mainThumbsRowRef.current;
+      const activeBtn = container.children[activeImageIndex] as HTMLElement;
       if (activeBtn) {
-        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const targetScrollLeft = activeBtn.offsetLeft - (container.clientWidth / 2) + (activeBtn.clientWidth / 2);
+        container.scrollTo({ left: Math.max(0, targetScrollLeft), behavior: 'smooth' });
       }
     }
   }, [activeImageIndex]);
