@@ -116,19 +116,31 @@ export const ProductDetailPage: React.FC = () => {
   // Directional slide state for smooth animated look transitions
   const [slideDirection, setSlideDirection] = useState<number>(1); // 1 for next, -1 for prev
 
-  const handleNextLook = useCallback(() => {
+  const handleNextLook = useCallback((e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (beforeAfterPairs.length <= 1) return;
     setSlideDirection(1);
     setActiveBAIndex((prev) => (prev + 1) % beforeAfterPairs.length);
   }, [beforeAfterPairs.length]);
 
-  const handlePrevLook = useCallback(() => {
+  const handlePrevLook = useCallback((e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (beforeAfterPairs.length <= 1) return;
     setSlideDirection(-1);
     setActiveBAIndex((prev) => (prev - 1 + beforeAfterPairs.length) % beforeAfterPairs.length);
   }, [beforeAfterPairs.length]);
 
-  const handleSelectLook = useCallback((idx: number) => {
+  const handleSelectLook = useCallback((idx: number, e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (idx === activeBAIndex) return;
     setSlideDirection(idx > activeBAIndex ? 1 : -1);
     setActiveBAIndex(idx);
@@ -2005,42 +2017,14 @@ export const ProductDetailPage: React.FC = () => {
                 {beforeAfterPairs.length > 1 && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePrevLook();
-                    }}
+                    className="pdp-ba-arrow-btn pdp-ba-arrow-left"
+                    onClick={handlePrevLook}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     aria-label="Previous Look"
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '12px',
-                      transform: 'translateY(-50%)',
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(24, 19, 16, 0.45)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.22)',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      zIndex: 15,
-                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.85)';
-                      e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.45)';
-                      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                    }}
                   >
-                    <ChevronLeft size={22} strokeWidth={2.5} />
+                    <ChevronLeft size={22} strokeWidth={2.5} style={{ pointerEvents: 'none' }} />
                   </button>
                 )}
 
@@ -2048,42 +2032,14 @@ export const ProductDetailPage: React.FC = () => {
                 {beforeAfterPairs.length > 1 && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleNextLook();
-                    }}
+                    className="pdp-ba-arrow-btn pdp-ba-arrow-right"
+                    onClick={handleNextLook}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     aria-label="Next Look"
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      right: '12px',
-                      transform: 'translateY(-50%)',
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(24, 19, 16, 0.45)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.22)',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      zIndex: 15,
-                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.85)';
-                      e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(24, 19, 16, 0.45)';
-                      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                    }}
                   >
-                    <ChevronRight size={22} strokeWidth={2.5} />
+                    <ChevronRight size={22} strokeWidth={2.5} style={{ pointerEvents: 'none' }} />
                   </button>
                 )}
               </div>
@@ -2123,10 +2079,8 @@ export const ProductDetailPage: React.FC = () => {
                       return (
                         <div
                           key={pair.id || idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectLook(idx);
-                          }}
+                          onClick={(e) => handleSelectLook(idx, e)}
+                          onPointerDown={(e) => e.stopPropagation()}
                           style={{
                             width: isActive ? (isScrubbing ? '32px' : '26px') : (isScrubbing ? '10px' : '7px'),
                             height: isScrubbing ? '9px' : '7px',
@@ -2135,6 +2089,7 @@ export const ProductDetailPage: React.FC = () => {
                             transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                             boxShadow: isActive ? '0 2px 8px rgba(96, 68, 46, 0.3)' : 'none',
                             flexShrink: 0,
+                            cursor: 'pointer',
                           }}
                         />
                       );
