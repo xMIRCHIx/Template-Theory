@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Heart, Trash2, ShoppingBag } from 'lucide-react';
 import { useWishlist } from '../../context/WishlistContext';
@@ -15,6 +15,15 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({ isOpen, onClose 
   const { addToCart } = useCart();
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

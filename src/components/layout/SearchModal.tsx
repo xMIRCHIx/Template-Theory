@@ -18,38 +18,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !isOpen && (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA')) {
-        e.preventDefault();
-      }
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-    const handlePopState = () => {
-      if (isOpen) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    if (isOpen) {
-      window.history.pushState({ searchModal: true }, '');
-      window.addEventListener('popstate', handlePopState);
-    }
 
     return () => {
+      document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('popstate', handlePopState);
     };
   }, [isOpen, onClose]);
-
-  const handleClose = () => {
-    onClose();
-    if (window.history.state?.searchModal) {
-      window.history.back();
-    }
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -98,7 +84,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     >
       {/* Backdrop */}
       <div
-        onClick={handleClose}
+        onClick={onClose}
         style={{
           position: 'absolute',
           top: 0,
@@ -167,7 +153,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
 
           {/* Close / Cross Button */}
           <button
-            onClick={handleClose}
+            onClick={onClose}
             aria-label="Close search"
             style={{
               width: '36px',

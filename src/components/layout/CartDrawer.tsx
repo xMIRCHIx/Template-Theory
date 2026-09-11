@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Plus, Minus, Trash2, ArrowRight, DownloadCloud, ShoppingBag, Zap, Loader2, Tag, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -26,6 +26,15 @@ export const CartDrawer: React.FC = () => {
   } = useCart();
   const { currencySymbol } = useShopify();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isCartOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isCartOpen]);
 
   if (!isCartOpen) return null;
 

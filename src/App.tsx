@@ -14,6 +14,9 @@ import { LaunchOfferModal } from './components/common/LaunchOfferModal';
 import { RouteLoadingBar, ProductDetailSkeleton } from './components/common/Skeleton';
 import { trackMetaPageView } from './utils/metaPixel';
 
+import { CheckoutRedirectModal } from './components/common/CheckoutRedirectModal';
+import { useCart } from './context/CartContext';
+
 // Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
 
@@ -30,11 +33,12 @@ const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ de
 const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 
-const ScrollToTop = () => {
+const ScrollToTop: React.FC<{ onCloseOverlays: () => void }> = ({ onCloseOverlays }) => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
     trackMetaPageView();
+    onCloseOverlays();
   }, [pathname]);
   return null;
 };
@@ -42,12 +46,45 @@ const ScrollToTop = () => {
 const AppContent: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const { setIsCartOpen } = useCart();
+
+  const handleOpenSearch = () => {
+    setIsWishlistOpen(false);
+    setIsCartOpen(false);
+    setIsSearchOpen(true);
+  };
+
+  const handleCloseSearch = () => {
+    setIsSearchOpen(false);
+  };
+
+  const handleOpenWishlist = () => {
+    setIsSearchOpen(false);
+    setIsCartOpen(false);
+    setIsWishlistOpen(true);
+  };
+
+  const handleCloseWishlist = () => {
+    setIsWishlistOpen(false);
+  };
+
+  const handleOpenCart = () => {
+    setIsSearchOpen(false);
+    setIsWishlistOpen(false);
+    setIsCartOpen(true);
+  };
+
+  const handleCloseAllOverlays = () => {
+    setIsSearchOpen(false);
+    setIsWishlistOpen(false);
+    setIsCartOpen(false);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '/' && (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA')) {
         e.preventDefault();
-        setIsSearchOpen(true);
+        handleOpenSearch();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -72,10 +109,11 @@ const AppContent: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <ScrollToTop />
+      <ScrollToTop onCloseOverlays={handleCloseAllOverlays} />
       <Header
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenSearch={handleOpenSearch}
+        onOpenWishlist={handleOpenWishlist}
+        onOpenCart={handleOpenCart}
       />
 
       <main style={{ flex: 1 }}>
@@ -112,8 +150,8 @@ const AppContent: React.FC = () => {
 
       {/* Global Modals & Drawers */}
       <CartDrawer />
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} />
+      <WishlistDrawer isOpen={isWishlistOpen} onClose={handleCloseWishlist} />
       
       {/* Floating WhatsApp Action Widget */}
       <FloatingWhatsApp />
@@ -121,10 +159,17 @@ const AppContent: React.FC = () => {
       {/* Luxury Launch Offer Modal */}
       <LaunchOfferModal />
 
-      {/* Mobile Floating Action Dock */}
+      {/* Instant Reassuring Checkout Redirection Screen */}
+      <CheckoutRedirectModal />
+
+      {/* Mobile Floating Action Dock with Synchronized Mutual Exclusivity */}
       <MobileBottomNav
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
+        isSearchOpen={isSearchOpen}
+        isWishlistOpen={isWishlistOpen}
+        onOpenSearch={handleOpenSearch}
+        onCloseSearch={handleCloseSearch}
+        onOpenWishlist={handleOpenWishlist}
+        onCloseWishlist={handleCloseWishlist}
       />
     </div>
   );

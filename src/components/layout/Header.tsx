@@ -10,9 +10,10 @@ import { Magnetic } from '../ui/Magnetic';
 interface HeaderProps {
   onOpenSearch: () => void;
   onOpenWishlist: () => void;
+  onOpenCart?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist, onOpenCart }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
@@ -376,7 +377,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenWishlist }) 
           {/* Cart Trigger */}
           <Magnetic intensity={0.35} range={70}>
             <button
-              onClick={() => setIsCartOpen(true)}
+              onClick={onOpenCart || (() => setIsCartOpen(true))}
               aria-label="Cart"
               className="nav-action-btn cart-btn"
               style={{

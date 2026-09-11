@@ -5,60 +5,112 @@ import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 
 interface MobileBottomNavProps {
+  isSearchOpen: boolean;
+  isWishlistOpen: boolean;
   onOpenSearch: () => void;
+  onCloseSearch: () => void;
   onOpenWishlist: () => void;
+  onCloseWishlist: () => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
+  isSearchOpen,
+  isWishlistOpen,
   onOpenSearch,
+  onCloseSearch,
   onOpenWishlist,
+  onCloseWishlist,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { totalItems, setIsCartOpen } = useCart();
+  const { totalItems, isCartOpen, setIsCartOpen } = useCart();
   const { wishlistCount } = useWishlist();
 
   // Hide on checkout / order success pages to avoid distracting user
   const isCheckoutFlow = location.pathname === '/checkout' || location.pathname === '/order-success';
   if (isCheckoutFlow) return null;
 
+  const anyDrawerOpen = isCartOpen || isWishlistOpen || isSearchOpen;
+
   const navItems = [
     {
       id: 'home',
       label: 'Home',
       icon: Home,
-      isActive: location.pathname === '/',
-      onClick: () => navigate('/'),
+      isActive: location.pathname === '/' && !anyDrawerOpen,
+      onClick: () => {
+        setIsCartOpen(false);
+        onCloseWishlist();
+        onCloseSearch();
+        if (location.pathname !== '/') {
+          navigate('/');
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      },
     },
     {
       id: 'collections',
       label: 'Explore',
       icon: Compass,
-      isActive: location.pathname.startsWith('/collections') || location.pathname === '/shop',
-      onClick: () => navigate('/collections'),
+      isActive: (location.pathname.startsWith('/collections') || location.pathname === '/shop') && !anyDrawerOpen,
+      onClick: () => {
+        setIsCartOpen(false);
+        onCloseWishlist();
+        onCloseSearch();
+        if (!location.pathname.startsWith('/collections')) {
+          navigate('/collections');
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      },
     },
     {
       id: 'search',
       label: 'Search',
       icon: Search,
-      isActive: false,
-      onClick: onOpenSearch,
+      isActive: isSearchOpen,
+      onClick: () => {
+        if (isSearchOpen) {
+          onCloseSearch();
+        } else {
+          setIsCartOpen(false);
+          onCloseWishlist();
+          onOpenSearch();
+        }
+      },
     },
     {
       id: 'wishlist',
       label: 'Saved',
       icon: Heart,
-      isActive: false,
+      isActive: isWishlistOpen,
       badge: wishlistCount,
-      onClick: onOpenWishlist,
+      onClick: () => {
+        if (isWishlistOpen) {
+          onCloseWishlist();
+        } else {
+          setIsCartOpen(false);
+          onCloseSearch();
+          onOpenWishlist();
+        }
+      },
     },
     {
       id: 'cart',
       label: 'Cart',
       icon: ShoppingBag,
-      isActive: false,
+      isActive: isCartOpen,
       badge: totalItems,
-      onClick: () => setIsCartOpen(true),
+      onClick: () => {
+        if (isCartOpen) {
+          setIsCartOpen(false);
+        } else {
+          onCloseSearch();
+          onCloseWishlist();
+          setIsCartOpen(true);
+        }
+      },
       isPrimary: true,
     },
   ];
@@ -70,8 +122,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         bottom: '12px',
         left: '12px',
         right: '12px',
-        zIndex: 990,
+        zIndex: 10050,
         display: 'none', // Shown on mobile via CSS class
+        touchAction: 'manipulation',
       }}
       className="mobile-bottom-dock"
     >
@@ -80,12 +133,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
-          backgroundColor: 'rgba(251, 247, 240, 0.92)',
+          backgroundColor: 'rgba(251, 247, 240, 0.94)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1.5px solid rgba(229, 213, 193, 0.75)',
+          border: '1.5px solid rgba(229, 213, 193, 0.85)',
           borderRadius: '26px',
-          boxShadow: '0 12px 36px rgba(91, 64, 42, 0.18), 0 2px 8px rgba(0,0,0,0.06)',
+          boxShadow: '0 12px 36px rgba(91, 64, 42, 0.22), 0 2px 8px rgba(0,0,0,0.08)',
           padding: '6px 8px',
           maxWidth: '460px',
           margin: '0 auto',
@@ -108,17 +161,22 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 justifyContent: 'center',
                 padding: '6px 12px',
                 borderRadius: '18px',
-                color: isActive ? 'var(--brown)' : 'var(--muted)',
-                backgroundColor: isActive ? 'rgba(237, 227, 212, 0.7)' : 'transparent',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                color: isActive ? 'var(--brown-dark)' : 'var(--muted)',
+                backgroundColor: isActive ? 'rgba(237, 227, 212, 0.9)' : 'transparent',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                 minWidth: '56px',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                cursor: 'pointer',
+                border: 'none',
+                outline: 'none',
               }}
               className="mobile-nav-btn"
             >
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon
                   size={20}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  strokeWidth={isActive ? 2.6 : 2}
                   color={isActive ? 'var(--brown-dark)' : 'var(--muted)'}
                 />
                 {item.badge && item.badge > 0 ? (
@@ -137,7 +195,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 2px 6px rgba(201, 130, 103, 0.4)',
+                      boxShadow: '0 2px 6px rgba(201, 130, 103, 0.45)',
                     }}
                   >
                     {item.badge}
@@ -168,8 +226,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             padding-bottom: 74px !important;
           }
         }
+        .mobile-nav-btn {
+          user-select: none;
+          -webkit-user-select: none;
+        }
         .mobile-nav-btn:active {
-          transform: scale(0.92);
+          transform: scale(0.90) !important;
         }
       `}</style>
     </div>
