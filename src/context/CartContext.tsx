@@ -106,7 +106,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             quantity: item.quantity,
           }));
 
-      const checkoutUrl = await createShopifyCheckoutSession(itemsToCheckout);
+      const savedCoupon = localStorage.getItem('tt_applied_coupon');
+      const discountToApply = bundleDiscountCode || savedCoupon || undefined;
+
+      const checkoutUrl = await createShopifyCheckoutSession(itemsToCheckout, discountToApply);
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       }
