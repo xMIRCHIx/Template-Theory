@@ -13,8 +13,6 @@ import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
 import { LaunchOfferModal } from './components/common/LaunchOfferModal';
 import { RouteLoadingBar, ProductDetailSkeleton } from './components/common/Skeleton';
 import { trackMetaPageView } from './utils/metaPixel';
-
-import { CheckoutRedirectModal } from './components/common/CheckoutRedirectModal';
 import { useCart } from './context/CartContext';
 
 // Eagerly load HomePage for instantaneous first paint
@@ -158,9 +156,6 @@ const AppContent: React.FC = () => {
 
       {/* Luxury Launch Offer Modal */}
       <LaunchOfferModal />
-
-      {/* Instant Reassuring Checkout Redirection Screen */}
-      <CheckoutRedirectModal />
 
       {/* Mobile Floating Action Dock with Synchronized Mutual Exclusivity */}
       <MobileBottomNav
