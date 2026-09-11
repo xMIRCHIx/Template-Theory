@@ -15,6 +15,8 @@ export const CartPage: React.FC = () => {
     appliedCoupon,
     couponDiscountPercent,
     couponDiscountAmount,
+    applyCoupon,
+    removeCoupon,
     finalTotal,
     totalItems,
     clearCart,
@@ -263,10 +265,60 @@ export const CartPage: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: '#16a34a' }}>
                     <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Tag size={14} /> 10% Off ({appliedCoupon})
+                      <button
+                        onClick={removeCoupon}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--muted)',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          marginLeft: '6px',
+                        }}
+                      >
+                        Remove
+                      </button>
                     </span>
                     <span style={{ fontWeight: 800 }}>-{currencySymbol}{couponDiscountAmount}</span>
                   </div>
-                ) : null}
+                ) : (
+                  <div style={{ marginTop: '2px', marginBottom: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => applyCoupon('Template-10')}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(212, 163, 115, 0.08)',
+                        border: '1px dashed rgba(212, 163, 115, 0.7)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.84rem',
+                        color: 'var(--brown)',
+                        fontWeight: 600,
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.18)';
+                        e.currentTarget.style.borderColor = 'var(--terracotta)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(212, 163, 115, 0.7)';
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Tag size={13} color="var(--terracotta-dark)" />
+                        <span>Have launch coupon? <strong>Template-10</strong></span>
+                      </span>
+                      <span style={{ color: 'var(--terracotta-dark)', fontWeight: 700 }}>Apply 10% OFF →</span>
+                    </button>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--muted)' }}>
                   <span>Digital Delivery</span>

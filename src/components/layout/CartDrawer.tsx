@@ -17,6 +17,7 @@ export const CartDrawer: React.FC = () => {
     appliedCoupon,
     couponDiscountPercent,
     couponDiscountAmount,
+    applyCoupon,
     removeCoupon,
     finalTotal,
     totalItems,
@@ -388,6 +389,20 @@ export const CartDrawer: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#16a34a' }}>
                     <span style={{ fontSize: '0.86rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Tag size={13} /> 10% Off ({appliedCoupon})
+                      <button
+                        onClick={removeCoupon}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--muted)',
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          marginLeft: '4px',
+                        }}
+                      >
+                        Remove
+                      </button>
                     </span>
                     <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>
                       -{currencySymbol}{couponDiscountAmount}
@@ -412,12 +427,50 @@ export const CartDrawer: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>Subtotal</span>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)' }}>
-                    {currencySymbol}{subtotal}
-                  </span>
-                </div>
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>Subtotal</span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brown)' }}>
+                      {currencySymbol}{subtotal}
+                    </span>
+                  </div>
+
+                  {/* 1-Click Launch Offer Chip */}
+                  <button
+                    type="button"
+                    onClick={() => applyCoupon('Template-10')}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(212, 163, 115, 0.08)',
+                      border: '1px dashed rgba(212, 163, 115, 0.7)',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.82rem',
+                      color: 'var(--brown)',
+                      fontWeight: 600,
+                      marginTop: '4px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.18)';
+                      e.currentTarget.style.borderColor = 'var(--terracotta)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(212, 163, 115, 0.7)';
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Tag size={13} color="var(--terracotta-dark)" />
+                      <span>Have launch code? <strong>Template-10</strong></span>
+                    </span>
+                    <span style={{ color: 'var(--terracotta-dark)', fontWeight: 700 }}>Apply 10% OFF →</span>
+                  </button>
+                </>
               )}
             </div>
 

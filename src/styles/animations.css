@@ -255,5 +255,18 @@
   transform: translateX(0);
 }
 
+/* Floating Launch Discount Launcher Trigger */
+.floating-discount-launcher:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.4);
+}
 
-
+@media (max-width: 768px) {
+  .floating-discount-launcher {
+    bottom: 84px !important;
+    left: 14px !important;
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+  }
+}

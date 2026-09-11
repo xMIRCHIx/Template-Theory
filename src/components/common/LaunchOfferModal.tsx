@@ -313,6 +313,54 @@ export const LaunchOfferModal: React.FC = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Persistent Floating 10% OFF launcher trigger if modal is closed and coupon not applied yet */}
+      {!isOpen && !appliedCoupon && (
+        <motion.button
+          key="floating-launch-offer-btn"
+          initial={{ opacity: 0, scale: 0.8, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 16 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsOpen(true)}
+          className="floating-discount-launcher"
+          aria-label="Claim 10% Launch Discount"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '24px',
+            zIndex: 890,
+            backgroundColor: '#0a0a0a',
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.22)',
+            borderRadius: '999px',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+            fontSize: '13px',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#22c55e',
+              boxShadow: '0 0 8px #22c55e',
+              display: 'inline-block',
+            }}
+          />
+          <Tag size={14} color="#d4a373" />
+          <span>Claim 10% OFF</span>
+        </motion.button>
+      )}
     </AnimatePresence>
   );
 };

@@ -47,7 +47,7 @@ import { trackMetaViewContent } from '../utils/metaPixel';
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { addToCart, checkoutWithShopify, isCheckingOut, setIsCartOpen, totalItems, appliedCoupon } = useCart();
+  const { addToCart, checkoutWithShopify, isCheckingOut, setIsCartOpen, totalItems, appliedCoupon, applyCoupon } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { getProductBySlug, products, currencySymbol, isLoading } = useShopify();
 
@@ -1629,6 +1629,42 @@ export const ProductDetailPage: React.FC = () => {
                   </>
                 ) : null}
               </div>
+
+              {/* 1-Click Launch Offer Chip if not yet applied */}
+              {!isCouponActive && (
+                <div style={{ marginTop: '-4px', marginBottom: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => applyCoupon('Template-10')}
+                    style={{
+                      background: 'none',
+                      border: '1px dashed rgba(212, 163, 115, 0.7)',
+                      backgroundColor: 'rgba(212, 163, 115, 0.08)',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.83rem',
+                      color: 'var(--brown)',
+                      fontWeight: 600,
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.18)';
+                      e.currentTarget.style.borderColor = 'var(--terracotta)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(212, 163, 115, 0.7)';
+                    }}
+                  >
+                    <Tag size={13} color="var(--terracotta-dark)" />
+                    <span>Have launch offer? Click to apply <strong style={{ color: 'var(--terracotta-dark)', fontFamily: 'monospace' }}>Template-10</strong> (10% OFF)</span>
+                  </button>
+                </div>
+              )}
 
               {/* Compatibility Strip */}
               <div
