@@ -328,6 +328,9 @@ export const LaunchOfferModal: React.FC = () => {
           initial={{ opacity: 0, scale: 0.85, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.85, y: 16 }}
+          whileHover={{ scale: 1.1, y: -5 }}
+          whileTap={{ scale: 0.94 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 14 }}
           className="floating-discount-launcher"
           style={{
             position: 'fixed',
@@ -336,18 +339,18 @@ export const LaunchOfferModal: React.FC = () => {
             zIndex: 890,
             backgroundColor: '#0a0a0a',
             color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.22)',
+            border: '1.5px solid rgba(255, 255, 255, 0.22)',
             borderRadius: '999px',
-            padding: '5px 6px 5px 12px',
+            padding: '6px 8px 6px 14px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '9px',
             boxShadow: '0 8px 30px rgba(0, 0, 0, 0.55)',
             fontSize: '13px',
             fontWeight: 700,
             letterSpacing: '-0.01em',
-            transition: 'all 0.2s ease',
             boxSizing: 'border-box',
+            transformOrigin: 'bottom left',
           }}
         >
           {/* Main Action area: Open Modal */}
@@ -360,7 +363,7 @@ export const LaunchOfferModal: React.FC = () => {
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
-              gap: '7px',
+              gap: '8px',
               padding: '2px 0',
               cursor: 'pointer',
               fontSize: 'inherit',
@@ -380,9 +383,9 @@ export const LaunchOfferModal: React.FC = () => {
                 flexShrink: 0,
               }}
             />
-            <Tag size={13} color="#d4a373" />
+            <Tag size={13} color="#d4a373" className="pill-tag-icon" />
             <span>Claim 10% OFF</span>
-            <ChevronRight size={13} className="pill-arrow" style={{ opacity: 0.7 }} />
+            <ChevronRight size={14} className="pill-arrow" style={{ opacity: 0.75 }} />
           </button>
 
           {/* Divider */}
