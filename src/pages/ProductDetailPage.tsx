@@ -100,6 +100,18 @@ export const ProductDetailPage: React.FC = () => {
   const lightboxThumbsRowRef = useRef<HTMLDivElement | null>(null);
   const mainThumbsRowRef = useRef<HTMLDivElement | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [loadedGalleryImages, setLoadedGalleryImages] = useState<Record<number, boolean>>({});
+  const [isMobileScreen, setIsMobileScreen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Directional slide state for smooth animated look transitions
   const [slideDirection, setSlideDirection] = useState<number>(1); // 1 for next, -1 for prev
@@ -173,11 +185,29 @@ export const ProductDetailPage: React.FC = () => {
   useEffect(() => {
     setActiveTab('preview');
     setActiveBAIndex(0);
+    setActiveImageIndex(0);
+    setLoadedGalleryImages({});
   }, [product?.slug]);
 
-  // Efficiently preload adjacent looks at optimal 900px WebP resolution to eliminate network congestion
+  // Preload primary active gallery photo immediately with high priority
   useEffect(() => {
-    if (!beforeAfterPairs || beforeAfterPairs.length === 0) return;
+    if (!product) return;
+    const firstUrl = product.gallery?.[0] || product.thumbnail;
+    if (firstUrl) {
+      const img = new Image();
+      // @ts-ignore
+      img.fetchPriority = 'high';
+      img.decoding = 'sync';
+      img.src = optimizeImageUrl(firstUrl, isMobileScreen ? 650 : 1000);
+      img.onload = () => {
+        setLoadedGalleryImages((prev) => ({ ...prev, 0: true }));
+      };
+    }
+  }, [product?.id, isMobileScreen]);
+
+  // Efficiently preload adjacent looks only when Before & After tab is active
+  useEffect(() => {
+    if (activeTab !== 'beforeAfter' || !beforeAfterPairs || beforeAfterPairs.length === 0) return;
     // Preload next and previous look relative to activeBAIndex
     const indicesToPreload = [
       activeBAIndex,
@@ -200,7 +230,7 @@ export const ProductDetailPage: React.FC = () => {
         }
       }
     });
-  }, [beforeAfterPairs, activeBAIndex]);
+  }, [activeTab, beforeAfterPairs, activeBAIndex]);
 
   const mediaList = useMemo<ProductMediaItem[]>(() => {
     if (!product) return [];
@@ -1016,98 +1046,138 @@ export const ProductDetailPage: React.FC = () => {
                         willChange: 'transform',
                       }}
                     >
-                      {galleryList.map((mediaItem, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => {
-                            if (mediaItem.type === 'image') {
-                              openLightbox(idx);
-                            }
-                          }}
-                          style={{
-                            minWidth: '100%',
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: mediaItem.type === 'video' ? '0' : '12px',
-                            boxSizing: 'border-box',
-                            cursor: mediaItem.type === 'image' ? 'zoom-in' : 'default',
-                            flexShrink: 0,
-                            position: 'relative',
-                            backgroundColor: mediaItem.type === 'video' ? '#0b0907' : 'transparent',
-                          }}
-                        >
-                          {mediaItem.type === 'video' ? (
-                            <div
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                position: 'relative',
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <video
-                                key={mediaItem.url}
-                                src={mediaItem.url}
-                                poster={mediaItem.previewUrl}
-                                controls
-                                playsInline
-                                preload="metadata"
+                      {galleryList.map((mediaItem, idx) => {
+                        const isActive = idx === activeImageIndex;
+                        const isAdjacent = Math.abs(idx - activeImageIndex) <= 1;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              if (mediaItem.type === 'image') {
+                                openLightbox(idx);
+                              }
+                            }}
+                            style={{
+                              minWidth: '100%',
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: mediaItem.type === 'video' ? '0' : '12px',
+                              boxSizing: 'border-box',
+                              cursor: mediaItem.type === 'image' ? 'zoom-in' : 'default',
+                              flexShrink: 0,
+                              position: 'relative',
+                              backgroundColor: mediaItem.type === 'video' ? '#0b0907' : 'transparent',
+                            }}
+                          >
+                            {/* Instant low-res blur-up thumbnail placeholder so space is never white/empty */}
+                            {mediaItem.type === 'image' && (
+                              <img
+                                src={optimizeImageUrl(mediaItem.previewUrl || mediaItem.url, 160)}
+                                alt=""
+                                aria-hidden="true"
+                                style={{
+                                  position: 'absolute',
+                                  inset: '12px',
+                                  width: 'calc(100% - 24px)',
+                                  height: 'calc(100% - 24px)',
+                                  objectFit: 'contain',
+                                  objectPosition: 'center',
+                                  filter: 'blur(10px) brightness(1.02)',
+                                  opacity: loadedGalleryImages[idx] ? 0 : 0.88,
+                                  transition: 'opacity 0.25s ease',
+                                  pointerEvents: 'none',
+                                  zIndex: 1,
+                                }}
+                              />
+                            )}
+
+                            {mediaItem.type === 'video' ? (
+                              isAdjacent ? (
+                                <div
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                    zIndex: 2,
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <video
+                                    key={mediaItem.url}
+                                    src={mediaItem.url}
+                                    poster={mediaItem.previewUrl}
+                                    controls
+                                    playsInline
+                                    preload={isActive ? 'auto' : 'metadata'}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      maxHeight: '100%',
+                                      maxWidth: '100%',
+                                      objectFit: 'contain',
+                                      display: 'block',
+                                    }}
+                                  />
+                                </div>
+                              ) : null
+                            ) : mediaItem.type === 'external_video' ? (
+                              isAdjacent ? (
+                                <div
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    position: 'relative',
+                                    zIndex: 2,
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <iframe
+                                    src={mediaItem.url}
+                                    style={{ width: '100%', height: '100%', border: 'none' }}
+                                    allow="autoplay; encrypted-media; fullscreen"
+                                  />
+                                </div>
+                              ) : null
+                            ) : (
+                              <img
+                                src={optimizeImageUrl(mediaItem.url, isMobileScreen ? 650 : 1000)}
+                                alt={`${product.name} ${idx + 1}`}
+                                className="gallery-active-img"
+                                draggable={false}
+                                loading={isAdjacent ? 'eager' : 'lazy'}
+                                // @ts-ignore
+                                fetchpriority={isActive ? 'high' : 'low'}
+                                decoding={isActive ? 'sync' : 'async'}
+                                onLoad={() => setLoadedGalleryImages((prev) => ({ ...prev, [idx]: true }))}
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = optimizeImageUrl(product.thumbnail, 600);
+                                }}
                                 style={{
                                   width: '100%',
                                   height: '100%',
-                                  maxHeight: '100%',
                                   maxWidth: '100%',
+                                  maxHeight: '100%',
                                   objectFit: 'contain',
+                                  objectPosition: 'center',
                                   display: 'block',
+                                  filter: 'drop-shadow(0 8px 20px rgba(96, 68, 46, 0.12))',
+                                  pointerEvents: 'none',
+                                  position: 'relative',
+                                  zIndex: 2,
+                                  opacity: loadedGalleryImages[idx] ? 1 : 0.01,
+                                  transition: 'opacity 0.22s ease',
                                 }}
                               />
-                            </div>
-                          ) : mediaItem.type === 'external_video' ? (
-                            <div
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                position: 'relative',
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <iframe
-                                src={mediaItem.url}
-                                style={{ width: '100%', height: '100%', border: 'none' }}
-                                allow="autoplay; encrypted-media; fullscreen"
-                              />
-                            </div>
-                          ) : (
-                            <img
-                              src={optimizeImageUrl(mediaItem.url, 1000)}
-                              alt={`${product.name} ${idx + 1}`}
-                              className="gallery-active-img"
-                              draggable={false}
-                              decoding="async"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = optimizeImageUrl(product.thumbnail, 600);
-                              }}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                objectFit: 'contain',
-                                objectPosition: 'center',
-                                display: 'block',
-                                filter: 'drop-shadow(0 8px 20px rgba(96, 68, 46, 0.12))',
-                                pointerEvents: 'none',
-                              }}
-                            />
-                          )}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Semi-transparent Glass Left / Right Slide Arrows */}

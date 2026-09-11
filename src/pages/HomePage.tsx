@@ -82,18 +82,7 @@ export const HomePage: React.FC = () => {
     });
   }, [homeLooks]);
 
-  // Preload all UGC images in background immediately on mount so sliding has zero lag/load delay
-  useEffect(() => {
-    if (!ugcList || ugcList.length === 0) return;
-    ugcList.forEach((item) => {
-      const src = optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 450);
-      if (src) {
-        const img = new Image();
-        img.decoding = 'async';
-        img.src = src;
-      }
-    });
-  }, [ugcList]);
+
 
   // Directional slide state for smooth animated look transitions on Homepage
   const [homeSlideDirection, setHomeSlideDirection] = useState<number>(1);
@@ -151,11 +140,13 @@ export const HomePage: React.FC = () => {
 
   // --- 5. ULTRA-SMOOTH UGC INTERACTIVE PHYSICS TICKER (60/120FPS ZERO-REFLOW ENGINE) ---
   const ugcSpeedSeconds = homepageSettings?.ugcSpeed || 50;
+  const marqueeContainerRef = useRef<HTMLDivElement | null>(null);
   const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
   const marqueeOffsetRef = useRef<number>(0);
   const targetOffsetRef = useRef<number>(0);
   const isUgcDraggingRef = useRef<boolean>(false);
   const isUgcHoveredRef = useRef<boolean>(false);
+  const isUgcInViewRef = useRef<boolean>(true);
   const ugcDragStartXRef = useRef<number>(0);
   const ugcDragStartOffsetRef = useRef<number>(0);
   const ugcLastPointerXRef = useRef<number>(0);
@@ -165,6 +156,12 @@ export const HomePage: React.FC = () => {
   const blockWidthRef = useRef<number>(2000);
   const lastTimeRef = useRef<number>(0);
   const [isUgcGrabbing, setIsUgcGrabbing] = useState<boolean>(false);
+
+  // Cap at 10 items for maximum GPU memory efficiency and silky 60 FPS mobile rendering
+  const displayUgcList = useMemo(() => {
+    if (!ugcList || ugcList.length === 0) return [];
+    return ugcList.slice(0, 10);
+  }, [ugcList]);
 
   // Pre-measure block width once on mount/resize to avoid layout reflow in the animation loop
   const measureBlockWidth = useCallback(() => {
@@ -186,14 +183,23 @@ export const HomePage: React.FC = () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [ugcList, measureBlockWidth]);
+  }, [displayUgcList, measureBlockWidth]);
 
   useEffect(() => {
-    if (!ugcList || ugcList.length === 0) return;
+    if (!displayUgcList || displayUgcList.length === 0) return;
     let animId: number;
+    let isMounted = true;
     lastTimeRef.current = performance.now();
 
     const tick = (now: number) => {
+      if (!isMounted) return;
+
+      // When the UGC section is scrolled out of viewport, skip calculations to free up 60 FPS CPU budget
+      if (!isUgcInViewRef.current) {
+        animId = requestAnimationFrame(tick);
+        return;
+      }
+
       const dt = Math.min((now - (lastTimeRef.current || now)) / 1000, 0.08);
       lastTimeRef.current = now;
 
@@ -241,8 +247,31 @@ export const HomePage: React.FC = () => {
     };
 
     animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
-  }, [ugcList, ugcSpeedSeconds]);
+
+    // Pause physics engine when the section is not in viewport
+    const container = marqueeContainerRef.current;
+    let observer: IntersectionObserver | null = null;
+    if (container && typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          isUgcInViewRef.current = entry.isIntersecting;
+          if (entry.isIntersecting) {
+            lastTimeRef.current = performance.now();
+          }
+        },
+        { rootMargin: '120px 0px 120px 0px' }
+      );
+      observer.observe(container);
+    }
+
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(animId);
+      if (observer && container) {
+        observer.unobserve(container);
+      }
+    };
+  }, [displayUgcList, ugcSpeedSeconds]);
 
   const handleUgcPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -822,6 +851,7 @@ export const HomePage: React.FC = () => {
 
           {/* Continuous Full-Width Horizontal Marquee Loop with Interactive Physics, Hold-to-Pause & Scrub */}
           <div
+            ref={marqueeContainerRef}
             className="marquee-container"
             onPointerDown={handleUgcPointerDown}
             onPointerMove={handleUgcPointerMove}
@@ -839,8 +869,8 @@ export const HomePage: React.FC = () => {
             }}
           >
             <div ref={marqueeTrackRef} className="marquee-track">
-              {[...ugcList, ...ugcList, ...ugcList].map((item, idx) => {
-                const originalIndex = idx % ugcList.length;
+              {[...displayUgcList, ...displayUgcList, ...displayUgcList].map((item, idx) => {
+                const originalIndex = idx % displayUgcList.length;
                 return (
                   <div
                     key={`${item.id}-${idx}`}
@@ -858,8 +888,9 @@ export const HomePage: React.FC = () => {
                       transition: isUgcGrabbing ? 'none' : 'transform 0.25s ease, box-shadow 0.25s ease',
                       cursor: isUgcGrabbing ? 'grabbing' : 'pointer',
                       pointerEvents: isUgcGrabbing ? 'none' : 'auto',
-                      contain: 'paint',
+                      contain: 'paint layout',
                       transform: 'translateZ(0)',
+                      willChange: 'transform',
                     }}
                     onClick={(e) => {
                       if (ugcTotalDragDistRef.current > 8) {
@@ -872,9 +903,9 @@ export const HomePage: React.FC = () => {
                   >
                     {/* Background Vertical Media (Video Poster / Photo / YouTube / Instagram) */}
                     <img
-                      src={optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 450)}
+                      src={optimizeImageUrl(item.image || (item.mediaType === 'youtube' ? getYouTubeThumbnailUrl(item.videoUrl) || '' : ''), 360)}
                       alt={item.caption || item.creatorName}
-                      loading="eager"
+                      loading={idx < 4 ? 'eager' : 'lazy'}
                       decoding="async"
                       style={{
                         width: '100%',
@@ -897,9 +928,7 @@ export const HomePage: React.FC = () => {
                           width: '42px',
                           height: '42px',
                           borderRadius: '50%',
-                          backgroundColor: 'rgba(28, 20, 15, 0.75)',
-                          backdropFilter: 'blur(8px)',
-                          WebkitBackdropFilter: 'blur(8px)',
+                          backgroundColor: 'rgba(28, 20, 15, 0.88)',
                           border: '1.5px solid rgba(255, 255, 255, 0.85)',
                           display: 'flex',
                           alignItems: 'center',
