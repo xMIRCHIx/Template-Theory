@@ -10,7 +10,7 @@ import { SearchModal } from './components/layout/SearchModal';
 import { WishlistDrawer } from './components/layout/WishlistDrawer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { FloatingWhatsApp } from './components/common/FloatingWhatsApp';
-import { LaunchOfferModal } from './components/common/LaunchOfferModal';
+import { LaunchOfferBanner } from './components/common/LaunchOfferBanner';
 import { RouteLoadingBar, ProductDetailSkeleton } from './components/common/Skeleton';
 import { trackMetaPageView } from './utils/metaPixel';
 
@@ -117,6 +117,9 @@ const AppContent: React.FC = () => {
       
       {/* Floating WhatsApp Action Widget */}
       <FloatingWhatsApp />
+
+      {/* Elegant Non-Intrusive Launch Offer Card */}
+      <LaunchOfferBanner />
 
       {/* Mobile Floating Action Dock */}
       <MobileBottomNav
