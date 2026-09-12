@@ -14,6 +14,7 @@ import { LaunchOfferModal } from './components/common/LaunchOfferModal';
 import { RouteLoadingBar, ProductDetailSkeleton } from './components/common/Skeleton';
 import { trackMetaPageView } from './utils/metaPixel';
 import { useCart } from './context/CartContext';
+import { Analytics } from '@vercel/analytics/react';
 
 // Eagerly load HomePage for instantaneous first paint
 import { HomePage } from './pages/HomePage';
@@ -188,6 +189,7 @@ export const App: React.FC = () => {
         <CartProvider>
           <WishlistProvider>
             <AppContent />
+            <Analytics />
           </WishlistProvider>
         </CartProvider>
       </ShopifyProvider>
