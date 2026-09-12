@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { ShopifyProvider } from './context/ShopifyContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -188,6 +189,7 @@ export const App: React.FC = () => {
         <CartProvider>
           <WishlistProvider>
             <AppContent />
+            <Analytics />
           </WishlistProvider>
         </CartProvider>
       </ShopifyProvider>
