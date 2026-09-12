@@ -2293,6 +2293,8 @@ export const ProductDetailPage: React.FC = () => {
           id: product.id,
           slug: product.slug,
           title: product.name,
+          reviews: product.reviews,
+          rating: product.rating,
         }}
       />
 

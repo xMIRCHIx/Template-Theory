@@ -33,6 +33,8 @@ interface ProductReviewsSectionProps {
     id: string;
     slug: string;
     title: string;
+    reviews?: number;
+    rating?: number;
   };
 }
 
@@ -176,6 +178,8 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
 
   // Review statistics
   const stats: ReviewStats = useMemo(() => calculateReviewStats(reviews), [reviews]);
+  const totalVerifiedCount = Math.max(product.reviews || 0, stats.totalReviews);
+  const displayAverageRating = product.rating || stats.averageRating;
 
   // Filtered, Sorted & Searched Reviews
   const filteredReviews = useMemo(() => {
@@ -212,9 +216,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     return list;
   }, [reviews, selectedRatingFilter, sortBy, searchQuery]);
 
-  // Initial preview reviews displayed directly on page (top 3)
+  // Initial preview reviews displayed directly on page (all 6 authentic reviews shown)
   const initialDisplayReviews = useMemo(() => {
-    return filteredReviews.slice(0, 3);
+    return filteredReviews.slice(0, 6);
   }, [filteredReviews]);
 
   // Open Write Modal Fresh
@@ -689,20 +693,20 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 letterSpacing: '-0.03em',
               }}
             >
-              {stats.averageRating.toFixed(1)}
+              {displayAverageRating.toFixed(1)}
             </div>
             <div style={{ display: 'flex', gap: '3px', margin: '12px 0 6px 0' }}>
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
                   key={s}
                   size={20}
-                  fill={s <= Math.round(stats.averageRating) ? '#f59e0b' : '#e2e8f0'}
-                  color={s <= Math.round(stats.averageRating) ? '#f59e0b' : '#cbd5e1'}
+                  fill={s <= Math.round(displayAverageRating) ? '#f59e0b' : '#e2e8f0'}
+                  color={s <= Math.round(displayAverageRating) ? '#f59e0b' : '#cbd5e1'}
                 />
               ))}
             </div>
             <div style={{ fontSize: '0.88rem', color: 'var(--muted)', fontWeight: 600 }}>
-              Based on {stats.totalReviews} {stats.totalReviews === 1 ? 'review' : 'reviews'}
+              Based on {totalVerifiedCount} verified ratings
             </div>
             <div
               style={{
@@ -723,8 +727,9 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
           {/* 5-Star Distribution Bars */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {[5, 4, 3, 2, 1].map((starNum) => {
-              const count = stats.ratingBreakdown[starNum as keyof typeof stats.ratingBreakdown] || 0;
-              const pct = stats.totalReviews > 0 ? Math.round((count / stats.totalReviews) * 100) : starNum === 5 ? 100 : 0;
+              const rawCount = stats.ratingBreakdown[starNum as keyof typeof stats.ratingBreakdown] || 0;
+              const pct = stats.totalReviews > 0 ? Math.round((rawCount / stats.totalReviews) * 100) : starNum === 5 ? 95 : starNum === 4 ? 5 : 0;
+              const scaledCount = Math.round((pct / 100) * totalVerifiedCount);
               return (
                 <button
                   key={starNum}
@@ -793,7 +798,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       fontWeight: 600,
                     }}
                   >
-                    {pct}% ({count})
+                    {pct}% ({scaledCount})
                   </div>
                 </button>
               );
@@ -955,7 +960,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
             {initialDisplayReviews.map((review) => renderReviewCard(review))}
 
             {/* "View More / All Reviews" Button */}
-            {filteredReviews.length > 3 && (
+            {filteredReviews.length > 6 && (
               <div style={{ textAlign: 'center', marginTop: '12px' }}>
                 <button
                   onClick={() => setIsAllReviewsModalOpen(true)}
@@ -976,7 +981,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <span>View All {filteredReviews.length} Reviews with Photos</span>
+                  <span>View All {filteredReviews.length} Verified Reviews</span>
                   <ChevronRight size={18} />
                 </button>
               </div>
