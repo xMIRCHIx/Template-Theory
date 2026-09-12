@@ -32,7 +32,7 @@ import { ProductMediaItem } from '../types';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useShopify } from '../context/ShopifyContext';
-import { BeforeAfterSlider } from '../components/comparison/BeforeAfterSlider';
+import { BeforeAfterSlider, aspectCache } from '../components/comparison/BeforeAfterSlider';
 import { ProductCard } from '../components/cards/ProductCard';
 import { MobileStickyBuyBar } from '../components/pdp/MobileStickyBuyBar';
 import { ProductBundleUpsell } from '../components/pdp/ProductBundleUpsell';
@@ -226,21 +226,22 @@ export const ProductDetailPage: React.FC = () => {
 
     const timer = setTimeout(() => {
       beforeAfterPairs.forEach((pair) => {
-        if (pair.before) {
-          const imgB = new Image();
-          imgB.decoding = 'async';
-          imgB.src = optimizeImageUrl(pair.before, isMobileScreen ? 650 : 900);
-        }
-        if (pair.after) {
-          const imgA = new Image();
-          imgA.decoding = 'async';
-          imgA.src = optimizeImageUrl(pair.after, isMobileScreen ? 650 : 900);
-        }
+        [pair.before, pair.after].filter(Boolean).forEach((url) => {
+          const optUrl = optimizeImageUrl(url, 900);
+          const img = new Image();
+          img.decoding = 'async';
+          img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+              aspectCache.set(optUrl, `${img.naturalWidth} / ${img.naturalHeight}`);
+            }
+          };
+          img.src = optUrl;
+        });
       });
-    }, 400);
+    }, 200);
 
     return () => clearTimeout(timer);
-  }, [beforeAfterPairs, isMobileScreen]);
+  }, [beforeAfterPairs]);
 
   const mediaList = useMemo<ProductMediaItem[]>(() => {
     if (!product) return [];
@@ -949,7 +950,7 @@ export const ProductDetailPage: React.FC = () => {
                       afterImage={currentBAPair.after}
                       beforeLabel="BEFORE"
                       afterLabel="AFTER"
-                      aspectRatio={isMobileScreen ? '4 / 5' : '16 / 10'}
+                      aspectRatio="auto"
                       fitMode="contain"
                       fallbackImage={product.thumbnail}
                       style={{
@@ -2001,7 +2002,7 @@ export const ProductDetailPage: React.FC = () => {
                   afterImage={currentBAPair?.after || ''}
                   beforeLabel="ORIGINAL RAW"
                   afterLabel="PRO GRADED"
-                  aspectRatio={isMobileScreen ? '4 / 5' : '16 / 10'}
+                  aspectRatio="auto"
                   fitMode="contain"
                   fallbackImage={product.thumbnail}
                   style={{

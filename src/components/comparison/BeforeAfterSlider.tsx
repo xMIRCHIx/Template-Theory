@@ -16,6 +16,8 @@ interface BeforeAfterSliderProps {
 
 const DEFAULT_FALLBACK = '';
 
+export const aspectCache = new Map<string, string>();
+
 export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   beforeImage,
   afterImage,
@@ -31,7 +33,6 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [beforeError, setBeforeError] = useState(false);
   const [afterError, setAfterError] = useState(false);
-  const [naturalAspect, setNaturalAspect] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -57,23 +58,35 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const activeAfter = optimizeImageUrl(rawAfter, 900);
   const backdropAfter = optimizeImageUrl(rawAfter, 160); // lightweight 160px thumb for Gaussian blur layer
 
+  const currentSrc = activeAfter || activeBefore;
+
+  const [naturalAspect, setNaturalAspect] = useState<string | null>(() => {
+    return currentSrc && aspectCache.has(currentSrc) ? aspectCache.get(currentSrc)! : null;
+  });
+
   // Automatically detect the image's original dimensions so no cropping occurs
   useEffect(() => {
-    const src = activeAfter || activeBefore;
-    if (!src) return;
+    if (!currentSrc) return;
+
+    if (aspectCache.has(currentSrc)) {
+      setNaturalAspect(aspectCache.get(currentSrc)!);
+      return;
+    }
 
     const img = new Image();
     img.decoding = 'async';
     img.onload = () => {
       if (img.naturalWidth && img.naturalHeight) {
-        setNaturalAspect(`${img.naturalWidth} / ${img.naturalHeight}`);
+        const aspect = `${img.naturalWidth} / ${img.naturalHeight}`;
+        aspectCache.set(currentSrc, aspect);
+        setNaturalAspect(aspect);
       }
     };
-    img.src = src;
-  }, [activeAfter, activeBefore]);
+    img.src = currentSrc;
+  }, [currentSrc]);
 
   const resolvedAspect = (aspectRatio === 'auto' || !aspectRatio)
-    ? (naturalAspect || '16 / 9')
+    ? (naturalAspect || (currentSrc && aspectCache.get(currentSrc)) || '16 / 9')
     : aspectRatio;
 
   const handleMove = useCallback((clientX: number) => {
