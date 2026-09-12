@@ -204,20 +204,32 @@ export const ProductDetailPage: React.FC = () => {
     setLoadedGalleryImages({});
   }, [product?.slug]);
 
-  // Preload primary active gallery photo immediately with high priority
+  // Proactively preload ALL gallery photos immediately so swiping and selecting looks is instant
   useEffect(() => {
     if (!product) return;
-    const firstUrl = product.gallery?.[0] || product.thumbnail;
-    if (firstUrl) {
+    const targetWidth = isMobileScreen ? 650 : 1000;
+    const galleryUrls = (product.gallery && product.gallery.length > 0)
+      ? product.gallery
+      : [product.thumbnail].filter(Boolean);
+
+    galleryUrls.forEach((url, idx) => {
+      if (!url) return;
       const img = new Image();
-      // @ts-ignore
-      img.fetchPriority = 'high';
-      img.decoding = 'sync';
-      img.src = optimizeImageUrl(firstUrl, isMobileScreen ? 650 : 1000);
+      const optUrl = optimizeImageUrl(url, targetWidth);
+      if (idx === 0) {
+        // @ts-ignore
+        img.fetchPriority = 'high';
+        img.decoding = 'sync';
+      } else {
+        // @ts-ignore
+        img.fetchPriority = idx < 4 ? 'high' : 'auto';
+        img.decoding = 'async';
+      }
       img.onload = () => {
-        setLoadedGalleryImages((prev) => ({ ...prev, 0: true }));
+        setLoadedGalleryImages((prev) => ({ ...prev, [idx]: true }));
       };
-    }
+      img.src = optUrl;
+    });
   }, [product?.id, isMobileScreen]);
 
   // Preload all before/after looks for this product so switching looks is instant with zero reload
@@ -1087,28 +1099,6 @@ export const ProductDetailPage: React.FC = () => {
                               backgroundColor: mediaItem.type === 'video' ? '#0b0907' : 'transparent',
                             }}
                           >
-                            {/* Instant low-res blur-up thumbnail placeholder so space is never white/empty */}
-                            {mediaItem.type === 'image' && (
-                              <img
-                                src={optimizeImageUrl(mediaItem.previewUrl || mediaItem.url, 160)}
-                                alt=""
-                                aria-hidden="true"
-                                style={{
-                                  position: 'absolute',
-                                  inset: '12px',
-                                  width: 'calc(100% - 24px)',
-                                  height: 'calc(100% - 24px)',
-                                  objectFit: 'contain',
-                                  objectPosition: 'center',
-                                  filter: 'blur(10px) brightness(1.02)',
-                                  opacity: loadedGalleryImages[idx] ? 0 : 0.88,
-                                  transition: 'opacity 0.25s ease',
-                                  pointerEvents: 'none',
-                                  zIndex: 1,
-                                }}
-                              />
-                            )}
-
                             {mediaItem.type === 'video' ? (
                               isAdjacent ? (
                                 <div
@@ -1165,9 +1155,9 @@ export const ProductDetailPage: React.FC = () => {
                                 alt={`${product.name} ${idx + 1}`}
                                 className="gallery-active-img"
                                 draggable={false}
-                                loading={isAdjacent ? 'eager' : 'lazy'}
+                                loading="eager"
                                 // @ts-ignore
-                                fetchpriority={isActive ? 'high' : 'low'}
+                                fetchpriority={isActive ? 'high' : 'auto'}
                                 decoding={isActive ? 'sync' : 'async'}
                                 onLoad={() => setLoadedGalleryImages((prev) => ({ ...prev, [idx]: true }))}
                                 onError={(e) => {
@@ -1185,8 +1175,6 @@ export const ProductDetailPage: React.FC = () => {
                                   pointerEvents: 'none',
                                   position: 'relative',
                                   zIndex: 2,
-                                  opacity: loadedGalleryImages[idx] ? 1 : 0.01,
-                                  transition: 'opacity 0.22s ease',
                                 }}
                               />
                             )}
