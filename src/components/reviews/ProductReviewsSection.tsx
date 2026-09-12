@@ -291,12 +291,53 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Quick Rating Submission (Skip writing text review)
+  const handleSkipAndSubmitRating = async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const productSlug = product.slug || product.id;
+      const cleanName = formName.trim() || 'Verified Buyer';
+      const cleanTitle = selectedTags.length > 0 ? selectedTags.join(' • ') : 'Verified Customer Rating';
+
+      const res = await submitProductReview({
+        productId: product.id,
+        productSlug: productSlug,
+        productName: product.title,
+        authorName: cleanName,
+        rating: formRating,
+        title: cleanTitle,
+        content: `Rated ${formRating} stars. Customer submitted verified rating.`,
+        isVerifiedBuyer: true,
+      });
+
+      if (res.success && res.review) {
+        setReviews((prev) => [res.review!, ...prev]);
+      }
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setIsWriteModalOpen(false);
+        setSubmitSuccess(false);
+        setFormTitle('');
+        setFormContent('');
+        setFormName('');
+        setPhotoPreviews([]);
+        setSelectedTags([]);
+        setModalStep(1);
+      }, 1600);
+    } catch (err: any) {
+      setSubmitError('Failed to record rating. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Submit Review Form (Frictionless: Headline + Name + Review)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formContent.trim()) {
-      setSubmitError('Please enter your name and review feedback.');
-      return;
+    if (!formContent.trim() && !formName.trim()) {
+      // If user submitted empty, treat as skip & quick rating
+      return handleSkipAndSubmitRating();
     }
 
     setIsSubmitting(true);
@@ -308,16 +349,17 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
       
       // Combine custom headline and/or selected tags
       const cleanTitle = formTitle.trim() || (selectedTags.length > 0 ? selectedTags.join(' • ') : '');
+      const cleanName = formName.trim() || 'Verified Creator';
 
       const res = await submitProductReview(
         {
           productId: product.id,
           productSlug: productSlug,
           productName: product.title,
-          authorName: formName.trim(),
+          authorName: cleanName,
           rating: formRating,
           title: cleanTitle,
-          content: formContent.trim(),
+          content: formContent.trim() || `Rated ${formRating} stars. Highly recommended!`,
           isVerifiedBuyer: true,
         },
         filesToUpload
@@ -705,8 +747,11 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                 />
               ))}
             </div>
-            <div style={{ fontSize: '0.88rem', color: 'var(--muted)', fontWeight: 600 }}>
-              Based on {totalVerifiedCount} verified ratings
+            <div style={{ fontSize: '0.92rem', color: 'var(--brown)', fontWeight: 800 }}>
+              {totalVerifiedCount} Verified Ratings
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600, marginTop: '2px' }}>
+              {reviews.length} in-depth reviews • {Math.max(0, totalVerifiedCount - reviews.length)} star-only ratings
             </div>
             <div
               style={{
@@ -1589,33 +1634,69 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     </div>
 
                     {/* Step 1 Continue Button */}
-                    <motion.button
-                      type="button"
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleProceedToStep2}
-                      className="clay-button"
-                      style={{
-                        width: '100%',
-                        padding: '14px',
-                        backgroundColor: 'var(--brown)',
-                        color: '#ffffff',
-                        fontWeight: 800,
-                        fontSize: '0.98rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        boxShadow: 'var(--shadow-clay-btn)',
-                        marginTop: '2px',
-                      }}
-                    >
-                      <span>Continue ({formRating} Stars)</span>
-                      <ArrowRight size={17} />
-                    </motion.button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleProceedToStep2}
+                        className="clay-button"
+                        style={{
+                          width: '100%',
+                          padding: '14px',
+                          backgroundColor: 'var(--brown)',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.98rem',
+                          borderRadius: 'var(--radius-md)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          boxShadow: 'var(--shadow-clay-btn)',
+                        }}
+                      >
+                        <span>Write a Review ({formRating} Stars)</span>
+                        <ArrowRight size={17} />
+                      </motion.button>
+
+                      {/* Instant Skip & Submit Rating Button */}
+                      <button
+                        type="button"
+                        onClick={handleSkipAndSubmitRating}
+                        disabled={isSubmitting}
+                        style={{
+                          width: '100%',
+                          padding: '11px',
+                          backgroundColor: 'var(--cream-light)',
+                          color: 'var(--brown)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1.5px dashed var(--border)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.18s ease',
+                        }}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Submitting Rating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={15} color="var(--sage, #059669)" />
+                            <span>⚡ Skip writing & just submit {formRating}★ rating</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </motion.div>
                 ) : (
                   /* ======================================================== */
@@ -1709,15 +1790,13 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     {/* Review Comments */}
                     <div>
                       <label style={{ display: 'block', fontWeight: 700, fontSize: '0.86rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                        Your Feedback *
+                        Your Feedback (Optional)
                       </label>
                       <textarea
-                        required
-                        autoFocus
                         rows={3}
                         value={formContent}
                         onChange={(e) => setFormContent(e.target.value)}
-                        placeholder="What did you love most about this toolkit? Mention any software or workflow details."
+                        placeholder="What did you love most about this toolkit? (or leave blank to just submit rating)"
                         style={{
                           width: '100%',
                           padding: '12px 14px',
@@ -1735,14 +1814,13 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                     {/* Name Input */}
                     <div>
                       <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: 'var(--brown)', marginBottom: '6px' }}>
-                        Your Name (or Creator Handle) *
+                        Your Name (or Creator Handle)
                       </label>
                       <input
                         type="text"
-                        required
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
-                        placeholder="e.g. Aryan G."
+                        placeholder="e.g. Aryan G. (or leave blank for Verified Buyer)"
                         style={{
                           width: '100%',
                           padding: '11px 14px',
@@ -1905,6 +1983,29 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
                       ) : (
                         <span>Publish Review</span>
                       )}
+                    </button>
+
+                    {/* Skip Writing Button */}
+                    <button
+                      type="button"
+                      onClick={handleSkipAndSubmitRating}
+                      disabled={isSubmitting}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: '6px 0',
+                        color: 'var(--muted)',
+                        fontSize: '0.84rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        textDecoration: 'underline',
+                        transition: 'color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--brown)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
+                    >
+                      Skip writing feedback & submit {formRating}★ rating only
                     </button>
                   </motion.form>
                 )}
