@@ -8,8 +8,8 @@ export interface SupabaseCredentials {
   anonKey: string;
 }
 
-const DEFAULT_SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ifdsvmiwvwwklvnsnjao.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmZHN2bWl3dnd3a2x2bnNuamFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3ODIyMDAsImV4cCI6MjEwNDM1ODIwMH0.Vx3w6rQ29hjVQb_BArZruBj2kmiBcRfNFAmPKP1Ujbs';
+const DEFAULT_SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://iumskjghwejpauxehzgq.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNramdod2VqcGF1eGVoemdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1Nzc5MTYsImV4cCI6MjEwNTE1MzkxNn0.KMRWUDdYR5d2g6-7Tcwf8tR1sOGHrK11twJXxB5nxx8';
 
 // 1. Get Active Credentials (from Env or Local Settings)
 export function getSupabaseCredentials(): SupabaseCredentials {
