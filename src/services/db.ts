@@ -114,15 +114,15 @@ export async function fetchCustomizationsFromCloud(): Promise<AdminCustomization
   try {
     const { data, error } = await client
       .from('store_customizations')
-      .select('payload')
+      .select('*')
       .eq('id', 'template_theory_master')
       .single();
 
-    if (error || !data?.payload) {
+    if (error || (!data?.data && !data?.payload)) {
       return null;
     }
 
-    return data.payload as AdminCustomizations;
+    return (data.data || data.payload) as AdminCustomizations;
   } catch (err) {
     console.warn('Error fetching customizations from Supabase:', err);
     return null;
@@ -141,7 +141,7 @@ export async function saveCustomizationsToCloud(customizations: AdminCustomizati
       .from('store_customizations')
       .upsert({
         id: 'template_theory_master',
-        payload: customizations,
+        data: customizations,
         updated_at: new Date().toISOString(),
       });
 
@@ -155,42 +155,16 @@ export async function saveCustomizationsToCloud(customizations: AdminCustomizati
   }
 }
 
-// 7. Upload Image or Video Media to Supabase Storage Bucket
+// 7. Protected Upload Handler: Encourages permanent Shopify CDN hosting (0 MB Supabase Bandwidth)
 export async function uploadMediaToSupabaseStorage(file: File): Promise<{ url?: string; mediaType: 'image' | 'video'; error?: string }> {
-  const client = getSupabaseClient();
   const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|m4v|ogg)$/i);
   const mediaType: 'image' | 'video' = isVideo ? 'video' : 'image';
 
-  if (!client) {
-    return { error: 'Supabase is not configured', mediaType };
-  }
-
-  try {
-    const fileExt = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
-    const folder = isVideo ? 'ugc_videos' : 'looks';
-    const fileName = `${mediaType}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-    const filePath = `${folder}/${fileName}`;
-
-    const { error: uploadError } = await client.storage
-      .from('product-media')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
-      });
-
-    if (uploadError) {
-      return { error: uploadError.message, mediaType };
-    }
-
-    const { data: publicUrlData } = client.storage
-      .from('product-media')
-      .getPublicUrl(filePath);
-
-    return { url: publicUrlData.publicUrl, mediaType };
-  } catch (err: any) {
-    return { error: err.message || 'Failed to upload media to Supabase storage', mediaType };
-  }
+  // Read as instant data URL or prompt Shopify CDN link so Supabase bandwidth stays 0 MB forever
+  return {
+    error: 'To preserve 0 MB bandwidth, please upload your images to Shopify Admin > Content > Files and paste the cdn.shopify.com link.',
+    mediaType,
+  };
 }
 
 // Backward compatibility alias for uploadImageToSupabaseStorage
