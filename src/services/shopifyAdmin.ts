@@ -116,24 +116,175 @@ function getNumericShopifyId(rawId: string): string {
   return rawId;
 }
 
+// Upload image file directly to Shopify CDN via Staged Uploads
+export async function uploadImageFileToShopifyCdn(
+  file: File,
+  productId = 'gid://shopify/Product/9574721159445'
+): Promise<string> {
+  const { domain, adminToken } = getShopifyAdminCredentials();
+
+  // 1. Request Staged Upload Target from Shopify
+  const stagedMutation = `
+    mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+      stagedUploadsCreate(input: $input) {
+        stagedTargets {
+          url
+          resourceUrl
+          parameters {
+            name
+            value
+          }
+        }
+        userErrors { field message }
+      }
+    }
+  `;
+
+  const gqlUrl = getAdminApiUrl(`/admin/api/${API_VERSION}/graphql.json`, domain);
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (adminToken) headers['X-Shopify-Access-Token'] = adminToken;
+
+  const stagedRes = await fetch(gqlUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      query: stagedMutation,
+      variables: {
+        input: [{
+          resource: 'IMAGE',
+          filename: file.name || 'image.jpg',
+          mimeType: file.type || 'image/jpeg',
+          httpMethod: 'POST'
+        }]
+      }
+    })
+  });
+
+  if (!stagedRes.ok) {
+    throw new Error(`Staged upload initiation failed: HTTP ${stagedRes.status}`);
+  }
+
+  const stagedData = await stagedRes.json();
+  const target = stagedData?.data?.stagedUploadsCreate?.stagedTargets?.[0];
+  if (!target || !target.url) {
+    const err = stagedData?.data?.stagedUploadsCreate?.userErrors?.[0]?.message || 'No upload target returned by Shopify';
+    throw new Error(err);
+  }
+
+  // 2. Direct upload to Shopify's Google Cloud Storage
+  const formData = new FormData();
+  for (const param of target.parameters) {
+    formData.append(param.name, param.value);
+  }
+  formData.append('file', file, file.name || 'image.jpg');
+
+  const uploadRes = await fetch(target.url, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!uploadRes.ok && uploadRes.status !== 201) {
+    throw new Error(`Cloud storage upload failed: HTTP ${uploadRes.status}`);
+  }
+
+  // 3. Register as Shopify Media to obtain permanent CDN URL
+  const targetProductId = productId && productId.startsWith('gid://shopify/Product/')
+    ? productId
+    : (productId ? `gid://shopify/Product/${productId}` : 'gid://shopify/Product/9574721159445');
+
+  const createMediaMutation = `
+    mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
+      productCreateMedia(media: $media, productId: $productId) {
+        media {
+          id
+          mediaContentType
+          status
+          ... on MediaImage {
+            image { url }
+          }
+        }
+        mediaUserErrors { field message }
+      }
+    }
+  `;
+
+  const mediaRes = await fetch(gqlUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      query: createMediaMutation,
+      variables: {
+        productId: targetProductId,
+        media: [{
+          originalSource: target.resourceUrl,
+          mediaContentType: 'IMAGE'
+        }]
+      }
+    })
+  });
+
+  const mediaData = await mediaRes.json();
+  const created = mediaData?.data?.productCreateMedia?.media?.[0];
+  if (!created) {
+    return target.resourceUrl;
+  }
+
+  if (created.image?.url) {
+    return created.image.url;
+  }
+
+  // 4. Poll for finalized CDN URL
+  for (let i = 0; i < 6; i++) {
+    await new Promise((r) => setTimeout(r, 700));
+    try {
+      const checkRes = await fetch(gqlUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          query: `query { node(id: "${created.id}") { ... on MediaImage { status image { url } } } }`
+        })
+      });
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        const readyUrl = checkData?.data?.node?.image?.url;
+        if (readyUrl) return readyUrl;
+      }
+    } catch {
+      // keep checking
+    }
+  }
+
+  return target.resourceUrl;
+}
+
+// Convert any Base64 data URL into permanent Shopify CDN URL
+export async function ensureShopifyCdnUrl(urlOrData: string, productId?: string): Promise<string> {
+  if (!urlOrData || !urlOrData.startsWith('data:image/')) {
+    return urlOrData;
+  }
+  try {
+    const res = await fetch(urlOrData);
+    const blob = await res.blob();
+    const mime = urlOrData.substring(urlOrData.indexOf(':') + 1, urlOrData.indexOf(';'));
+    const ext = mime.split('/')[1] || 'jpg';
+    const file = new File([blob], `look_${Date.now()}.${ext}`, { type: mime });
+    const cdnUrl = await uploadImageFileToShopifyCdn(file, productId);
+    return cdnUrl || urlOrData;
+  } catch (err) {
+    console.warn('Could not convert base64 to Shopify CDN URL:', err);
+    return urlOrData;
+  }
+}
+
 // 4. Upload Look Images & Metafields directly to Shopify Product
 export async function saveLooksToShopifyProduct(
   product: Product,
   looks: CustomBeforeAfterLook[]
-): Promise<{ success: boolean; error?: string; imagesUploaded?: number }> {
+): Promise<{ success: boolean; error?: string; imagesUploaded?: number; savedLooks?: CustomBeforeAfterLook[] }> {
   const { domain, adminToken } = getShopifyAdminCredentials();
   let graphqlId = product.id.startsWith('gid://') ? product.id : `gid://shopify/Product/${product.id}`;
 
   try {
-    // 1. Auto-optimize images in Ultra HD (1800px, 90% quality)
-    const optimizedLooks = await Promise.all(
-      looks.map(async (look) => ({
-        ...look,
-        before: await optimizeImageForCloud(look.before, 1800, 0.90),
-        after: await optimizeImageForCloud(look.after, 1800, 0.90),
-      }))
-    );
-
     // If ID is not a valid Shopify GID, look it up by handle
     if (!product.id.startsWith('gid://shopify/Product/')) {
       try {
@@ -163,6 +314,15 @@ export async function saveLooksToShopifyProduct(
       }
     }
 
+    // 1. Auto-upload and convert any base64 images directly to Shopify CDN!
+    const cdnLooks = await Promise.all(
+      looks.map(async (look) => ({
+        ...look,
+        before: await ensureShopifyCdnUrl(look.before, graphqlId),
+        after: await ensureShopifyCdnUrl(look.after, graphqlId),
+      }))
+    );
+
     // Save JSON schema into Shopify Product Metafield `custom.before_after_looks`
     const metafieldMutation = `
       mutation SetProductMetafield($metafields: [MetafieldsSetInput!]!) {
@@ -187,7 +347,7 @@ export async function saveLooksToShopifyProduct(
           namespace: 'custom',
           key: 'before_after_looks',
           type: 'json',
-          value: JSON.stringify(optimizedLooks),
+          value: JSON.stringify(cdnLooks),
         },
       ],
     };
@@ -225,7 +385,8 @@ export async function saveLooksToShopifyProduct(
 
     return {
       success: true,
-      imagesUploaded: optimizedLooks.length,
+      imagesUploaded: cdnLooks.length,
+      savedLooks: cdnLooks,
     };
   } catch (err: any) {
     console.warn('Error saving to Shopify Admin API:', err);
@@ -315,18 +476,18 @@ export async function saveHomepageSettingsToShopify(
   const { domain, adminToken } = getShopifyAdminCredentials();
 
   try {
-    // 1. Auto-optimize images in Ultra HD so JSON string is crisp and fits Shopify limits
-    const optimizedLooks = await Promise.all(
+    // 1. Auto-upload looks to Shopify CDN so JSON string is crisp and fits Shopify limits
+    const cdnLooks = await Promise.all(
       settings.looks.map(async (look) => ({
         ...look,
-        before: await optimizeImageForCloud(look.before, 1800, 0.90),
-        after: await optimizeImageForCloud(look.after, 1800, 0.90),
+        before: await ensureShopifyCdnUrl(look.before),
+        after: await ensureShopifyCdnUrl(look.after),
       }))
     );
 
     const payload = {
       ...settings,
-      looks: optimizedLooks,
+      looks: cdnLooks,
     };
 
     const mutation = `
@@ -394,10 +555,10 @@ export async function saveUGCToShopify(
   const { domain, adminToken } = getShopifyAdminCredentials();
 
   try {
-    const optimizedItems = await Promise.all(
+    const cdnItems = await Promise.all(
       items.map(async (item) => ({
         ...item,
-        image: await optimizeImageForCloud(item.image, 1200, 0.88),
+        image: await ensureShopifyCdnUrl(item.image),
       }))
     );
 
@@ -424,7 +585,7 @@ export async function saveUGCToShopify(
           namespace: 'custom',
           key: 'ugc_showcase',
           type: 'json',
-          value: JSON.stringify(optimizedItems),
+          value: JSON.stringify(cdnItems),
         },
       ],
     };

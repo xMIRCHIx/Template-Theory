@@ -122,6 +122,7 @@ import {
   saveUGCToShopify,
   saveProductOrderToShopify,
   saveCollectionsToShopify,
+  uploadImageFileToShopifyCdn,
 } from '../services/shopifyAdmin';
 import {
   fetchAllReviewsForAdmin,
@@ -140,6 +141,7 @@ interface ImageDropZoneProps {
   onClear: () => void;
   accentColor?: string;
   placeholder?: string;
+  productId?: string;
 }
 
 // Web-optimized image reader (resizes high-res uploads to max 1280px at 82% quality to fit within localStorage & Supabase limits without crashing)
@@ -201,10 +203,12 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   onChange,
   onClear,
   accentColor = 'var(--terracotta)',
-  placeholder = 'Or paste Image URL'
+  placeholder = 'Or paste Image URL',
+  productId,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFiles = async (files: FileList | null) => {
@@ -216,20 +220,23 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
     }
 
     setIsUploading(true);
+    setUploadStatus('Uploading to Shopify CDN...');
     try {
-      // 1. Try uploading to Supabase Storage if configured
-      const { url: storageUrl } = await uploadImageToSupabaseStorage(file);
-      if (storageUrl) {
-        onChange(storageUrl);
+      // 1. Upload directly to Shopify CDN!
+      const cdnUrl = await uploadImageFileToShopifyCdn(file, productId);
+      if (cdnUrl) {
+        onChange(cdnUrl);
         setIsUploading(false);
+        setUploadStatus('');
         return;
       }
-    } catch (e) {
-      // ignore
+    } catch (e: any) {
+      console.warn('Shopify CDN upload fallback to local photo processing:', e);
     }
 
     try {
-      // 2. Read 100% untouched original file without any downscaling or compression
+      // 2. Fallback to instant local preview if Shopify CDN upload had a glitch
+      setUploadStatus('Preparing photo...');
       const originalDataUrl = await readImageFileAsDataUrl(file);
       if (originalDataUrl) {
         onChange(originalDataUrl);
@@ -238,6 +245,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
       console.warn('File read error:', err);
     } finally {
       setIsUploading(false);
+      setUploadStatus('');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -324,7 +332,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
         {isUploading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--terracotta)' }}>
             <Loader2 size={24} className="spin-animation" />
-            <span style={{ fontSize: '0.74rem', fontWeight: 700 }}>Optimizing Photo...</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700 }}>{uploadStatus || 'Uploading to Shopify CDN...'}</span>
           </div>
         ) : value ? (
           <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -1045,11 +1053,19 @@ export const AdminPage: React.FC = () => {
     setOrderedProductList(products);
   }, [products]);
 
+  const lastLoadedProductSlugRef = useRef<string | null>(null);
+
   // Load existing Before/After looks when selected product changes
   useEffect(() => {
     if (!selectedProductSlug) return;
+    // Only re-hydrate from products if the user actually switched products in the dropdown!
+    if (lastLoadedProductSlugRef.current === selectedProductSlug) {
+      return;
+    }
     const currentProd = products.find((p) => p.slug === selectedProductSlug);
     if (!currentProd) return;
+
+    lastLoadedProductSlugRef.current = selectedProductSlug;
 
     if (currentProd.beforeAfterList && currentProd.beforeAfterList.length > 0) {
       setActiveLooks(JSON.parse(JSON.stringify(currentProd.beforeAfterList)));
@@ -1327,24 +1343,38 @@ export const AdminPage: React.FC = () => {
 
     // 2. Upload directly into Cloud Database & Metafields!
     setIsSavingToShopify(true);
-    showToast(`⏳ Saving Before/After looks to Cloud Database for "${selectedProduct?.name || selectedProductSlug}"...`);
+    showToast(`⏳ Saving Before/After looks to Shopify CDN & Database for "${selectedProduct?.name || selectedProductSlug}"...`);
 
     let shopifyOk = false;
     let shopifyErr = '';
+    let finalLooks = looksToSave;
     if (selectedProduct) {
       const shopifyRes = await saveLooksToShopifyProduct(selectedProduct, looksToSave);
       shopifyOk = shopifyRes.success;
       shopifyErr = shopifyRes.error || '';
+      if (shopifyRes.savedLooks && shopifyRes.savedLooks.length > 0) {
+        finalLooks = shopifyRes.savedLooks;
+        setActiveLooks(finalLooks);
+        updateProductBeforeAfter(selectedProductSlug, finalLooks);
+        if (selectedProduct.id && selectedProduct.id !== selectedProductSlug) {
+          updateProductBeforeAfter(selectedProduct.id, finalLooks);
+        }
+        if (selectedProduct.name) {
+          updateProductBeforeAfter(selectedProduct.name, finalLooks);
+        }
+      }
     }
 
     // 3. Also upload to Supabase cloud if configured
     const currentCustomizations = getAdminCustomizations();
+    currentCustomizations.beforeAfter[selectedProductSlug] = finalLooks;
+    if (selectedProduct?.id) currentCustomizations.beforeAfter[selectedProduct.id] = finalLooks;
     const cloudRes = await saveCustomizationsToCloud(currentCustomizations);
 
     setIsSavingToShopify(false);
 
     if (shopifyOk) {
-      showToast(`✓ Before/After looks saved directly into Shopify Live Database for "${selectedProduct?.name}"!`);
+      showToast(`✓ Before/After looks saved directly into Shopify Live CDN & Database for "${selectedProduct?.name}"!`);
       await refreshProducts();
     } else if (cloudRes.success) {
       showToast(`✓ Successfully Saved to Supabase Cloud Database! Live across all visitors.`);
@@ -2795,6 +2825,7 @@ export const AdminPage: React.FC = () => {
                             onChange={(url) => handleUpdateLook(idx, 'before', url)}
                             onClear={() => handleUpdateLook(idx, 'before', '')}
                             placeholder="Or paste Before Image URL"
+                            productId={selectedProduct?.id}
                           />
 
                           {/* AFTER IMAGE BOX */}
@@ -2804,6 +2835,7 @@ export const AdminPage: React.FC = () => {
                             onChange={(url) => handleUpdateLook(idx, 'after', url)}
                             onClear={() => handleUpdateLook(idx, 'after', '')}
                             placeholder="Or paste After Image URL"
+                            productId={selectedProduct?.id}
                           />
                         </div>
                       </div>
