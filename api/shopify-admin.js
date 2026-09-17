@@ -1,4 +1,42 @@
 // api/shopify-admin.js - Vercel Serverless Function Proxy for Shopify Admin API
+let cachedAdminToken = null;
+let tokenExpiresAt = 0;
+
+async function getLiveShopifyToken(domain) {
+  if (cachedAdminToken && Date.now() < tokenExpiresAt) {
+    return cachedAdminToken;
+  }
+  const clientId =
+    process.env.VITE_SHOPIFY_CLIENT_ID ||
+    process.env.SHOPIFY_CLIENT_ID;
+  const clientSecret =
+    process.env.VITE_SHOPIFY_CLIENT_SECRET ||
+    process.env.SHOPIFY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) return null;
+
+  try {
+    const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+      }),
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      cachedAdminToken = data.access_token;
+      tokenExpiresAt = Date.now() + ((data.expires_in || 86400) - 300) * 1000;
+      return cachedAdminToken;
+    }
+  } catch (err) {
+    console.error('Failed to get Shopify token:', err);
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -18,13 +56,14 @@ export default async function handler(req, res) {
     process.env.SHOPIFY_STORE_DOMAIN ||
     'template-theory-2.myshopify.com';
 
-  const defaultAdminSecret = Buffer.from('c2hwYXRfYmExZDk4NGI0NmNkMzU1NGEzMGFjYjAwOTgzYWY0NGQ=', 'base64').toString('utf8');
-
-  const token =
+  let token =
     req.headers['x-shopify-access-token'] ||
     process.env.VITE_SHOPIFY_ADMIN_TOKEN ||
-    process.env.SHOPIFY_ADMIN_TOKEN ||
-    defaultAdminSecret;
+    process.env.SHOPIFY_ADMIN_TOKEN;
+
+  if (!token) {
+    token = await getLiveShopifyToken(domain);
+  }
 
   const apiVersion =
     process.env.VITE_SHOPIFY_API_VERSION ||

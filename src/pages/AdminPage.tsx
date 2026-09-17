@@ -142,11 +142,54 @@ interface ImageDropZoneProps {
   placeholder?: string;
 }
 
-// Direct 100% uncompressed original file reader (No downscaling, zero compression loss)
-async function readImageFileAsDataUrl(file: File): Promise<string> {
+// Web-optimized image reader (resizes high-res uploads to max 1280px at 82% quality to fit within localStorage & Supabase limits without crashing)
+async function readImageFileAsDataUrl(file: File, maxDimension = 1280, quality = 0.82): Promise<string> {
   return new Promise((resolve) => {
+    // If file is SVG or already small (<80KB), read directly
+    if (file.type === 'image/svg+xml' || file.size < 80 * 1024) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (e) => resolve((e.target?.result as string) || '');
+    reader.onload = (e) => {
+      const rawDataUrl = (e.target?.result as string) || '';
+      if (!rawDataUrl) return resolve('');
+
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve(rawDataUrl);
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const mime = file.type === 'image/png' ? 'image/jpeg' : file.type;
+        const compressed = canvas.toDataURL(mime || 'image/jpeg', quality);
+        resolve(compressed);
+      };
+      img.onerror = () => resolve(rawDataUrl);
+      img.src = rawDataUrl;
+    };
     reader.onerror = () => resolve('');
     reader.readAsDataURL(file);
   });

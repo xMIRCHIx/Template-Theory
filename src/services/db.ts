@@ -17,7 +17,11 @@ export function getSupabaseCredentials(): SupabaseCredentials {
     const saved = localStorage.getItem(STORAGE_KEY_SUPABASE);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.url && parsed.anonKey) {
+      // Automatically purge stale/dead Supabase projects from browser localStorage
+      if (parsed.url && !parsed.url.includes('iumskjghwejpauxehzgq')) {
+        console.warn('Purging stale legacy Supabase credentials from localStorage');
+        localStorage.removeItem(STORAGE_KEY_SUPABASE);
+      } else if (parsed.url && parsed.anonKey) {
         return parsed;
       }
     }
