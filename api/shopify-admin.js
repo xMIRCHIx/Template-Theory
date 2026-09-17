@@ -51,6 +51,20 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  if (req.query && req.query.debug === '1') {
+    const hasClientId = Boolean(process.env.VITE_SHOPIFY_CLIENT_ID || process.env.SHOPIFY_CLIENT_ID);
+    const hasSecret = Boolean(process.env.VITE_SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_CLIENT_SECRET);
+    const hasAdminToken = Boolean(process.env.VITE_SHOPIFY_ADMIN_TOKEN || process.env.SHOPIFY_ADMIN_TOKEN);
+    const liveToken = await getLiveShopifyToken('template-theory-2.myshopify.com');
+    return res.status(200).json({
+      hasClientId,
+      hasSecret,
+      hasAdminToken,
+      liveTokenSuccess: Boolean(liveToken),
+      liveTokenPreview: liveToken ? liveToken.slice(0, 10) + '...' : null,
+    });
+  }
+
   const domain =
     process.env.VITE_SHOPIFY_STORE_DOMAIN ||
     process.env.SHOPIFY_STORE_DOMAIN ||
