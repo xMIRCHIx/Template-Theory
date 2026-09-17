@@ -240,7 +240,7 @@ export async function migrateCustomizationsBase64ToBucket(custom: AdminCustomiza
   }
 
   // 2. Migrate Product Before/After Looks
-  if (clone.beforeAfter) {
+  if (clone.beforeAfter && typeof clone.beforeAfter === 'object') {
     for (const [prodKey, looks] of Object.entries(clone.beforeAfter)) {
       if (Array.isArray(looks)) {
         for (const look of looks) {

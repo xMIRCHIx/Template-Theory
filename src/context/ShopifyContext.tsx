@@ -141,7 +141,9 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!rawProducts || rawProducts.length === 0) return [];
     
     const customizations = getAdminCustomizations();
-    const { beforeAfter, productOrder, collectionOverrides } = customizations;
+    const beforeAfter = (customizations && typeof customizations.beforeAfter === 'object') ? customizations.beforeAfter : {};
+    const productOrder = Array.isArray(customizations?.productOrder) ? customizations.productOrder : [];
+    const collectionOverrides = (customizations?.collectionOverrides && typeof customizations.collectionOverrides === 'object') ? customizations.collectionOverrides : {};
 
     // 1. Map custom Before/After & custom collections
     let merged = rawProducts.map((p) => {

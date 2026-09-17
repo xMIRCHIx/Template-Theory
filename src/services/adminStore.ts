@@ -60,6 +60,7 @@ export interface AdminCustomizations {
 const STORAGE_KEY = 'cinevo_admin_customizations_v1';
 const ADMIN_PIN_KEY = 'cinevo_admin_pin_v1';
 const DEFAULT_PIN = '2026';
+const SOCIAL_STORAGE_KEY = 'cinevo_social_settings_v1';
 
 let inMemoryCustomizations: AdminCustomizations | null = null;
 
@@ -146,9 +147,20 @@ export function setAdminPin(newPin: string): void {
   }
 }
 
-function cleanLegacyCustomizations(data: AdminCustomizations): AdminCustomizations {
+function cleanLegacyCustomizations(data: any): AdminCustomizations {
+  if (!data || typeof data !== 'object') {
+    return {
+      beforeAfter: {},
+      productOrder: [],
+      collectionOverrides: {},
+      ugcItems: [],
+    };
+  }
+
   const cleanedBA: Record<string, CustomBeforeAfterLook[]> = {};
-  for (const [key, looks] of Object.entries(data.beforeAfter || {})) {
+  const rawBA = (data.beforeAfter && typeof data.beforeAfter === 'object') ? data.beforeAfter : {};
+
+  for (const [key, looks] of Object.entries(rawBA)) {
     // Exclude internal/homepage keys from product Before/After dictionary
     if (key === '__home_showcase__' || key === 'home' || key === 'homepage') {
       continue;
@@ -167,36 +179,41 @@ function cleanLegacyCustomizations(data: AdminCustomizations): AdminCustomizatio
       }
     }
   }
+
   return {
-    ...data,
     beforeAfter: cleanedBA,
+    productOrder: Array.isArray(data.productOrder) ? data.productOrder : [],
+    collectionOverrides: (data.collectionOverrides && typeof data.collectionOverrides === 'object') ? data.collectionOverrides : {},
+    homepageSettings: (data.homepageSettings && typeof data.homepageSettings === 'object') ? data.homepageSettings : undefined,
+    ugcItems: Array.isArray(data.ugcItems) ? data.ugcItems : [],
+    ugcSpeed: typeof data.ugcSpeed === 'number' ? data.ugcSpeed : undefined,
+    socialSettings: (data.socialSettings && typeof data.socialSettings === 'object') ? data.socialSettings : undefined,
   };
 }
 
 export function getAdminCustomizations(): AdminCustomizations {
   if (inMemoryCustomizations) {
+    if (!inMemoryCustomizations.beforeAfter || !inMemoryCustomizations.productOrder || !inMemoryCustomizations.collectionOverrides) {
+      inMemoryCustomizations = cleanLegacyCustomizations(inMemoryCustomizations);
+    }
     return inMemoryCustomizations;
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
+      const fallback: AdminCustomizations = { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
+      inMemoryCustomizations = fallback;
+      return fallback;
     }
     const parsed = JSON.parse(raw);
-    const cleaned = cleanLegacyCustomizations({
-      beforeAfter: parsed.beforeAfter || {},
-      homepageSettings: parsed.homepageSettings,
-      productOrder: Array.isArray(parsed.productOrder) ? parsed.productOrder : [],
-      collectionOverrides: parsed.collectionOverrides || {},
-      ugcItems: Array.isArray(parsed.ugcItems) ? parsed.ugcItems : [],
-      ugcSpeed: parsed.ugcSpeed,
-      socialSettings: parsed.socialSettings,
-    });
+    const cleaned = cleanLegacyCustomizations(parsed);
     inMemoryCustomizations = cleaned;
     return cleaned;
   } catch (err) {
     console.warn('Failed to read admin customizations from localStorage:', err);
-    return { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
+    const fallback: AdminCustomizations = { beforeAfter: {}, productOrder: [], collectionOverrides: {} };
+    inMemoryCustomizations = fallback;
+    return fallback;
   }
 }
 
@@ -212,27 +229,30 @@ export function saveSavedHomepageSettings(settings: HomepageSettings): void {
   const custom = getAdminCustomizations();
   custom.homepageSettings = settings;
   // Ensure no pollution of product beforeAfter map
-  delete custom.beforeAfter['__home_showcase__'];
-  delete custom.beforeAfter['home'];
-  delete custom.beforeAfter['homepage'];
+  if (custom.beforeAfter) {
+    delete custom.beforeAfter['__home_showcase__'];
+    delete custom.beforeAfter['home'];
+    delete custom.beforeAfter['homepage'];
+  }
   saveAdminCustomizations(custom);
 }
 
 export function saveAdminCustomizations(data: AdminCustomizations): void {
-  inMemoryCustomizations = data;
-  if (data.socialSettings) {
+  const cleaned = cleanLegacyCustomizations(data);
+  inMemoryCustomizations = cleaned;
+  if (cleaned.socialSettings) {
     try {
-      localStorage.setItem(SOCIAL_STORAGE_KEY, JSON.stringify(data.socialSettings));
+      localStorage.setItem(SOCIAL_STORAGE_KEY, JSON.stringify(cleaned.socialSettings));
     } catch (e) {
       // ignore
     }
   }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
   } catch (err) {
     console.warn('Failed to save admin customizations to localStorage (Quota reached, saving to IndexedDB):', err);
   }
-  saveToIndexedDb(data).catch(() => {});
+  saveToIndexedDb(cleaned).catch(() => {});
 }
 
 export function getCustomBeforeAfterForProduct(identifier: string): CustomBeforeAfterLook[] | null {
@@ -301,8 +321,6 @@ export function saveSavedUGCSpeed(speed: number): void {
   }
   saveAdminCustomizations(custom);
 }
-
-const SOCIAL_STORAGE_KEY = 'cinevo_social_settings_v1';
 
 export function getSavedSocialSettings(): SocialSettings {
   try {
