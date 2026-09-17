@@ -56,13 +56,13 @@ export default async function handler(req, res) {
     process.env.SHOPIFY_STORE_DOMAIN ||
     'template-theory-2.myshopify.com';
 
-  let token =
-    req.headers['x-shopify-access-token'] ||
-    process.env.VITE_SHOPIFY_ADMIN_TOKEN ||
-    process.env.SHOPIFY_ADMIN_TOKEN;
-
+  // Prefer live token from CLIENT_ID & CLIENT_SECRET, falling back to static token
+  let token = await getLiveShopifyToken(domain);
   if (!token) {
-    token = await getLiveShopifyToken(domain);
+    token =
+      req.headers['x-shopify-access-token'] ||
+      process.env.VITE_SHOPIFY_ADMIN_TOKEN ||
+      process.env.SHOPIFY_ADMIN_TOKEN;
   }
 
   const apiVersion =
@@ -89,8 +89,10 @@ export default async function handler(req, res) {
   try {
     const fetchHeaders = {
       'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': token,
     };
+    if (token) {
+      fetchHeaders['X-Shopify-Access-Token'] = token;
+    }
 
     const fetchOptions = {
       method: req.method || 'GET',
@@ -101,7 +103,17 @@ export default async function handler(req, res) {
       fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     }
 
-    const response = await fetch(targetUrl, fetchOptions);
+    let response = await fetch(targetUrl, fetchOptions);
+
+    // If token returned 401 (e.g. expired or invalid token in env vars), force refresh and retry once
+    if (response.status === 401) {
+      cachedAdminToken = null;
+      const freshToken = await getLiveShopifyToken(domain);
+      if (freshToken && freshToken !== token) {
+        fetchHeaders['X-Shopify-Access-Token'] = freshToken;
+        response = await fetch(targetUrl, fetchOptions);
+      }
+    }
     const contentType = response.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
