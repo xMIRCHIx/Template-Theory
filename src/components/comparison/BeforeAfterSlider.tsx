@@ -54,8 +54,10 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const rawBefore = beforeError ? (fallbackImage || afterImage) : (beforeImage || fallbackImage);
   const rawAfter = afterError ? (fallbackImage || beforeImage) : (afterImage || fallbackImage);
 
-  const activeBefore = optimizeImageUrl(rawBefore, 900);
-  const activeAfter = optimizeImageUrl(rawAfter, 900);
+  // Preserve 100% original uncompressed quality for Before/After LUT comparisons
+  // (Prevents aggressive 900px downscaling so fine details, skin tones, and LUT color rendering remain razor-sharp)
+  const activeBefore = rawBefore;
+  const activeAfter = rawAfter;
   const backdropAfter = optimizeImageUrl(rawAfter, 160); // lightweight 160px thumb for Gaussian blur layer
 
   const currentSrc = activeAfter || activeBefore;

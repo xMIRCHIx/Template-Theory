@@ -239,7 +239,7 @@ export const ProductDetailPage: React.FC = () => {
     const timer = setTimeout(() => {
       beforeAfterPairs.forEach((pair) => {
         [pair.before, pair.after].filter(Boolean).forEach((url) => {
-          const optUrl = optimizeImageUrl(url, 900);
+          const optUrl = url;
           const img = new Image();
           img.decoding = 'async';
           img.onload = () => {
